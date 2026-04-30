@@ -14,7 +14,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError('Email veya şifre hatalı')
@@ -22,10 +22,9 @@ export default function LoginPage() {
       return
     }
 
-    // Sayfayı tamamen yenile ve dashboard'a yönlendir
-    setTimeout(() => {
+    if (data.session) {
       window.location.href = '/dashboard'
-    }, 500)
+    }
   }
 
   return (
@@ -49,7 +48,6 @@ export default function LoginPage() {
         </div>
         <h1 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '4px' }}>Vectropus</h1>
         <p style={{ fontSize: '13px', color: '#888', marginBottom: '1.5rem' }}>Danışman girişi</p>
-
         <form onSubmit={handleLogin}>
           <input
             type="email"
