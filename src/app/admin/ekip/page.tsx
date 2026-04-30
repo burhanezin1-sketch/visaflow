@@ -61,27 +61,19 @@ export default function EkipPage() {
     setSaving(true)
     setError('')
 
-    // Supabase Auth'a kullanıcı oluştur
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: form.email,
-      password: form.password,
-      email_confirm: true,
+    const res = await fetch('/api/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
     })
 
-    if (authError) {
-      setError(authError.message)
+    const data = await res.json()
+
+    if (data.error) {
+      setError(data.error)
       setSaving(false)
       return
     }
-
-    // Users tablosuna ekle
-    await supabase.from('users').insert({
-      id: authData.user.id,
-      company_id: 'aaaaaaaa-0000-0000-0000-000000000001',
-      full_name: form.full_name,
-      email: form.email,
-      role: form.role,
-    })
 
     setSaving(false)
     setShowModal(false)
@@ -113,7 +105,6 @@ export default function EkipPage() {
       </div>
 
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
             <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Toplam Danışman</div>
@@ -132,7 +123,6 @@ export default function EkipPage() {
           </div>
         </div>
 
-        {/* Danışman listesi */}
         <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.25rem' }}>
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6' }}>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Danışman Listesi</h3>
@@ -176,7 +166,6 @@ export default function EkipPage() {
         </div>
       </div>
 
-      {/* DANISMAN EKLE MODAL */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
           <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '400px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
