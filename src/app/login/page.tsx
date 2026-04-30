@@ -23,7 +23,18 @@ export default function LoginPage() {
     }
 
     if (data.session) {
-      window.location.href = '/dashboard'
+      // Role kontrolü
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', data.session.user.id)
+        .single()
+
+      if (userData?.role === 'admin') {
+        window.location.href = '/admin'
+      } else {
+        window.location.href = '/dashboard'
+      }
     }
   }
 
