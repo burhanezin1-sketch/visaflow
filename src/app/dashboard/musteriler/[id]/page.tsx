@@ -36,6 +36,7 @@ export default function MusteriDetayPage() {
   const [pendingTransfer, setPendingTransfer] = useState<any>(null)
   const [randevuTarih, setRandevuTarih] = useState('')
   const [randevuSaat, setRandevuSaat] = useState('')
+  const [randevuKonsolosluk, setRandevuKonsolosluk] = useState('')
   const [paidAmount, setPaidAmount] = useState('')
   const [showOdemeEdit, setShowOdemeEdit] = useState(false)
 
@@ -115,8 +116,12 @@ export default function MusteriDetayPage() {
   async function randevuEkle() {
     if (!randevuTarih || !randevuSaat) return
     const dt = `${randevuTarih}T${randevuSaat}:00`
-    await supabase.from('applications').update({ appointment_date: dt, status: 'appointment' }).eq('id', application.id)
-    setApplication({ ...application, appointment_date: dt, status: 'appointment' })
+    await supabase.from('applications').update({
+      appointment_date: dt,
+      status: 'appointment',
+      consulate: randevuKonsolosluk || null,
+    }).eq('id', application.id)
+    setApplication({ ...application, appointment_date: dt, status: 'appointment', consulate: randevuKonsolosluk })
     setShowRandevuModal(false)
   }
 
@@ -147,7 +152,6 @@ export default function MusteriDetayPage() {
       <Topbar title={client.full_name} />
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
 
-        {/* Devir bildirimi */}
         {pendingTransfer && pendingTransfer.to_user === currentUser?.id && (
           <div style={{ background: '#eef4fb', border: '1px solid #b8d4f0', borderRadius: '10px', padding: '12px 16px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <div>
@@ -168,7 +172,6 @@ export default function MusteriDetayPage() {
           </div>
         )}
 
-        {/* Aksiyonlar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '8px' }}>
           <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: '#5a6a7a' }}>← Geri</button>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -322,8 +325,12 @@ export default function MusteriDetayPage() {
       {/* RANDEVU MODAL */}
       {showRandevuModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '360px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '380px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
             <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '1.5rem', color: '#0d1f35' }}>📅 Randevu Ekle</h3>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Konsolosluk</label>
+              <input value={randevuKonsolosluk} onChange={e => setRandevuKonsolosluk(e.target.value)} placeholder="Fransa Konsolosluğu İstanbul" style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+            </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Tarih</label>
               <input type="date" value={randevuTarih} onChange={e => setRandevuTarih(e.target.value)} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
@@ -374,7 +381,7 @@ export default function MusteriDetayPage() {
             <div style={{ fontSize: '32px', marginBottom: '1rem' }}>⚠️</div>
             <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '8px', color: '#0d1f35' }}>Müşteriyi Sil</h3>
             <p style={{ fontSize: '13px', color: '#5a6a7a', marginBottom: '1.5rem' }}>
-              <strong>{client.full_name}</strong> ve tüm kayıtları (notlar, ödemeler, mesajlar) kalıcı olarak silinecek. Bu işlem geri alınamaz.
+              <strong>{client.full_name}</strong> ve tüm kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
