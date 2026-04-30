@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
-  waiting: { label: 'Evrak Bekleniyor', bg: '#fff8ec', color: '#92600a' },
+  appointment_waiting: { label: 'Randevu Bekleniyor', bg: '#fff8ec', color: '#92600a' },
   appointment: { label: 'Randevu Alındı', bg: '#eef4fb', color: '#1a5fa5' },
-  done: { label: 'Tamamlandı', bg: '#edfaf3', color: '#1a7a45' },
+  approved: { label: 'Onaylandı ✓', bg: '#edfaf3', color: '#1a7a45' },
+  rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
 }
 
 export default function MusterilerPage() {
@@ -82,7 +83,7 @@ export default function MusterilerPage() {
         client_id: newClient.id,
         country: form.country,
         visa_type: form.visa_type,
-        status: 'waiting',
+        status: 'missing',
       })
       await fetchData()
       setShowModal(false)
@@ -113,9 +114,10 @@ export default function MusterilerPage() {
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '7px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '12px', background: '#faf8f3', outline: 'none' }}>
                 <option value="">Tüm Durumlar</option>
                 <option value="missing">Evrak Eksik</option>
-                <option value="waiting">Evrak Bekleniyor</option>
+                <option value="appointment_waiting">Randevu Bekleniyor</option>
                 <option value="appointment">Randevu Alındı</option>
-                <option value="done">Tamamlandı</option>
+                <option value="approved">Onaylandı</option>
+                <option value="rejected">Reddedildi</option>
               </select>
               <button onClick={() => setShowModal(true)} style={{ padding: '7px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
                 + Yeni Müşteri
@@ -133,7 +135,7 @@ export default function MusterilerPage() {
             <tbody>
               {filtered.map(c => {
                 const app = c.applications?.[0]
-                const s = statusMap[app?.status] || statusMap.waiting
+                const s = statusMap[app?.status] || statusMap.missing
                 return (
                   <tr key={c.id} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)} style={{ cursor: 'pointer' }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#faf8f3')}
@@ -156,7 +158,6 @@ export default function MusterilerPage() {
         </div>
       </div>
 
-      {/* YENİ MÜŞTERİ MODAL */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
           <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>

@@ -19,15 +19,8 @@ export default function DashboardPage() {
         const { data: userData } = await supabase.from('users').select('full_name').eq('id', user.id).single()
         if (userData?.full_name) setUserName(userData.full_name.split(' ')[0])
       }
-
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('*, applications(*)')
-      const { data: leadsData } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('status', 'waiting')
-
+      const { data: clientsData } = await supabase.from('clients').select('*, applications(*)')
+      const { data: leadsData } = await supabase.from('leads').select('*').eq('status', 'waiting')
       setClients(clientsData || [])
       setLeads(leadsData || [])
       setLoading(false)
@@ -36,11 +29,19 @@ export default function DashboardPage() {
   }, [])
 
   const bekleyenEvrak = clients.filter(c =>
-    c.applications?.some((a: any) => a.status === 'missing' || a.status === 'waiting')
+    c.applications?.some((a: any) => a.status === 'missing')
   )
   const randevular = clients.filter(c =>
     c.applications?.some((a: any) => a.status === 'appointment')
   )
+
+  const statusMap: any = {
+    missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
+    appointment_waiting: { label: 'Randevu Bekleniyor', bg: '#fff8ec', color: '#92600a' },
+    appointment: { label: 'Randevu Alındı', bg: '#eef4fb', color: '#1a5fa5' },
+    approved: { label: 'Onaylandı ✓', bg: '#edfaf3', color: '#1a7a45' },
+    rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
+  }
 
   if (loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -52,7 +53,6 @@ export default function DashboardPage() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Dashboard" />
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-
         <div style={{ marginBottom: '1.5rem' }}>
           <h2 style={{ fontSize: '20px', fontWeight: '500', color: '#0d1f35', margin: 0 }}>
             Günaydın, {userName} 👋
@@ -70,10 +70,8 @@ export default function DashboardPage() {
             { label: 'Bu Hafta Randevu', value: randevular.length, color: '#1a3a5c', sub: 'Takvimi aç →', click: () => router.push('/dashboard/takvim') },
           ].map((s, i) => (
             <div key={i} onClick={s.click} style={{
-              background: 'white', border: '1px solid #e8e4da',
-              borderRadius: '12px', padding: '1.25rem',
-              cursor: s.click ? 'pointer' : 'default',
-              transition: 'all 0.2s',
+              background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem',
+              cursor: s.click ? 'pointer' : 'default', transition: 'all 0.2s',
             }}>
               <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
               <div style={{ fontSize: '26px', fontWeight: '500', color: s.color, lineHeight: 1 }}>{s.value}</div>
@@ -100,9 +98,7 @@ export default function DashboardPage() {
                 {bekleyenEvrak.map(c => (
                   <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)}>
                     <td style={{ padding: '10px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{c.full_name}</td>
-                    <td style={{ padding: '10px 1.25rem', fontSize: '11px', color: '#c0392b', borderBottom: '1px solid #f0ede6' }}>
-                      {c.applications?.[0]?.status === 'missing' ? 'Evrak Eksik' : 'Evrak Bekleniyor'}
-                    </td>
+                    <td style={{ padding: '10px 1.25rem', fontSize: '11px', color: '#c0392b', borderBottom: '1px solid #f0ede6' }}>Evrak Eksik</td>
                     <td style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
                       <button style={{ padding: '3px 8px', fontSize: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Profil</button>
                     </td>
@@ -128,13 +124,7 @@ export default function DashboardPage() {
               <tbody>
                 {clients.slice(0, 5).map(c => {
                   const app = c.applications?.[0]
-                  const statusMap: any = {
-                    missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
-                    waiting: { label: 'Evrak Bekleniyor', bg: '#fff8ec', color: '#92600a' },
-                    appointment: { label: 'Randevu Alındı', bg: '#eef4fb', color: '#1a5fa5' },
-                    done: { label: 'Tamamlandı', bg: '#edfaf3', color: '#1a7a45' },
-                  }
-                  const s = statusMap[app?.status] || statusMap.waiting
+                  const s = statusMap[app?.status] || statusMap.missing
                   return (
                     <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)}>
                       <td style={{ padding: '10px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>{c.full_name}</td>
