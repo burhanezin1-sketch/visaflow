@@ -9,10 +9,17 @@ export default function DashboardPage() {
   const [clients, setClients] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [userName, setUserName] = useState('')
   const router = useRouter()
 
   useEffect(() => {
     async function fetchData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: userData } = await supabase.from('users').select('full_name').eq('id', user.id).single()
+        if (userData?.full_name) setUserName(userData.full_name.split(' ')[0])
+      }
+
       const { data: clientsData } = await supabase
         .from('clients')
         .select('*, applications(*)')
@@ -20,6 +27,7 @@ export default function DashboardPage() {
         .from('leads')
         .select('*')
         .eq('status', 'waiting')
+
       setClients(clientsData || [])
       setLeads(leadsData || [])
       setLoading(false)
@@ -45,17 +53,15 @@ export default function DashboardPage() {
       <Topbar title="Dashboard" />
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
 
-        {/* Selamlama */}
         <div style={{ marginBottom: '1.5rem' }}>
           <h2 style={{ fontSize: '20px', fontWeight: '500', color: '#0d1f35', margin: 0 }}>
-            Günaydın, Serdar 👋
+            Günaydın, {userName} 👋
           </h2>
           <p style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>
             {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
 
-        {/* Stat kartları */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
           {[
             { label: 'Aktif Dosya', value: clients.length, color: '#0d1f35', sub: '+2 bu hafta' },
@@ -76,9 +82,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Alt 2 tablo */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-          {/* Evrak bekleyen */}
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>📋 Evrak Bekleyen Müşteriler</h3>
@@ -108,7 +112,6 @@ export default function DashboardPage() {
             </table>
           </div>
 
-          {/* Son işlemler */}
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>🕐 Son İşlemler</h3>
