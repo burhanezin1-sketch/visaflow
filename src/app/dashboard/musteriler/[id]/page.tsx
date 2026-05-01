@@ -41,6 +41,7 @@ export default function MusteriDetayPage() {
   const [showOdemeEdit, setShowOdemeEdit] = useState(false)
   const [linkKopyalandi, setLinkKopyalandi] = useState(false)
   const [documents, setDocuments] = useState<any[]>([])
+  const [visaDocuments, setVisaDocuments] = useState<any[]>([])
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -55,6 +56,18 @@ export default function MusteriDetayPage() {
     const { data: usersData } = await supabase.from('users').select('*').eq('company_id', 'aaaaaaaa-0000-0000-0000-000000000001')
     const { data: transferData } = await supabase.from('transfer_requests').select('*, to_user_info:users!transfer_requests_to_user_fkey(full_name)').eq('client_id', id).eq('status', 'pending').single()
     const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
+
+    // Visa documents — ülke ve vize tipine göre
+    if (appData?.country && appData?.visa_type) {
+      const { data: visaDocs } = await supabase
+        .from('visa_documents')
+        .select('*')
+        .eq('country', appData.country)
+        .eq('visa_type', appData.visa_type)
+        .order('order_num', { ascending: true })
+      setVisaDocuments(visaDocs || [])
+    }
+
     setClient(clientData)
     setApplication(appData)
     setPayment(paymentData)
@@ -155,6 +168,16 @@ export default function MusteriDetayPage() {
   const kalan = payment ? payment.total_amount - payment.paid_amount : 0
   const isMyClient = client.danisan_id === currentUser?.id
   const digerDanismanlar = danismanlar.filter(d => d.id !== currentUser?.id)
+
+  // Evrak eşleştirme — visa_documents ile yüklenen documents'ı eşleştir
+  const evrakDurumu = visaDocuments.map(vd => {
+    const yuklendi = documents.find(d => d.name === vd.doc_name)
+    return { ...vd, yuklendi: !!yuklendi, fileUrl: yuklendi?.file_url }
+  })
+
+  const tamamlanan = evrakDurumu.filter(e => e.yuklendi || e.delivery_type === 'company').length
+  const toplam = evrakDurumu.length
+  const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -259,24 +282,59 @@ export default function MusteriDetayPage() {
 
             {activeTab === 'evrak' && (
               <div style={{ padding: '1.25rem' }}>
-                {documents.length === 0 ? (
-                  <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '12px' }}>Henüz evrak yüklenmedi.</p>
+                {visaDocuments.length === 0 ? (
+                  <p style={{ fontSize: '12px', color: '#9aaabb' }}>Bu vize tipi için evrak listesi tanımlanmamış.</p>
                 ) : (
-                  <div style={{ marginBottom: '12px' }}>
-                    {documents.map(doc => (
-                      <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35' }}>{doc.name}</div>
-                          <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>{new Date(doc.created_at).toLocaleDateString('tr-TR')}</div>
+                  <>
+                    {/* Progress bar */}
+                    <div style={{ marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#5a6a7a', marginBottom: '6px' }}>
+                        <span>Evrak Tamamlanma</span>
+                        <span style={{ fontWeight: '600', color: yuzde === 100 ? '#1a7a45' : '#0d1f35' }}>{tamamlanan}/{toplam} — %{yuzde}</span>
+                      </div>
+                      <div style={{ height: '6px', background: '#f0ede6', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${yuzde}%`, background: yuzde === 100 ? '#1a7a45' : '#1a5fa5', borderRadius: '10px', transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+
+                    {evrakDurumu.map((evrak, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                          {evrak.delivery_type === 'company' ? (
+                            <span style={{ fontSize: '14px' }}>🏢</span>
+                          ) : evrak.delivery_type === 'physical' ? (
+                            <span style={{ fontSize: '14px' }}>🤝</span>
+                          ) : evrak.yuklendi ? (
+                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
+                          ) : (
+                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid #e8e4da', flexShrink: 0 }} />
+                          )}
+                          <div>
+                            <div style={{ fontSize: '13px', color: '#0d1f35' }}>{evrak.doc_name}</div>
+                            <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
+                              {evrak.delivery_type === 'company' ? 'Firma ekleyecek' : evrak.delivery_type === 'physical' ? 'Elden teslim' : evrak.yuklendi ? 'Yüklendi' : 'Bekleniyor'}
+                            </div>
+                          </div>
                         </div>
-                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none' }}>
-                          Görüntüle
-                        </a>
+                        {evrak.yuklendi && evrak.fileUrl && (
+                          <a href={evrak.fileUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                            Görüntüle
+                          </a>
+                        )}
+                        {evrak.delivery_type === 'physical' && (
+                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Zorunlu Elden</span>
+                        )}
+                        {evrak.delivery_type === 'company' && (
+                          <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>Firma</span>
+                        )}
                       </div>
                     ))}
-                  </div>
+
+                    <button style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                      📎 Evrak Hatırlatması Gönder
+                    </button>
+                  </>
                 )}
-                <button style={{ width: '100%', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>📎 Evrak Hatırlatması Gönder</button>
               </div>
             )}
 
