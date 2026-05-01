@@ -75,25 +75,24 @@ export default function PortalPage() {
     setEvraklar(prev => ({ ...prev, [idx]: { tip: 'dijital', yukleniyor: true } }))
 
     const fileName = `${client.id}/${idx}_${Date.now()}_${file.name}`
-    const { data, error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('documents')
       .upload(fileName, file, { upsert: true })
 
-    if (error) {
+    if (uploadError) {
       setEvraklar(prev => ({ ...prev, [idx]: { tip: 'hata' } }))
       return
     }
 
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
 
-    // documents tablosuna kaydet
     await supabase.from('documents').insert({
       application_id: application?.id,
-      client_id: client.id,
-      company_id: client.company_id,
-      doc_type: EVRAK_LISTESI[idx].ad,
+      name: EVRAK_LISTESI[idx].ad,
       file_url: urlData.publicUrl,
+      file_name: file.name,
       status: 'uploaded',
+      delivery_type: 'digital',
     })
 
     setEvraklar(prev => ({ ...prev, [idx]: { tip: 'dijital', url: urlData.publicUrl, yukleniyor: false } }))
