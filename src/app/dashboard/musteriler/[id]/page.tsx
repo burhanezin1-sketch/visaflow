@@ -39,6 +39,8 @@ export default function MusteriDetayPage() {
   const [randevuKonsolosluk, setRandevuKonsolosluk] = useState('')
   const [paidAmount, setPaidAmount] = useState('')
   const [showOdemeEdit, setShowOdemeEdit] = useState(false)
+  const [linkKopyalandi, setLinkKopyalandi] = useState(false)
+  const [documents, setDocuments] = useState<any[]>([])
 
   useEffect(() => { fetchAll() }, [id])
 
@@ -52,6 +54,7 @@ export default function MusteriDetayPage() {
     const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
     const { data: usersData } = await supabase.from('users').select('*').eq('company_id', 'aaaaaaaa-0000-0000-0000-000000000001')
     const { data: transferData } = await supabase.from('transfer_requests').select('*, to_user_info:users!transfer_requests_to_user_fkey(full_name)').eq('client_id', id).eq('status', 'pending').single()
+    const { data: docsData } = await supabase.from('documents').select('*').eq('client_id', id).order('created_at', { ascending: false })
     setClient(clientData)
     setApplication(appData)
     setPayment(paymentData)
@@ -60,6 +63,7 @@ export default function MusteriDetayPage() {
     setWaMessages(waData || [])
     setDanismanlar(usersData || [])
     setPendingTransfer(transferData || null)
+    setDocuments(docsData || [])
     setLoading(false)
   }
 
@@ -108,6 +112,7 @@ export default function MusteriDetayPage() {
     await supabase.from('notes').delete().eq('application_id', application?.id)
     await supabase.from('wa_messages').delete().eq('client_id', id)
     await supabase.from('payments').delete().eq('application_id', application?.id)
+    await supabase.from('documents').delete().eq('client_id', id)
     await supabase.from('applications').delete().eq('client_id', id)
     await supabase.from('clients').delete().eq('id', id)
     router.push('/dashboard/musteriler')
@@ -117,9 +122,7 @@ export default function MusteriDetayPage() {
     if (!randevuTarih || !randevuSaat) return
     const dt = `${randevuTarih}T${randevuSaat}:00`
     await supabase.from('applications').update({
-      appointment_date: dt,
-      status: 'appointment',
-      consulate: randevuKonsolosluk || null,
+      appointment_date: dt, status: 'appointment', consulate: randevuKonsolosluk || null,
     }).eq('id', application.id)
     setApplication({ ...application, appointment_date: dt, status: 'appointment', consulate: randevuKonsolosluk })
     setShowRandevuModal(false)
@@ -137,6 +140,12 @@ export default function MusteriDetayPage() {
     if (!confirm(`Durumu "${statusMap[val]?.label}" olarak değiştirmek istediğinizden emin misiniz?`)) return
     await supabase.from('applications').update({ status: val }).eq('id', application.id)
     setApplication({ ...application, status: val })
+  }
+
+  function copyPortalLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/portal/${client.portal_token}`)
+    setLinkKopyalandi(true)
+    setTimeout(() => setLinkKopyalandi(false), 2000)
   }
 
   if (loading) return <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#888' }}>Yükleniyor...</div></div>
@@ -213,6 +222,14 @@ export default function MusteriDetayPage() {
                   <span style={{ fontWeight: '500', color: label === 'Randevu' ? '#1a5fa5' : '#0d1f35' }}>{value}</span>
                 </div>
               ))}
+
+              {/* Portal linki */}
+              <div style={{ marginTop: '12px', padding: '10px 12px', background: '#faf8f3', border: '1px solid #e8e4da', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#5a6a7a' }}>🔗 Müşteri Portal Linki</span>
+                <button onClick={copyPortalLink} style={{ padding: '4px 12px', fontSize: '11px', fontWeight: '500', background: linkKopyalandi ? '#1a7a45' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  {linkKopyalandi ? '✓ Kopyalandı' : 'Kopyala'}
+                </button>
+              </div>
             </div>
 
             <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
@@ -244,7 +261,23 @@ export default function MusteriDetayPage() {
 
             {activeTab === 'evrak' && (
               <div style={{ padding: '1.25rem' }}>
-                <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '12px' }}>Evrak yönetimi yakında eklenecek.</p>
+                {documents.length === 0 ? (
+                  <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '12px' }}>Henüz evrak yüklenmedi.</p>
+                ) : (
+                  <div style={{ marginBottom: '12px' }}>
+                    {documents.map(doc => (
+                      <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35' }}>{doc.doc_type}</div>
+                          <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>{new Date(doc.created_at).toLocaleDateString('tr-TR')}</div>
+                        </div>
+                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none' }}>
+                          Görüntüle
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <button style={{ width: '100%', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>📎 Evrak Hatırlatması Gönder</button>
               </div>
             )}
