@@ -24,7 +24,7 @@ export default function PortalPage() {
   const [phone, setPhone] = useState('')
   const [emailSaved, setEmailSaved] = useState(false)
   const [phoneSaved, setPhoneSaved] = useState(false)
-  const [evrakSecimler, setEvrakSecimler] = useState<Record<number, string>>({})
+  const [evraklar, setEvraklar] = useState<Record<number, { tip: string, url?: string, yukleniyor?: boolean }>>({})
   const [ocrDone, setOcrDone] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrData, setOcrData] = useState<any>(null)
@@ -38,8 +38,7 @@ export default function PortalPage() {
         setClient(c)
         setEmail(c.email || '')
         setPhone(c.phone || '')
-        const { data: appData } = await supabase
-          .from('applications').select('*').eq('client_id', c.id).single()
+        const { data: appData } = await supabase.from('applications').select('*').eq('client_id', c.id).single()
         setApplication(appData)
       }
       setLoading(false)
@@ -69,10 +68,35 @@ export default function PortalPage() {
     }, 2500)
   }
 
-  function handleFileChange(idx: number, e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      setEvrakSecimler(prev => ({ ...prev, [idx]: 'dijital' }))
+  async function handleFileUpload(idx: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !client) return
+
+    setEvraklar(prev => ({ ...prev, [idx]: { tip: 'dijital', yukleniyor: true } }))
+
+    const fileName = `${client.id}/${idx}_${Date.now()}_${file.name}`
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .upload(fileName, file, { upsert: true })
+
+    if (error) {
+      setEvraklar(prev => ({ ...prev, [idx]: { tip: 'hata' } }))
+      return
     }
+
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
+
+    // documents tablosuna kaydet
+    await supabase.from('documents').insert({
+      application_id: application?.id,
+      client_id: client.id,
+      company_id: client.company_id,
+      doc_type: EVRAK_LISTESI[idx].ad,
+      file_url: urlData.publicUrl,
+      status: 'uploaded',
+    })
+
+    setEvraklar(prev => ({ ...prev, [idx]: { tip: 'dijital', url: urlData.publicUrl, yukleniyor: false } }))
   }
 
   if (loading) return (
@@ -86,7 +110,7 @@ export default function PortalPage() {
       <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', textAlign: 'center', maxWidth: '320px' }}>
         <div style={{ fontSize: '32px', marginBottom: '1rem' }}>❌</div>
         <h2 style={{ fontSize: '16px', marginBottom: '8px' }}>Link geçersiz</h2>
-        <p style={{ fontSize: '13px', color: '#888' }}>Bu portal linki bulunamadı veya süresi dolmuş.</p>
+        <p style={{ fontSize: '13px', color: '#888' }}>Bu portal linki bulunamadı.</p>
       </div>
     </div>
   )
@@ -95,7 +119,6 @@ export default function PortalPage() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '440px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
 
-        {/* Header */}
         <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center' }}>
           <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -110,7 +133,6 @@ export default function PortalPage() {
           </p>
         </div>
 
-        {/* Sekmeler */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e8e4da' }}>
           {[['pasaport', '📄 Pasaport'], ['evrak', '📋 Evraklar'], ['bilgi', '👤 Bilgilerim']].map(([key, label]) => (
             <button key={key} onClick={() => setActiveTab(key)} style={{
@@ -119,15 +141,12 @@ export default function PortalPage() {
               cursor: 'pointer', fontFamily: 'inherit',
               color: activeTab === key ? '#0d1f35' : '#9aaabb',
               borderBottom: activeTab === key ? '2px solid #c9a84c' : '2px solid transparent',
-            }}>
-              {label}
-            </button>
+            }}>{label}</button>
           ))}
         </div>
 
         <div style={{ padding: '1.5rem' }}>
 
-          {/* PASAPORT */}
           {activeTab === 'pasaport' && (
             <div>
               {!ocrDone && !ocrLoading && (
@@ -152,7 +171,7 @@ export default function PortalPage() {
                   {[['Ad Soyad', ocrData.ad], ['Pasaport No', ocrData.no], ['Uyruk', ocrData.uyruk], ['Doğum Tarihi', ocrData.dogum], ['Son Geçerlilik', ocrData.gecerlilik]].map(([label, value]) => (
                     <div key={label} style={{ marginBottom: '10px' }}>
                       <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</label>
-                      <input readOnly value={value} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #a8e6c1', borderRadius: '8px', fontSize: '13px', background: '#edfaf3', color: '#0d1f35', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
+                      <input readOnly value={value} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #a8e6c1', borderRadius: '8px', fontSize: '13px', background: '#edfaf3', outline: 'none', boxSizing: 'border-box' }} />
                     </div>
                   ))}
                   <button onClick={() => setActiveTab('evrak')} style={{ width: '100%', padding: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', marginTop: '8px' }}>
@@ -163,71 +182,71 @@ export default function PortalPage() {
             </div>
           )}
 
-          {/* EVRAKLAR */}
           {activeTab === 'evrak' && (
             <div>
               {EVRAK_LISTESI.map((evrak, idx) => {
-                const secim = evrakSecimler[idx]
+                const secim = evraklar[idx]
 
-                // Firma tarafından karşılanacak
-                if (evrak.tip === 'firma') {
-                  return (
-                    <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#eef4fb', borderRadius: '8px', padding: '10px 12px' }}>
-                        <span style={{ fontSize: '16px' }}>🏢</span>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35' }}>{evrak.ad}</div>
-                          <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>Danışmanlık firmanız tarafından karşılanacaktır.</div>
-                        </div>
-                        <span style={{ marginLeft: 'auto', background: '#eef4fb', color: '#1a5fa5', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap', border: '1px solid #b8d4f0' }}>Firma Ekleyecek</span>
+                if (evrak.tip === 'firma') return (
+                  <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#eef4fb', borderRadius: '8px', padding: '10px 12px' }}>
+                      <span style={{ fontSize: '16px' }}>🏢</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '500' }}>{evrak.ad}</div>
+                        <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>Danışmanlık firmanız tarafından karşılanacak.</div>
                       </div>
+                      <span style={{ background: '#eef4fb', color: '#1a5fa5', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #b8d4f0', whiteSpace: 'nowrap' }}>Firma Ekleyecek</span>
                     </div>
-                  )
-                }
+                  </div>
+                )
 
-                // Zorunlu elden
-                if (evrak.tip === 'elden') {
-                  return (
-                    <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#faf8f3', borderRadius: '8px', padding: '10px 12px' }}>
-                        <span style={{ fontSize: '16px' }}>🤝</span>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '500' }}>{evrak.ad}</div>
-                          <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>Randevu günü elden teslim edilmelidir.</div>
-                        </div>
-                        <span style={{ marginLeft: 'auto', background: '#fff8ec', color: '#92600a', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>Zorunlu Elden</span>
+                if (evrak.tip === 'elden') return (
+                  <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#faf8f3', borderRadius: '8px', padding: '10px 12px' }}>
+                      <span style={{ fontSize: '16px' }}>🤝</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '500' }}>{evrak.ad}</div>
+                        <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>Randevu günü elden teslim edilmelidir.</div>
                       </div>
+                      <span style={{ background: '#fff8ec', color: '#92600a', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>Zorunlu Elden</span>
                     </div>
-                  )
-                }
+                  </div>
+                )
 
-                // Seçim yapıldı
-                if (secim) {
-                  return (
-                    <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#edfaf3', border: '1px solid #a8e6c1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#1a7a45', flexShrink: 0 }}>
-                          {secim === 'elden' ? '🤝' : '✓'}
-                        </div>
-                        <span style={{ fontSize: '13px', color: '#0d1f35' }}>{evrak.ad}</span>
-                        <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>
-                          {secim === 'elden' ? 'Elden getirilecek' : 'Dijital yüklendi'}
-                        </span>
-                      </div>
+                if (secim?.yukleniyor) return (
+                  <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                    <div style={{ fontSize: '13px', color: '#9aaabb' }}>{evrak.ad} — yükleniyor...</div>
+                  </div>
+                )
+
+                if (secim?.tip === 'dijital' && secim.url) return (
+                  <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#edfaf3', border: '1px solid #a8e6c1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
+                      <span style={{ fontSize: '13px', color: '#0d1f35' }}>{evrak.ad}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>Yüklendi ✓</span>
                     </div>
-                  )
-                }
+                  </div>
+                )
 
-                // Seçim bekliyor
+                if (secim?.tip === 'elden') return (
+                  <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', color: '#0d1f35' }}>{evrak.ad}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#92600a', fontWeight: '500' }}>Elden getirilecek</span>
+                    </div>
+                  </div>
+                )
+
                 return (
                   <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                    <div style={{ fontSize: '13px', color: '#854f0b', marginBottom: '8px', fontWeight: '500' }}>{evrak.ad}</div>
+                    <div style={{ fontSize: '13px', color: '#0d1f35', marginBottom: '8px', fontWeight: '500' }}>{evrak.ad}</div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <input
                         type="file"
                         accept="image/*,application/pdf"
                         ref={el => { fileRefs.current[idx] = el }}
-                        onChange={e => handleFileChange(idx, e)}
+                        onChange={e => handleFileUpload(idx, e)}
                         style={{ display: 'none' }}
                       />
                       <button
@@ -237,7 +256,7 @@ export default function PortalPage() {
                         📎 Dijital Yükle
                       </button>
                       <button
-                        onClick={() => setEvrakSecimler(prev => ({ ...prev, [idx]: 'elden' }))}
+                        onClick={() => setEvraklar(prev => ({ ...prev, [idx]: { tip: 'elden' } }))}
                         style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', background: '#faf8f3', color: '#1a3a5c', border: '1.5px solid #1a3a5c', borderRadius: '8px', cursor: 'pointer' }}
                       >
                         🤝 Elden Getireceğim
@@ -249,7 +268,6 @@ export default function PortalPage() {
             </div>
           )}
 
-          {/* BİLGİLERİM */}
           {activeTab === 'bilgi' && (
             <div>
               <div style={{ marginBottom: '14px' }}>
@@ -258,28 +276,13 @@ export default function PortalPage() {
               </div>
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Telefon</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => { setPhone(e.target.value); setPhoneSaved(false) }}
-                  placeholder="+90 5xx xxx xx xx"
-                  style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                />
+                <input type="tel" value={phone} onChange={e => { setPhone(e.target.value); setPhoneSaved(false) }} placeholder="+90 5xx xxx xx xx" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>E-posta</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setEmailSaved(false) }}
-                  placeholder="ornek@email.com"
-                  style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                />
+                <input type="email" value={email} onChange={e => { setEmail(e.target.value); setEmailSaved(false) }} placeholder="ornek@email.com" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
-              <button
-                onClick={saveBilgi}
-                style={{ width: '100%', padding: '11px', background: emailSaved && phoneSaved ? '#1a7a45' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', marginBottom: '12px' }}
-              >
+              <button onClick={saveBilgi} style={{ width: '100%', padding: '11px', background: emailSaved && phoneSaved ? '#1a7a45' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', marginBottom: '12px' }}>
                 {emailSaved && phoneSaved ? '✓ Kaydedildi!' : 'Bilgileri Kaydet'}
               </button>
               <div style={{ background: '#faf8f3', borderRadius: '8px', padding: '12px', fontSize: '12px', color: '#5a6a7a', lineHeight: '1.5' }}>
@@ -287,7 +290,6 @@ export default function PortalPage() {
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>
