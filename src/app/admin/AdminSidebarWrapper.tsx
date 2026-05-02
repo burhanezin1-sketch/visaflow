@@ -2,6 +2,8 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useCompany } from '@/lib/useCompany'
+import { useEffect, useState } from 'react'
 
 const navItems = [
   { label: 'Genel Bakış', href: '/admin' },
@@ -14,6 +16,15 @@ const navItems = [
 export default function AdminSidebarWrapper() {
   const router = useRouter()
   const pathname = usePathname()
+  const { companyId } = useCompany()
+  const [companyName, setCompanyName] = useState('')
+
+  useEffect(() => {
+    if (!companyId) return
+    supabase.from('companies').select('name').eq('id', companyId).single().then(({ data }) => {
+      if (data) setCompanyName(data.name)
+    })
+  }, [companyId])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -27,7 +38,7 @@ export default function AdminSidebarWrapper() {
       padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh',
     }}>
       <div style={{ padding: '0 1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '0.75rem' }}>
-        <div style={{ fontSize: '16px', fontWeight: '600', color: 'white' }}>Çınar Danışmanlık</div>
+        <div style={{ fontSize: '16px', fontWeight: '600', color: 'white' }}>{companyName || '...'}</div>
         <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>Admin Panel</div>
       </div>
       {navItems.map(item => {
