@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const { full_name, email, password, role } = await request.json()
+  const { full_name, email, password, role, company_id } = await request.json()
 
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   await supabaseAdmin.from('users').insert({
     id: authData.user.id,
-    company_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+    company_id: company_id,
     full_name,
     email,
     role,

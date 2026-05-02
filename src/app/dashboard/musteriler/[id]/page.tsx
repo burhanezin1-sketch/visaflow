@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter, useParams } from 'next/navigation'
+import { useCompany } from '@/lib/useCompany'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -16,6 +17,7 @@ const statusMap: any = {
 export default function MusteriDetayPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { companyId } = useCompany()
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
   const [payment, setPayment] = useState<any>(null)
@@ -43,9 +45,10 @@ export default function MusteriDetayPage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [visaDocuments, setVisaDocuments] = useState<any[]>([])
 
-  useEffect(() => { fetchAll() }, [id])
+  useEffect(() => { fetchAll() }, [id, companyId])
 
   async function fetchAll() {
+    if (!companyId) return
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).single()
@@ -53,11 +56,10 @@ export default function MusteriDetayPage() {
     const { data: paymentData } = await supabase.from('payments').select('*').eq('application_id', appData?.id).single()
     const { data: notesData } = await supabase.from('notes').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
     const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
-    const { data: usersData } = await supabase.from('users').select('*').eq('company_id', 'aaaaaaaa-0000-0000-0000-000000000001')
+    const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
     const { data: transferData } = await supabase.from('transfer_requests').select('*, to_user_info:users!transfer_requests_to_user_fkey(full_name)').eq('client_id', id).eq('status', 'pending').single()
     const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
 
-    // Visa documents — ülke ve vize tipine göre
     if (appData?.country && appData?.visa_type) {
       const { data: visaDocs } = await supabase
         .from('visa_documents')
@@ -97,10 +99,10 @@ export default function MusteriDetayPage() {
   }
 
   async function devirGonder() {
-    if (!devirHedef) return
+    if (!devirHedef || !companyId) return
     setDevirSaving(true)
     await supabase.from('transfer_requests').insert({
-      company_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+      company_id: companyId,
       client_id: id, from_user: currentUser?.id, to_user: devirHedef, note: devirNot,
     })
     setDevirSaving(false)
@@ -169,7 +171,6 @@ export default function MusteriDetayPage() {
   const isMyClient = client.danisan_id === currentUser?.id
   const digerDanismanlar = danismanlar.filter(d => d.id !== currentUser?.id)
 
-  // Evrak eşleştirme — visa_documents ile yüklenen documents'ı eşleştir
   const evrakDurumu = visaDocuments.map(vd => {
     const yuklendi = documents.find(d => d.name === vd.doc_name)
     return { ...vd, yuklendi: !!yuklendi, fileUrl: yuklendi?.file_url }
@@ -286,7 +287,6 @@ export default function MusteriDetayPage() {
                   <p style={{ fontSize: '12px', color: '#9aaabb' }}>Bu vize tipi için evrak listesi tanımlanmamış.</p>
                 ) : (
                   <>
-                    {/* Progress bar */}
                     <div style={{ marginBottom: '1rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#5a6a7a', marginBottom: '6px' }}>
                         <span>Evrak Tamamlanma</span>
@@ -296,7 +296,6 @@ export default function MusteriDetayPage() {
                         <div style={{ height: '100%', width: `${yuzde}%`, background: yuzde === 100 ? '#1a7a45' : '#1a5fa5', borderRadius: '10px', transition: 'width 0.3s' }} />
                       </div>
                     </div>
-
                     {evrakDurumu.map((evrak, idx) => (
                       <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
@@ -321,7 +320,7 @@ export default function MusteriDetayPage() {
                             Görüntüle
                           </a>
                         )}
-                        {evrak.delivery_type === 'physical' && (
+                        {!evrak.yuklendi && evrak.delivery_type === 'physical' && (
                           <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Zorunlu Elden</span>
                         )}
                         {evrak.delivery_type === 'company' && (
@@ -329,7 +328,6 @@ export default function MusteriDetayPage() {
                         )}
                       </div>
                     ))}
-
                     <button style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
                       📎 Evrak Hatırlatması Gönder
                     </button>

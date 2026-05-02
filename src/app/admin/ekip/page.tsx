@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useCompany } from '@/lib/useCompany'
 
 export default function EkipPage() {
+  const { companyId, loading: companyLoading } = useCompany()
   const [stats, setStats] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -14,16 +16,14 @@ export default function EkipPage() {
   const chartRef = useRef<HTMLCanvasElement>(null)
   const chartInstance = useRef<any>(null)
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    if (!companyId) return
+    fetchData()
+  }, [companyId])
 
   async function fetchData() {
-    const { data: statsData } = await supabase.rpc('get_danisan_stats', {
-      p_company_id: 'aaaaaaaa-0000-0000-0000-000000000001'
-    })
-    const { data: usersData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('company_id', 'aaaaaaaa-0000-0000-0000-000000000001')
+    const { data: statsData } = await supabase.rpc('get_danisan_stats', { p_company_id: companyId })
+    const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
     setStats(statsData || [])
     setUsers(usersData || [])
     setLoading(false)
@@ -57,14 +57,14 @@ export default function EkipPage() {
   }, [loading, stats])
 
   async function danismanEkle() {
-    if (!form.full_name || !form.email || !form.password) return
+    if (!form.full_name || !form.email || !form.password || !companyId) return
     setSaving(true)
     setError('')
 
     const res = await fetch('/api/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, company_id: companyId }),
     })
 
     const data = await res.json()
@@ -87,7 +87,7 @@ export default function EkipPage() {
     fetchData()
   }
 
-  if (loading) return (
+  if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#888' }}>Yükleniyor...</div>
     </div>
@@ -176,7 +176,7 @@ export default function EkipPage() {
             </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Email</label>
-              <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="ahmet@cinar.com" style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="ahmet@firma.com" style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Şifre</label>

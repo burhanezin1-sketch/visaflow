@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
+import { useCompany } from '@/lib/useCompany'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -14,6 +15,7 @@ const statusMap: any = {
 }
 
 export default function MusterilerPage() {
+  const { companyId, loading: companyLoading } = useCompany()
   const [clients, setClients] = useState<any[]>([])
   const [filtered, setFiltered] = useState<any[]>([])
   const [search, setSearch] = useState('')
@@ -27,14 +29,16 @@ export default function MusterilerPage() {
   const router = useRouter()
 
   useEffect(() => {
+    if (!companyId) return
     fetchData()
     fetchPrices()
-  }, [])
+  }, [companyId])
 
   async function fetchData() {
     const { data } = await supabase
       .from('clients')
       .select('*, applications(*)')
+      .eq('company_id', companyId)
       .order('created_at', { ascending: false })
     setClients(data || [])
     setFiltered(data || [])
@@ -45,7 +49,7 @@ export default function MusterilerPage() {
     const { data } = await supabase
       .from('service_prices')
       .select('*')
-      .eq('company_id', 'aaaaaaaa-0000-0000-0000-000000000001')
+      .eq('company_id', companyId)
     setPrices(data || [])
   }
 
@@ -62,13 +66,13 @@ export default function MusterilerPage() {
   }, [form.country, form.visa_type, prices])
 
   async function saveClient() {
-    if (!form.ad || !form.soyad) return
+    if (!form.ad || !form.soyad || !companyId) return
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     const { data: newClient } = await supabase
       .from('clients')
       .insert({
-        company_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+        company_id: companyId,
         danisan_id: user?.id,
         full_name: form.ad + ' ' + form.soyad,
         phone: form.phone,
@@ -79,7 +83,7 @@ export default function MusterilerPage() {
 
     if (newClient) {
       await supabase.from('applications').insert({
-        company_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+        company_id: companyId,
         client_id: newClient.id,
         country: form.country,
         visa_type: form.visa_type,
@@ -93,7 +97,7 @@ export default function MusterilerPage() {
     setSaving(false)
   }
 
-  if (loading) return (
+  if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#888' }}>Yükleniyor...</div>
     </div>
