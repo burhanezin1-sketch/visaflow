@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useCompany } from '@/lib/useCompany'
 
 export default function AdminPage() {
+  const { companyId, loading: companyLoading } = useCompany()
   const [stats, setStats] = useState({
     toplamMusteri: 0, tamamlanan: 0, bekleyen: 0,
     toplamOdeme: 0, tahsilEdilen: 0, tahsilEdilmemis: 0,
@@ -23,22 +25,22 @@ export default function AdminPage() {
   const TR_AYLAR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']
 
   useEffect(() => {
+    if (!companyId) return
     async function fetchData() {
-      const { data: clients } = await supabase.from('clients').select('*')
-      const { data: applications } = await supabase.from('applications').select('*')
-      const { data: payments } = await supabase.from('payments').select('*, applications(country, visa_type, created_at)')
+      const { data: clients } = await supabase.from('clients').select('*').eq('company_id', companyId)
+      const { data: applications } = await supabase.from('applications').select('*').eq('company_id', companyId)
+      const { data: payments } = await supabase.from('payments').select('*, applications(country, visa_type, created_at)').eq('company_id', companyId)
 
       const toplamOdeme = payments?.reduce((sum, p) => sum + p.total_amount, 0) || 0
       const tahsilEdilen = payments?.reduce((sum, p) => sum + p.paid_amount, 0) || 0
 
       setStats({
         toplamMusteri: clients?.length || 0,
-        tamamlanan: applications?.filter(a => a.status === 'done').length || 0,
-        bekleyen: applications?.filter(a => a.status !== 'done').length || 0,
+        tamamlanan: applications?.filter(a => a.status === 'approved').length || 0,
+        bekleyen: applications?.filter(a => a.status !== 'approved').length || 0,
         toplamOdeme, tahsilEdilen, tahsilEdilmemis: toplamOdeme - tahsilEdilen,
       })
 
-      // Son 6 ay ciro
       const now = new Date()
       const labels: string[] = []
       const ciroArr: number[] = []
@@ -54,7 +56,6 @@ export default function AdminPage() {
       setAyLabels(labels)
       setAylikCiro(ciroArr)
 
-      // Ülke bazlı ciro
       const ulkeMap: Record<string, number> = {}
       payments?.forEach(p => {
         const ulke = p.applications?.country || 'Diğer'
@@ -62,7 +63,6 @@ export default function AdminPage() {
       })
       setUlkeCiro(Object.entries(ulkeMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value))
 
-      // Vize tipi dağılımı
       const tipMap: Record<string, number> = {}
       applications?.forEach(a => {
         const tip = a.visa_type || 'Diğer'
@@ -73,15 +73,13 @@ export default function AdminPage() {
       setLoading(false)
     }
     fetchData()
-  }, [])
+  }, [companyId])
 
   useEffect(() => {
     if (loading || !aylikCiro.length) return
-
     async function initCharts() {
       const { Chart, registerables } = await import('chart.js')
       Chart.register(...registerables)
-
       const navy = '#0d1f35'
       const cols = ['#0d1f35','#1a3a5c','#378add','#5b9bd5','#89c0e8','#b5d4f4']
 
@@ -93,7 +91,6 @@ export default function AdminPage() {
           options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f0ede6' }, ticks: { font: { size: 10 }, color: '#9aaabb', callback: (v: any) => v >= 1000 ? (v/1000)+'K₺' : v }, border: { display: false } }, x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#9aaabb' }, border: { display: false } } } }
         })
       }
-
       if (ulkeRef.current && ulkeCiro.length) {
         if (ulkeChart.current) ulkeChart.current.destroy()
         ulkeChart.current = new Chart(ulkeRef.current, {
@@ -102,7 +99,6 @@ export default function AdminPage() {
           options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f0ede6' }, ticks: { font: { size: 10 }, color: '#9aaabb', callback: (v: any) => v >= 1000 ? (v/1000)+'K₺' : v }, border: { display: false } }, x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#9aaabb' }, border: { display: false } } } }
         })
       }
-
       if (tipRef.current && tipData.length) {
         if (tipChart.current) tipChart.current.destroy()
         tipChart.current = new Chart(tipRef.current, {
@@ -112,7 +108,6 @@ export default function AdminPage() {
         })
       }
     }
-
     initCharts()
     return () => {
       ciroChart.current?.destroy()
@@ -121,7 +116,7 @@ export default function AdminPage() {
     }
   }, [loading, aylikCiro, ulkeCiro, tipData])
 
-  if (loading) return (
+  if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#888' }}>Yükleniyor...</div>
     </div>
@@ -131,9 +126,8 @@ export default function AdminPage() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid #e8e4da', padding: '0.875rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ background: 'white', borderBottom: '1px solid #e8e4da', padding: '0.875rem 1.5rem', flexShrink: 0 }}>
         <h2 style={{ fontSize: '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Genel Bakış</h2>
-        <div style={{ fontSize: '12px', color: '#9aaabb' }}>Admin · Serdar Çevik</div>
       </div>
 
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>

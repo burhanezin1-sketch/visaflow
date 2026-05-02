@@ -2,24 +2,28 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useCompany } from '@/lib/useCompany'
 
 export default function MaliPage() {
+  const { companyId, loading: companyLoading } = useCompany()
   const [payments, setPayments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!companyId) return
     async function fetchData() {
       const { data } = await supabase
         .from('payments')
-        .select('*, applications(country, visa_type, clients(full_name, users(full_name)))')
+        .select('*, applications(country, visa_type, company_id, clients(full_name, users(full_name)))')
+        .eq('company_id', companyId)
         .order('created_at', { ascending: false })
       setPayments(data || [])
       setLoading(false)
     }
     fetchData()
-  }, [])
+  }, [companyId])
 
-  if (loading) return (
+  if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#888' }}>Yükleniyor...</div>
     </div>
@@ -35,11 +39,9 @@ export default function MaliPage() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: 'white', borderBottom: '1px solid #e8e4da', padding: '0.875rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <h2 style={{ fontSize: '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Mali Durum</h2>
-        <div style={{ fontSize: '12px', color: '#9aaabb' }}>Admin · Serdar Çevik</div>
       </div>
 
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
           {[
             { label: 'Toplam Ciro', value: fmt(toplamCiro), color: '#0d1f35' },

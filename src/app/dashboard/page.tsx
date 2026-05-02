@@ -4,8 +4,18 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
+import { useCompany } from '@/lib/useCompany'
+
+const statusMap: any = {
+  missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
+  appointment_waiting: { label: 'Randevu Bekleniyor', bg: '#fff8ec', color: '#92600a' },
+  appointment: { label: 'Randevu Alındı', bg: '#eef4fb', color: '#1a5fa5' },
+  approved: { label: 'Onaylandı ✓', bg: '#edfaf3', color: '#1a7a45' },
+  rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
+}
 
 export default function DashboardPage() {
+  const { companyId, loading: companyLoading } = useCompany()
   const [clients, setClients] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -13,37 +23,26 @@ export default function DashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
+    if (!companyId) return
     async function fetchData() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: userData } = await supabase.from('users').select('full_name').eq('id', user.id).single()
         if (userData?.full_name) setUserName(userData.full_name.split(' ')[0])
       }
-      const { data: clientsData } = await supabase.from('clients').select('*, applications(*)')
-      const { data: leadsData } = await supabase.from('leads').select('*').eq('status', 'waiting')
+      const { data: clientsData } = await supabase.from('clients').select('*, applications(*)').eq('company_id', companyId)
+      const { data: leadsData } = await supabase.from('leads').select('*').eq('status', 'waiting').eq('company_id', companyId)
       setClients(clientsData || [])
       setLeads(leadsData || [])
       setLoading(false)
     }
     fetchData()
-  }, [])
+  }, [companyId])
 
-  const bekleyenEvrak = clients.filter(c =>
-    c.applications?.some((a: any) => a.status === 'missing')
-  )
-  const randevular = clients.filter(c =>
-    c.applications?.some((a: any) => a.status === 'appointment')
-  )
+  const bekleyenEvrak = clients.filter(c => c.applications?.some((a: any) => a.status === 'missing'))
+  const randevular = clients.filter(c => c.applications?.some((a: any) => a.status === 'appointment'))
 
-  const statusMap: any = {
-    missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
-    appointment_waiting: { label: 'Randevu Bekleniyor', bg: '#fff8ec', color: '#92600a' },
-    appointment: { label: 'Randevu Alındı', bg: '#eef4fb', color: '#1a5fa5' },
-    approved: { label: 'Onaylandı ✓', bg: '#edfaf3', color: '#1a7a45' },
-    rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
-  }
-
-  if (loading) return (
+  if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#888' }}>Yükleniyor...</div>
     </div>
@@ -54,9 +53,7 @@ export default function DashboardPage() {
       <Topbar title="Dashboard" />
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
         <div style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '500', color: '#0d1f35', margin: 0 }}>
-            Günaydın, {userName} 👋
-          </h2>
+          <h2 style={{ fontSize: '20px', fontWeight: '500', color: '#0d1f35', margin: 0 }}>Günaydın, {userName} 👋</h2>
           <p style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>
             {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
@@ -64,15 +61,12 @@ export default function DashboardPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
           {[
-            { label: 'Aktif Dosya', value: clients.length, color: '#0d1f35', sub: '+2 bu hafta' },
+            { label: 'Aktif Dosya', value: clients.length, color: '#0d1f35', sub: '' },
             { label: 'Yeni Lead', value: leads.length, color: '#92600a', sub: 'Aranmayı bekliyor →', click: () => router.push('/dashboard/leads') },
             { label: 'Bekleyen Evrak', value: bekleyenEvrak.length, color: '#c0392b', sub: 'Acil takip →', click: () => router.push('/dashboard/musteriler') },
             { label: 'Bu Hafta Randevu', value: randevular.length, color: '#1a3a5c', sub: 'Takvimi aç →', click: () => router.push('/dashboard/takvim') },
           ].map((s, i) => (
-            <div key={i} onClick={s.click} style={{
-              background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem',
-              cursor: s.click ? 'pointer' : 'default', transition: 'all 0.2s',
-            }}>
+            <div key={i} onClick={s.click} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem', cursor: s.click ? 'pointer' : 'default' }}>
               <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
               <div style={{ fontSize: '26px', fontWeight: '500', color: s.color, lineHeight: 1 }}>{s.value}</div>
               <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '6px' }}>{s.sub}</div>
