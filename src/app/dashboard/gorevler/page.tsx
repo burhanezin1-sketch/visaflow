@@ -21,16 +21,20 @@ export default function GorevlerPage() {
   async function fetchGorevler() {
     const { data: clients } = await supabase
       .from('clients')
-      .select('*, applications(*), payments(*)')
+      .select('*, applications(*)')
+      .eq('company_id', companyId)
+
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('*, applications(client_id)')
       .eq('company_id', companyId)
 
     const liste: any[] = []
 
     clients?.forEach(c => {
       const app = c.applications?.[0]
-      const payment = c.payments?.[0]
+      const payment = payments?.find(p => p.applications?.client_id === c.id)
 
-      // Evrak eksikse
       if (app?.status === 'missing') {
         liste.push({
           id: `evrak-${c.id}`,
@@ -43,7 +47,6 @@ export default function GorevlerPage() {
         })
       }
 
-      // Randevu bekliyorsa
       if (app?.status === 'appointment_waiting') {
         liste.push({
           id: `randevu-${c.id}`,
@@ -56,7 +59,6 @@ export default function GorevlerPage() {
         })
       }
 
-      // Ödeme eksikse
       if (payment && payment.total_amount - payment.paid_amount > 0) {
         liste.push({
           id: `odeme-${c.id}`,
@@ -69,7 +71,6 @@ export default function GorevlerPage() {
         })
       }
 
-      // Pasaport yakında doluyorsa (3 ay içinde)
       if (c.passport_expiry) {
         const expiry = new Date(c.passport_expiry)
         const ucAySonra = new Date()
@@ -113,10 +114,10 @@ export default function GorevlerPage() {
   }
 
   const typeBg: any = {
-    evrak: { bg: '#fef0ee', color: '#c0392b', border: '#f5b8b0' },
-    randevu: { bg: '#eef4fb', color: '#1a5fa5', border: '#b8d4f0' },
-    odeme: { bg: '#fff8ec', color: '#92600a', border: '#f0d896' },
-    pasaport: { bg: '#faf8f3', color: '#5a6a7a', border: '#e8e4da' },
+    evrak: { color: '#c0392b', border: '#f5b8b0' },
+    randevu: { color: '#1a5fa5', border: '#b8d4f0' },
+    odeme: { color: '#92600a', border: '#f0d896' },
+    pasaport: { color: '#5a6a7a', border: '#e8e4da' },
   }
 
   if (companyLoading || loading) return (
@@ -134,7 +135,6 @@ export default function GorevlerPage() {
         border: `1px solid ${style.border}`,
         marginBottom: '8px', background: 'white',
         borderLeft: `3px solid ${style.color}`,
-        opacity: tamamlanan.has(gorev.id) ? 0.4 : 1,
       }}>
         <span style={{ fontSize: '18px', flexShrink: 0 }}>{typeIcon[gorev.type]}</span>
         <div style={{ flex: 1 }}>
@@ -159,7 +159,6 @@ export default function GorevlerPage() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Görev Listesi" />
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-
         {aktif.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: '#9aaabb', fontSize: '13px' }}>
             🎉 Tüm görevler tamamlandı!
