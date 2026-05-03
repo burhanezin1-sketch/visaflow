@@ -90,18 +90,18 @@ export default function Sidebar() {
       }} />
 
       {/* Firma adı + danışman */}
-      <div style={{
-        padding: '0 1.25rem 1.5rem',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: '0.75rem',
-      }}>
-        <div style={{ fontSize: '13px', fontWeight: '500', color: 'rgba(255,255,255,0.85)' }}>
-          {companyName || '...'}
-        </div>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>
-          {userName || '...'}
-        </div>
-      </div>
+<div style={{
+  padding: '0 1.25rem 1.5rem',
+  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  marginBottom: '0.75rem',
+}}>
+  <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>
+    {companyName || '...'}
+  </div>
+  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>
+    {userName || '...'}
+  </div>
+</div>
 
       {/* Devir bildirimi */}
       {transferCount > 0 && (
