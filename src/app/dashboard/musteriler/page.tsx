@@ -23,6 +23,7 @@ export default function MusterilerPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [prices, setPrices] = useState<any[]>([])
+  const [visaOptions, setVisaOptions] = useState<{ country: string; visa_type: string }[]>([])
   const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: 'Schengen', visa_type: 'Turist' })
   const [autoPrice, setAutoPrice] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
@@ -32,6 +33,7 @@ export default function MusterilerPage() {
     if (!companyId) return
     fetchData()
     fetchPrices()
+    fetchVisaOptions()
   }, [companyId])
 
   async function fetchData() {
@@ -51,6 +53,18 @@ export default function MusterilerPage() {
       .select('*')
       .eq('company_id', companyId)
     setPrices(data || [])
+  }
+
+  async function fetchVisaOptions() {
+    const { data } = await supabase
+      .from('visa_documents')
+      .select('country, visa_type')
+      .order('country', { ascending: true })
+    // Distinct country+visa_type kombinasyonları
+    const unique = Array.from(
+      new Map(data?.map(d => [`${d.country}__${d.visa_type}`, d])).values()
+    )
+    setVisaOptions(unique || [])
   }
 
   useEffect(() => {
@@ -89,6 +103,14 @@ export default function MusterilerPage() {
         visa_type: form.visa_type,
         status: 'missing',
       })
+      if (autoPrice) {
+        await supabase.from('payments').insert({
+          company_id: companyId,
+          application_id: (await supabase.from('applications').select('id').eq('client_id', newClient.id).single()).data?.id,
+          total_amount: autoPrice,
+          paid_amount: 0,
+        })
+      }
       await fetchData()
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: 'Schengen', visa_type: 'Turist' })
@@ -103,19 +125,19 @@ export default function MusterilerPage() {
     </div>
   )
 
-  const countries = [...new Set(prices.map(p => p.country))]
-  const visaTypes = [...new Set(prices.filter(p => p.country === form.country).map(p => p.visa_type))]
+  const countries = [...new Set(visaOptions.map(v => v.country))].sort()
+  const visaTypes = [...new Set(visaOptions.filter(v => v.country === form.country).map(v => v.visa_type))].sort()
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Müşteriler" />
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
+        <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0f0f4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Tüm Müşteriler</h3>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '7px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '12px', outline: 'none', width: '160px' }} />
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '7px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '12px', background: '#faf8f3', outline: 'none' }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '7px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', outline: 'none', width: '160px' }} />
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '7px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', background: '#f5f5f7', outline: 'none' }}>
                 <option value="">Tüm Durumlar</option>
                 <option value="missing">Evrak Eksik</option>
                 <option value="appointment_waiting">Randevu Bekleniyor</option>
@@ -132,7 +154,7 @@ export default function MusterilerPage() {
             <thead>
               <tr>
                 {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Durum', 'Tarih'].map(h => (
-                  <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
+                  <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -142,16 +164,16 @@ export default function MusterilerPage() {
                 const s = statusMap[app?.status] || statusMap.missing
                 return (
                   <tr key={c.id} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)} style={{ cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#faf8f3')}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f7')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>{c.full_name}</td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0ede6', color: '#5a6a7a' }}>{c.phone}</td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{app?.country || '-'}</td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{app?.visa_type || '-'}</td>
-                    <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{c.full_name}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{c.phone}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.country || '-'}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.visa_type || '-'}</td>
+                    <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
                       <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>{s.label}</span>
                     </td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid #f0ede6' }}>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid #f0f0f4' }}>
                       {new Date(c.created_at).toLocaleDateString('tr-TR')}
                     </td>
                   </tr>
@@ -169,31 +191,35 @@ export default function MusterilerPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ad</label>
-                <input value={form.ad} onChange={e => setForm({...form, ad: e.target.value})} placeholder="Ahmet" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                <input value={form.ad} onChange={e => setForm({...form, ad: e.target.value})} placeholder="Ahmet" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Soyad</label>
-                <input value={form.soyad} onChange={e => setForm({...form, soyad: e.target.value})} placeholder="Yılmaz" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                <input value={form.soyad} onChange={e => setForm({...form, soyad: e.target.value})} placeholder="Yılmaz" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Telefon</label>
-              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+90 5xx xxx xx xx" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+90 5xx xxx xx xx" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>E-posta</label>
-              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="ornek@email.com" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="ornek@email.com" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ülke</label>
-                <select value={form.country} onChange={e => setForm({...form, country: e.target.value, visa_type: 'Turist'})} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}>
+                <select value={form.country} onChange={e => {
+                  const newCountry = e.target.value
+                  const firstVisaType = visaOptions.find(v => v.country === newCountry)?.visa_type || 'Turist'
+                  setForm({...form, country: newCountry, visa_type: firstVisaType})
+                }} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}>
                   {countries.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Tipi</label>
-                <select value={form.visa_type} onChange={e => setForm({...form, visa_type: e.target.value})} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}>
+                <select value={form.visa_type} onChange={e => setForm({...form, visa_type: e.target.value})} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}>
                   {visaTypes.map(v => <option key={v}>{v}</option>)}
                 </select>
               </div>
@@ -205,7 +231,7 @@ export default function MusterilerPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={saveClient} disabled={saving} style={{ flex: 2, padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {saving ? 'Kaydediliyor...' : 'Kaydet ve Profile Git'}
               </button>
