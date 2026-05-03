@@ -60,11 +60,10 @@ export default function MusterilerPage() {
       .from('visa_documents')
       .select('country, visa_type')
       .order('country', { ascending: true })
-    // Distinct country+visa_type kombinasyonları
     const unique = Array.from(
-      new Map(data?.map(d => [`${d.country}__${d.visa_type}`, d])).values()
+      new Map(data?.map((d: any) => [`${d.country}__${d.visa_type}`, d])).values()
     )
-    setVisaOptions(unique || [])
+    setVisaOptions(unique as { country: string; visa_type: string }[])
   }
 
   useEffect(() => {
@@ -83,6 +82,7 @@ export default function MusterilerPage() {
     if (!form.ad || !form.soyad || !companyId) return
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
+
     const { data: newClient } = await supabase
       .from('clients')
       .insert({
@@ -96,21 +96,27 @@ export default function MusterilerPage() {
       .single()
 
     if (newClient) {
-      await supabase.from('applications').insert({
-        company_id: companyId,
-        client_id: newClient.id,
-        country: form.country,
-        visa_type: form.visa_type,
-        status: 'missing',
-      })
-      if (autoPrice) {
+      const { data: newApp } = await supabase
+        .from('applications')
+        .insert({
+          company_id: companyId,
+          client_id: newClient.id,
+          country: form.country,
+          visa_type: form.visa_type,
+          status: 'missing',
+        })
+        .select()
+        .single()
+
+      if (newApp && autoPrice) {
         await supabase.from('payments').insert({
           company_id: companyId,
-          application_id: (await supabase.from('applications').select('id').eq('client_id', newClient.id).single()).data?.id,
+          application_id: newApp.id,
           total_amount: autoPrice,
           paid_amount: 0,
         })
       }
+
       await fetchData()
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: 'Schengen', visa_type: 'Turist' })
@@ -159,6 +165,13 @@ export default function MusterilerPage() {
               </tr>
             </thead>
             <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
+                    Henüz müşteri yok.
+                  </td>
+                </tr>
+              )}
               {filtered.map(c => {
                 const app = c.applications?.[0]
                 const s = statusMap[app?.status] || statusMap.missing
@@ -224,10 +237,14 @@ export default function MusterilerPage() {
                 </select>
               </div>
             </div>
-            {autoPrice && (
+            {autoPrice ? (
               <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Hizmet Bedeli</span>
                 <strong>{autoPrice.toLocaleString('tr-TR')}₺</strong>
+              </div>
+            ) : (
+              <div style={{ background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#92600a' }}>
+                Bu vize tipi için fiyat tanımlanmamış. Admin panelinden ekleyebilirsiniz.
               </div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
