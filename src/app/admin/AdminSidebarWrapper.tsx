@@ -33,36 +33,88 @@ export default function AdminSidebarWrapper() {
 
   return (
     <div style={{
-      width: '220px', flexShrink: 0,
-      background: 'linear-gradient(180deg, #1a0a2e 0%, #0d0618 100%)',
-      padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh',
+      width: '220px',
+      flexShrink: 0,
+      background: '#1c1c24',
+      padding: '1.25rem 0',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      position: 'relative',
     }}>
-      <div style={{ padding: '0 1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '0.75rem' }}>
-        <div style={{ fontSize: '16px', fontWeight: '600', color: 'white' }}>{companyName || '...'}</div>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>Admin Panel</div>
+      <div style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0,
+        width: '1px', background: 'rgba(255,255,255,0.05)',
+      }} />
+
+      {/* Firma adı + Admin Panel */}
+      <div style={{
+        padding: '0 1.25rem 1.5rem',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: '0.75rem',
+      }}>
+        <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>
+          {companyName || '...'}
+        </div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>
+          Admin Panel
+        </div>
       </div>
+
+      {/* Nav items */}
       {navItems.map(item => {
         const isActive = pathname === item.href
         return (
-          <div key={item.href} onClick={() => router.push(item.href)} style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '10px 1.25rem', fontSize: '13px',
-            color: isActive ? 'white' : 'rgba(255,255,255,0.5)',
-            cursor: 'pointer',
-            borderLeft: isActive ? '2px solid #c9a84c' : '2px solid transparent',
-            background: isActive ? 'rgba(201,168,76,0.08)' : 'transparent',
-          }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? '#c9a84c' : 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+          <div
+            key={item.href}
+            onClick={() => router.push(item.href)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '10px 1.25rem', fontSize: '13px',
+              color: isActive ? 'white' : 'rgba(255,255,255,0.4)',
+              cursor: 'pointer',
+              borderLeft: isActive ? '2px solid #378ADD' : '2px solid transparent',
+              background: isActive ? 'rgba(55,138,221,0.08)' : 'transparent',
+              transition: 'all 0.15s',
+            }}
+          >
+            <div style={{
+              width: '5px', height: '5px', borderRadius: '50%',
+              background: isActive ? '#378ADD' : 'rgba(255,255,255,0.2)',
+              flexShrink: 0,
+            }} />
             {item.label}
           </div>
         )
       })}
-      <div onClick={() => router.push('/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 1.25rem', fontSize: '13px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', borderLeft: '2px solid transparent', marginTop: '8px' }}>
-        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />
+
+      {/* Danışman Paneli */}
+      <div
+        onClick={() => router.push('/dashboard')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '10px 1.25rem', marginTop: '8px',
+          fontSize: '13px', color: 'rgba(255,255,255,0.3)',
+          cursor: 'pointer', borderLeft: '2px solid transparent',
+          transition: 'all 0.15s',
+        }}
+      >
+        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
         Danışman Paneli
       </div>
-      <div onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 1.25rem', marginTop: 'auto', fontSize: '13px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', borderLeft: '2px solid transparent' }}>
-        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />
+
+      {/* Çıkış */}
+      <div
+        onClick={handleLogout}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '10px 1.25rem', marginTop: 'auto',
+          fontSize: '13px', color: 'rgba(255,255,255,0.3)',
+          cursor: 'pointer', borderLeft: '2px solid transparent',
+          transition: 'all 0.15s',
+        }}
+      >
+        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
         Çıkış
       </div>
     </div>
