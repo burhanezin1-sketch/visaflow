@@ -22,9 +22,8 @@ export default function Topbar({ title }: { title: string }) {
         {title}
       </h2>
 
-      {/* Pusula + VECTROPUS wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <svg width="28" height="28" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <svg width="38" height="38" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="40" cy="40" r="37" stroke="#1c1c24" strokeWidth="2.5"/>
           <circle cx="40" cy="40" r="27" stroke="#c8d4e0" strokeWidth="1"/>
           <polygon points="40,4 45.5,37 40,31 34.5,37" fill="#1c1c24"/>
@@ -42,8 +41,8 @@ export default function Topbar({ title }: { title: string }) {
         </svg>
         <span style={{
           fontFamily: "'Playfair Display', serif",
-          fontSize: '13px',
-          letterSpacing: '2px',
+          fontSize: '16px',
+          letterSpacing: '3px',
           color: '#1c1c24',
           fontWeight: '400',
         }}>

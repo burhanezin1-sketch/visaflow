@@ -84,56 +84,22 @@ export default function Sidebar() {
       minHeight: '100vh',
       position: 'relative',
     }}>
-      {/* Sağ kenar ince çizgi */}
       <div style={{
         position: 'absolute', right: 0, top: 0, bottom: 0,
         width: '1px', background: 'rgba(255,255,255,0.05)',
       }} />
 
-      {/* Logo + firma adı */}
+      {/* Firma adı + danışman */}
       <div style={{
         padding: '0 1.25rem 1.5rem',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         marginBottom: '0.75rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
       }}>
-        {/* Pusula logo + VECTROPUS */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <svg width="22" height="22" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="40" cy="40" r="37" stroke="white" strokeWidth="2.5"/>
-            <circle cx="40" cy="40" r="27" stroke="rgba(255,255,255,0.25)" strokeWidth="1"/>
-            <polygon points="40,4 45.5,37 40,31 34.5,37" fill="white"/>
-            <polygon points="40,76 45.5,43 40,49 34.5,43" fill="rgba(255,255,255,0.25)"/>
-            <line x1="3" y1="40" x2="13" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="67" y1="40" x2="77" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="40" y1="3" x2="40" y2="9" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="40" y1="71" x2="40" y2="77" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="14" y1="14" x2="19" y2="19" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" strokeLinecap="round"/>
-            <line x1="66" y1="14" x2="61" y2="19" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" strokeLinecap="round"/>
-            <line x1="14" y1="66" x2="19" y2="61" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" strokeLinecap="round"/>
-            <line x1="66" y1="66" x2="61" y2="61" stroke="rgba(255,255,255,0.25)" strokeWidth="1.2" strokeLinecap="round"/>
-            <circle cx="40" cy="40" r="3.5" fill="white"/>
-            <circle cx="40" cy="40" r="1.5" fill="#1c1c24"/>
-          </svg>
-          <span style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: '13px',
-            letterSpacing: '2px',
-            color: 'white',
-            fontWeight: '400',
-          }}>VECTROPUS</span>
+        <div style={{ fontSize: '13px', fontWeight: '500', color: 'rgba(255,255,255,0.85)' }}>
+          {companyName || '...'}
         </div>
-
-        {/* Firma adı + danışman */}
-        <div>
-          <div style={{ fontSize: '12px', fontWeight: '500', color: 'rgba(255,255,255,0.85)' }}>
-            {companyName || '...'}
-          </div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>
-            {userName || '...'}
-          </div>
+        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>
+          {userName || '...'}
         </div>
       </div>
 
