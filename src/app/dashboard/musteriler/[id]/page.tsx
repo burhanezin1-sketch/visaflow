@@ -171,19 +171,26 @@ export default function MusteriDetayPage() {
   const isMyClient = client.danisan_id === currentUser?.id
   const digerDanismanlar = danismanlar.filter(d => d.id !== currentUser?.id)
 
+  // ✅ DÜZELTME: delivery_type'a göre doğru durum okunuyor
   const evrakDurumu = visaDocuments.map(vd => {
-    const yuklendi = documents.find(d => d.name === vd.doc_name)
-    return { ...vd, yuklendi: !!yuklendi, fileUrl: yuklendi?.file_url }
+    const doc = documents.find(d => d.name === vd.doc_name)
+    return {
+      ...vd,
+      yuklendi: doc?.delivery_type === 'digital',
+      eldenSecildi: doc?.delivery_type === 'physical',
+      fileUrl: doc?.file_url,
+    }
   })
 
-  const tamamlanan = evrakDurumu.filter(e => e.yuklendi || e.delivery_type === 'company').length
+  // ✅ DÜZELTME: eldenSecildi de tamamlanmış sayılıyor
+  const tamamlanan = evrakDurumu.filter(e => e.yuklendi || e.eldenSecildi || e.delivery_type === 'company').length
   const toplam = evrakDurumu.length
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title={client.full_name} />
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
 
         {pendingTransfer && pendingTransfer.to_user === currentUser?.id && (
           <div style={{ background: '#eef4fb', border: '1px solid #b8d4f0', borderRadius: '10px', padding: '12px 16px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
@@ -210,7 +217,7 @@ export default function MusteriDetayPage() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ fontSize: '12px', color: '#9aaabb' }}>Danışman: <strong style={{ color: '#0d1f35' }}>{client.users?.full_name || 'Atanmadı'}</strong></div>
             <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>{s.label}</span>
-            <select onChange={e => durumDegistir(e.target.value)} value="" style={{ padding: '6px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '12px', background: '#faf8f3', outline: 'none' }}>
+            <select onChange={e => durumDegistir(e.target.value)} value="" style={{ padding: '6px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', background: '#f5f5f7', outline: 'none' }}>
               <option value="">Durum Değiştir...</option>
               <option value="missing">Evrak Eksik</option>
               <option value="appointment_waiting">Randevu Bekleniyor</option>
@@ -228,7 +235,7 @@ export default function MusteriDetayPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
           <div>
-            <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.25rem' }}>
+            <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.25rem' }}>
               <h4 style={{ margin: '0 0 1rem', fontSize: '10px', fontWeight: '600', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Pasaport Bilgileri</h4>
               {[
                 ['Ad Soyad', client.full_name],
@@ -241,12 +248,12 @@ export default function MusteriDetayPage() {
                 ['Konsolosluk', application?.consulate || '-'],
                 ...(application?.appointment_date ? [['Randevu', new Date(application.appointment_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })]] : []),
               ].map(([label, value]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f0ede6', fontSize: '13px' }}>
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f0f0f4', fontSize: '13px' }}>
                   <span style={{ color: '#5a6a7a' }}>{label}</span>
                   <span style={{ fontWeight: '500', color: label === 'Randevu' ? '#1a5fa5' : '#0d1f35' }}>{value}</span>
                 </div>
               ))}
-              <div style={{ marginTop: '12px', padding: '10px 12px', background: '#faf8f3', border: '1px solid #e8e4da', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <div style={{ marginTop: '12px', padding: '10px 12px', background: '#f5f5f7', border: '1px solid #e2e2e8', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                 <span style={{ fontSize: '12px', color: '#5a6a7a' }}>🔗 Müşteri Portal Linki</span>
                 <button onClick={copyPortalLink} style={{ padding: '4px 12px', fontSize: '11px', fontWeight: '500', background: linkKopyalandi ? '#1a7a45' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   {linkKopyalandi ? '✓ Kopyalandı' : 'Kopyala'}
@@ -254,29 +261,29 @@ export default function MusteriDetayPage() {
               </div>
             </div>
 
-            <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
+            <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem' }}>
               <h4 style={{ margin: '0 0 1rem', fontSize: '10px', fontWeight: '600', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Danışman Notları</h4>
               {notes.length === 0 && <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '8px' }}>Henüz not yok.</p>}
               {notes.map(n => (
-                <div key={n.id} style={{ background: '#faf8f3', border: '1px solid #f0ede6', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
+                <div key={n.id} style={{ background: '#f5f5f7', border: '1px solid #e2e2e8', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
                   <div style={{ fontSize: '10px', color: '#9aaabb', marginBottom: '4px' }}>{new Date(n.created_at).toLocaleDateString('tr-TR')}</div>
                   <div style={{ fontSize: '13px' }}>{n.content}</div>
                 </div>
               ))}
-              <textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Not ekle..." style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', resize: 'none', height: '70px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Not ekle..." style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', resize: 'none', height: '70px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               <button onClick={addNote} style={{ width: '100%', marginTop: '8px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Not Ekle</button>
             </div>
           </div>
 
-          <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', borderBottom: '1px solid #f0ede6' }}>
+          <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f4' }}>
               {[['evrak', '📋 Evraklar'], ['odeme', '💳 Ödeme'], ['wp', '💬 WhatsApp']].map(([key, label]) => (
                 <button key={key} onClick={() => setActiveTab(key)} style={{
                   flex: 1, padding: '12px 8px', fontSize: '12px', fontWeight: '500',
-                  border: 'none', background: activeTab === key ? '#faf8f3' : 'transparent',
+                  border: 'none', background: activeTab === key ? '#f5f5f7' : 'transparent',
                   cursor: 'pointer', fontFamily: 'inherit',
                   color: activeTab === key ? '#0d1f35' : '#9aaabb',
-                  borderBottom: activeTab === key ? '2px solid #c9a84c' : '2px solid transparent',
+                  borderBottom: activeTab === key ? '2px solid #378ADD' : '2px solid transparent',
                 }}>{label}</button>
               ))}
             </div>
@@ -292,12 +299,12 @@ export default function MusteriDetayPage() {
                         <span>Evrak Tamamlanma</span>
                         <span style={{ fontWeight: '600', color: yuzde === 100 ? '#1a7a45' : '#0d1f35' }}>{tamamlanan}/{toplam} — %{yuzde}</span>
                       </div>
-                      <div style={{ height: '6px', background: '#f0ede6', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div style={{ height: '6px', background: '#e2e2e8', borderRadius: '10px', overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${yuzde}%`, background: yuzde === 100 ? '#1a7a45' : '#1a5fa5', borderRadius: '10px', transition: 'width 0.3s' }} />
                       </div>
                     </div>
                     {evrakDurumu.map((evrak, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ede6' }}>
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                           {evrak.delivery_type === 'company' ? (
                             <span style={{ fontSize: '14px' }}>🏢</span>
@@ -305,13 +312,23 @@ export default function MusteriDetayPage() {
                             <span style={{ fontSize: '14px' }}>🤝</span>
                           ) : evrak.yuklendi ? (
                             <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
+                          ) : evrak.eldenSecildi ? (
+                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', flexShrink: 0 }}>🤝</div>
                           ) : (
-                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid #e8e4da', flexShrink: 0 }} />
+                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid #e2e2e8', flexShrink: 0 }} />
                           )}
                           <div>
                             <div style={{ fontSize: '13px', color: '#0d1f35' }}>{evrak.doc_name}</div>
                             <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
-                              {evrak.delivery_type === 'company' ? 'Firma ekleyecek' : evrak.delivery_type === 'physical' ? 'Elden teslim' : evrak.yuklendi ? 'Yüklendi' : 'Bekleniyor'}
+                              {evrak.delivery_type === 'company'
+                                ? 'Firma ekleyecek'
+                                : evrak.delivery_type === 'physical'
+                                ? 'Elden teslim'
+                                : evrak.yuklendi
+                                ? 'Yüklendi'
+                                : evrak.eldenSecildi
+                                ? 'Elden getirilecek'
+                                : 'Bekleniyor'}
                             </div>
                           </div>
                         </div>
@@ -320,7 +337,10 @@ export default function MusteriDetayPage() {
                             Görüntüle
                           </a>
                         )}
-                        {!evrak.yuklendi && evrak.delivery_type === 'physical' && (
+                        {evrak.eldenSecildi && (
+                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Elden</span>
+                        )}
+                        {!evrak.yuklendi && !evrak.eldenSecildi && evrak.delivery_type === 'physical' && (
                           <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Zorunlu Elden</span>
                         )}
                         {evrak.delivery_type === 'company' && (
@@ -345,7 +365,7 @@ export default function MusteriDetayPage() {
                       ['Ödenen', payment.paid_amount.toLocaleString('tr-TR') + '₺', '#1a7a45'],
                       ['Kalan', kalan.toLocaleString('tr-TR') + '₺', kalan > 0 ? '#c0392b' : '#1a7a45'],
                     ].map(([label, value, color]) => (
-                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0ede6', fontSize: '13px' }}>
+                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4', fontSize: '13px' }}>
                         <span style={{ color: '#5a6a7a' }}>{label}</span>
                         <span style={{ fontWeight: '600', color }}>{value}</span>
                       </div>
@@ -360,9 +380,9 @@ export default function MusteriDetayPage() {
                       <div style={{ marginTop: '12px' }}>
                         <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ödenen Tutar (₺)</label>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <input type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} style={{ flex: 1, padding: '8px 10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }} />
+                          <input type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} style={{ flex: 1, padding: '8px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }} />
                           <button onClick={odemeGuncelle} style={{ padding: '8px 14px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>Kaydet</button>
-                          <button onClick={() => setShowOdemeEdit(false)} style={{ padding: '8px 10px', background: '#faf8f3', color: '#888', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>İptal</button>
+                          <button onClick={() => setShowOdemeEdit(false)} style={{ padding: '8px 10px', background: '#f5f5f7', color: '#888', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>İptal</button>
                         </div>
                       </div>
                     ) : (
@@ -380,7 +400,7 @@ export default function MusteriDetayPage() {
                 <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '12px' }}>
                   {waMessages.length === 0 && <p style={{ fontSize: '12px', color: '#9aaabb' }}>Henüz mesaj yok.</p>}
                   {waMessages.map(m => (
-                    <div key={m.id} style={{ background: '#faf8f3', border: '1px solid #f0ede6', borderRadius: '8px', padding: '9px 12px', marginBottom: '8px' }}>
+                    <div key={m.id} style={{ background: '#f5f5f7', border: '1px solid #e2e2e8', borderRadius: '8px', padding: '9px 12px', marginBottom: '8px' }}>
                       <div style={{ fontSize: '10px', color: '#9aaabb', marginBottom: '4px' }}>📤 {new Date(m.sent_at).toLocaleDateString('tr-TR')}</div>
                       <div style={{ fontSize: '13px' }}>{m.message}</div>
                     </div>
@@ -393,12 +413,12 @@ export default function MusteriDetayPage() {
                     ['💰 Ödeme', 'Kalan ödemenizin yapılmasını rica ederiz.'],
                     ['✅ Tebrik', 'Vize başvurunuz tamamlandı. İyi seyahatler!'],
                   ].map(([label, msg]) => (
-                    <button key={label} onClick={() => setNewMessage(msg)} style={{ padding: '5px 10px', fontSize: '11px', border: '1.5px solid #e8e4da', borderRadius: '20px', background: '#faf8f3', cursor: 'pointer', fontFamily: 'inherit', color: '#5a6a7a' }}>{label}</button>
+                    <button key={label} onClick={() => setNewMessage(msg)} style={{ padding: '5px 10px', fontSize: '11px', border: '1.5px solid #e2e2e8', borderRadius: '20px', background: '#f5f5f7', cursor: 'pointer', fontFamily: 'inherit', color: '#5a6a7a' }}>{label}</button>
                   ))}
                 </div>
-                <div style={{ border: '1.5px solid #e8e4da', borderRadius: '10px', overflow: 'hidden' }}>
-                  <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }} placeholder="Mesaj yaz... (Enter ile gönder)" style={{ width: '100%', padding: '10px 12px', border: 'none', background: '#faf8f3', fontSize: '13px', resize: 'none', height: '80px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', display: 'block' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderTop: '1px solid #f0ede6' }}>
+                <div style={{ border: '1.5px solid #e2e2e8', borderRadius: '10px', overflow: 'hidden' }}>
+                  <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }} placeholder="Mesaj yaz... (Enter ile gönder)" style={{ width: '100%', padding: '10px 12px', border: 'none', background: '#f5f5f7', fontSize: '13px', resize: 'none', height: '80px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', display: 'block' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderTop: '1px solid #e2e2e8' }}>
                     <span style={{ fontSize: '11px', color: '#9aaabb' }}>{newMessage.length} karakter</span>
                     <button onClick={sendMessage} style={{ padding: '6px 14px', background: '#25D366', color: 'white', border: 'none', borderRadius: '20px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}>➤ Gönder</button>
                   </div>
@@ -415,18 +435,18 @@ export default function MusteriDetayPage() {
             <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '1.5rem', color: '#0d1f35' }}>📅 Randevu Ekle</h3>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Konsolosluk</label>
-              <input value={randevuKonsolosluk} onChange={e => setRandevuKonsolosluk(e.target.value)} placeholder="Fransa Konsolosluğu İstanbul" style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input value={randevuKonsolosluk} onChange={e => setRandevuKonsolosluk(e.target.value)} placeholder="Fransa Konsolosluğu İstanbul" style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Tarih</label>
-              <input type="date" value={randevuTarih} onChange={e => setRandevuTarih(e.target.value)} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input type="date" value={randevuTarih} onChange={e => setRandevuTarih(e.target.value)} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Saat</label>
-              <input type="time" value={randevuSaat} onChange={e => setRandevuSaat(e.target.value)} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input type="time" value={randevuSaat} onChange={e => setRandevuSaat(e.target.value)} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setShowRandevuModal(false)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={() => setShowRandevuModal(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={randevuEkle} style={{ flex: 2, padding: '10px', background: '#1a5fa5', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>Randevu Kaydet</button>
             </div>
           </div>
@@ -440,17 +460,17 @@ export default function MusteriDetayPage() {
             <p style={{ fontSize: '13px', color: '#5a6a7a', marginBottom: '1.5rem' }}>{client.full_name} dosyasını hangi danışmana devretmek istiyorsunuz?</p>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Danışman</label>
-              <select value={devirHedef} onChange={e => setDevirHedef(e.target.value)} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}>
+              <select value={devirHedef} onChange={e => setDevirHedef(e.target.value)} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}>
                 <option value="">Seçin...</option>
                 {digerDanismanlar.map(d => <option key={d.id} value={d.id}>{d.full_name}</option>)}
               </select>
             </div>
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Not (opsiyonel)</label>
-              <textarea value={devirNot} onChange={e => setDevirNot(e.target.value)} placeholder="Neden devrediyorsunuz?" style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', resize: 'none', height: '70px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <textarea value={devirNot} onChange={e => setDevirNot(e.target.value)} placeholder="Neden devrediyorsunuz?" style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', resize: 'none', height: '70px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setShowDevirModal(false)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={() => setShowDevirModal(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={devirGonder} disabled={!devirHedef || devirSaving} style={{ flex: 2, padding: '10px', background: '#854f0b', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit', opacity: !devirHedef ? 0.5 : 1 }}>
                 {devirSaving ? 'Gönderiliyor...' : '↗ Devir Talebi Gönder'}
               </button>
@@ -468,7 +488,7 @@ export default function MusteriDetayPage() {
               <strong>{client.full_name}</strong> ve tüm kayıtları kalıcı olarak silinecek. Bu işlem geri alınamaz.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={() => setShowDeleteConfirm(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={deleteClient} style={{ flex: 1, padding: '10px', background: '#c0392b', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>Evet, Sil</button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-'use client'
+''use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -16,7 +16,7 @@ export default function PortalPage() {
   const [visaDocuments, setVisaDocuments] = useState<any[]>([])
   const [uploadedDocs, setUploadedDocs] = useState<any[]>([])
   const [uploading, setUploading] = useState<Record<number, boolean>>({})
-  const [eldenSecilen, setEldenSecilen] = useState<Record<number, boolean>>({})
+  const [eldenSaving, setEldenSaving] = useState<Record<number, boolean>>({})
   const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -66,17 +66,33 @@ export default function PortalPage() {
     const { error } = await supabase.storage.from('documents').upload(fileName, file, { upsert: true })
     if (error) { setUploading(prev => ({ ...prev, [idx]: false })); return }
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
-    await supabase.from('documents').insert({
+    await supabase.from('documents').upsert({
       application_id: application.id,
       name: docName,
       file_url: urlData.publicUrl,
       file_name: file.name,
       status: 'uploaded',
       delivery_type: 'digital',
-    })
+    }, { onConflict: 'application_id,name' })
     const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
     setUploadedDocs(uploaded || [])
     setUploading(prev => ({ ...prev, [idx]: false }))
+  }
+
+  async function handleEldenSec(idx: number, docName: string) {
+    if (!client || !application) return
+    setEldenSaving(prev => ({ ...prev, [idx]: true }))
+    await supabase.from('documents').upsert({
+      application_id: application.id,
+      name: docName,
+      file_url: null,
+      file_name: null,
+      status: 'physical',
+      delivery_type: 'physical',
+    }, { onConflict: 'application_id,name' })
+    const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
+    setUploadedDocs(uploaded || [])
+    setEldenSaving(prev => ({ ...prev, [idx]: false }))
   }
 
   if (loading) return (
@@ -97,7 +113,6 @@ export default function PortalPage() {
 
   const tamamlanan = visaDocuments.filter(vd => {
     if (vd.delivery_type === 'company') return true
-    if (vd.delivery_type === 'physical') return eldenSecilen[visaDocuments.indexOf(vd)]
     return uploadedDocs.some(d => d.name === vd.doc_name)
   }).length
   const toplam = visaDocuments.length
@@ -107,15 +122,27 @@ export default function PortalPage() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '440px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
 
+        {/* Header — pusula logo */}
         <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center' }}>
-          <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+            <svg width="44" height="44" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="40" r="37" stroke="white" strokeWidth="2.5"/>
+              <circle cx="40" cy="40" r="27" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+              <polygon points="40,4 45.5,37 40,31 34.5,37" fill="white"/>
+              <polygon points="40,76 45.5,43 40,49 34.5,43" fill="rgba(255,255,255,0.3)"/>
+              <line x1="3" y1="40" x2="13" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="67" y1="40" x2="77" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="40" y1="3" x2="40" y2="9" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="40" y1="71" x2="40" y2="77" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <line x1="14" y1="14" x2="19" y2="19" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+              <line x1="66" y1="14" x2="61" y2="19" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+              <line x1="14" y1="66" x2="19" y2="61" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+              <line x1="66" y1="66" x2="61" y2="61" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+              <circle cx="40" cy="40" r="3.5" fill="white"/>
+              <circle cx="40" cy="40" r="1.5" fill="#0d1f35"/>
             </svg>
           </div>
-          <h2 style={{ color: 'white', fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>Vectropus Portal</h2>
+          <h2 style={{ color: 'white', fontFamily: "'Playfair Display', serif", fontSize: '18px', fontWeight: '400', letterSpacing: '3px', marginBottom: '12px' }}>VECTROPUS</h2>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
             Merhaba <strong style={{ color: 'white' }}>{client.full_name}</strong>
           </p>
@@ -137,7 +164,6 @@ export default function PortalPage() {
         </div>
 
         <div style={{ padding: '1.5rem' }}>
-
           {activeTab === 'evrak' && (
             <div>
               {visaDocuments.length === 0 ? (
@@ -155,8 +181,9 @@ export default function PortalPage() {
                   </div>
 
                   {visaDocuments.map((vd, idx) => {
-                    const yuklendi = uploadedDocs.find(d => d.name === vd.doc_name)
-                    const elden = eldenSecilen[idx]
+                    const yuklenenDoc = uploadedDocs.find(d => d.name === vd.doc_name)
+                    const yuklendi = yuklenenDoc?.delivery_type === 'digital'
+                    const eldenSecildi = yuklenenDoc?.delivery_type === 'physical'
 
                     if (vd.delivery_type === 'company') return (
                       <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
@@ -194,7 +221,7 @@ export default function PortalPage() {
                       </div>
                     )
 
-                    if (elden) return (
+                    if (eldenSecildi) return (
                       <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#92600a', flexShrink: 0 }}>🤝</div>
@@ -224,8 +251,12 @@ export default function PortalPage() {
                           <button onClick={() => fileRefs.current[idx]?.click()} style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
                             📎 Dijital Yükle
                           </button>
-                          <button onClick={() => setEldenSecilen(prev => ({ ...prev, [idx]: true }))} style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', background: '#faf8f3', color: '#1a3a5c', border: '1.5px solid #1a3a5c', borderRadius: '8px', cursor: 'pointer' }}>
-                            🤝 Elden Getireceğim
+                          <button
+                            onClick={() => handleEldenSec(idx, vd.doc_name)}
+                            disabled={eldenSaving[idx]}
+                            style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', background: '#faf8f3', color: '#1a3a5c', border: '1.5px solid #1a3a5c', borderRadius: '8px', cursor: 'pointer', opacity: eldenSaving[idx] ? 0.6 : 1 }}
+                          >
+                            {eldenSaving[idx] ? 'Kaydediliyor...' : '🤝 Elden Getireceğim'}
                           </button>
                         </div>
                       </div>
