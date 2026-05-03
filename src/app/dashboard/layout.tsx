@@ -9,7 +9,7 @@ export default function DashboardLayout({
     <div style={{
       display: 'flex',
       minHeight: '100vh',
-      background: '#faf8f3',
+      background: '#f5f5f7',
       fontFamily: "'Outfit', 'system-ui', sans-serif",
     }}>
       <Sidebar />
