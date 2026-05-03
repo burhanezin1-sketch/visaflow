@@ -16,6 +16,16 @@ export default function GorevlerPage() {
   useEffect(() => {
     if (!companyId) return
     fetchGorevler()
+
+    // Realtime — applications veya clients değişince otomatik güncelle
+    const channel = supabase
+      .channel('gorevler-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => fetchGorevler())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchGorevler())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => fetchGorevler())
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [companyId])
 
   async function fetchGorevler() {
