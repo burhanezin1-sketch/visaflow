@@ -29,7 +29,6 @@ export default function PortalPage() {
         setPhone(c.phone || '')
         const { data: appData } = await supabase.from('applications').select('*').eq('client_id', c.id).single()
         setApplication(appData)
-
         if (appData?.country && appData?.visa_type) {
           const { data: visaDocs } = await supabase
             .from('visa_documents')
@@ -38,7 +37,6 @@ export default function PortalPage() {
             .eq('visa_type', appData.visa_type)
             .order('order_num', { ascending: true })
           setVisaDocuments(visaDocs || [])
-
           const { data: uploaded } = await supabase
             .from('documents')
             .select('*')
@@ -66,14 +64,15 @@ export default function PortalPage() {
     const { error } = await supabase.storage.from('documents').upload(fileName, file, { upsert: true })
     if (error) { setUploading(prev => ({ ...prev, [idx]: false })); return }
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
-    await supabase.from('documents').upsert({
+    await supabase.from('documents').delete().eq('application_id', application.id).eq('name', docName)
+    await supabase.from('documents').insert({
       application_id: application.id,
       name: docName,
       file_url: urlData.publicUrl,
       file_name: file.name,
       status: 'uploaded',
       delivery_type: 'digital',
-    }, { onConflict: 'application_id,name' })
+    })
     const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
     setUploadedDocs(uploaded || [])
     setUploading(prev => ({ ...prev, [idx]: false }))
@@ -82,14 +81,15 @@ export default function PortalPage() {
   async function handleEldenSec(idx: number, docName: string) {
     if (!client || !application) return
     setEldenSaving(prev => ({ ...prev, [idx]: true }))
-    await supabase.from('documents').upsert({
+    await supabase.from('documents').delete().eq('application_id', application.id).eq('name', docName)
+    await supabase.from('documents').insert({
       application_id: application.id,
       name: docName,
       file_url: null,
       file_name: null,
       status: 'physical',
       delivery_type: 'physical',
-    }, { onConflict: 'application_id,name' })
+    })
     const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
     setUploadedDocs(uploaded || [])
     setEldenSaving(prev => ({ ...prev, [idx]: false }))
@@ -122,7 +122,6 @@ export default function PortalPage() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '440px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
 
-        {/* Header — pusula logo */}
         <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
             <svg width="44" height="44" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -224,7 +223,7 @@ export default function PortalPage() {
                     if (eldenSecildi) return (
                       <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#92600a', flexShrink: 0 }}>🤝</div>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>🤝</div>
                           <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{vd.doc_name}</span>
                           <span style={{ fontSize: '11px', color: '#92600a', fontWeight: '500' }}>Elden getirilecek</span>
                         </div>
