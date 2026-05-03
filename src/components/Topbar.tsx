@@ -1,6 +1,6 @@
 'use client'
 
-export default function Topbar({ title }: { title: string }) {
+export default function Topbar({ title = '' }: { title?: string }) {
   return (
     <div style={{
       background: '#f5f5f7',
