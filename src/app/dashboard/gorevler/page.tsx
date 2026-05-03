@@ -8,34 +8,116 @@ import { useCompany } from '@/lib/useCompany'
 
 export default function GorevlerPage() {
   const { companyId, loading: companyLoading } = useCompany()
-  const [tasks, setTasks] = useState<any[]>([])
+  const [gorevler, setGorevler] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [tamamlanan, setTamamlanan] = useState<Set<string>>(new Set())
   const router = useRouter()
 
   useEffect(() => {
     if (!companyId) return
-    fetchTasks()
+    fetchGorevler()
   }, [companyId])
 
-  async function fetchTasks() {
-    const { data } = await supabase
-      .from('tasks')
-      .select('*, clients(*)')
+  async function fetchGorevler() {
+    const { data: clients } = await supabase
+      .from('clients')
+      .select('*, applications(*), payments(*)')
       .eq('company_id', companyId)
-      .eq('is_done', false)
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: false })
-    setTasks(data || [])
+
+    const liste: any[] = []
+
+    clients?.forEach(c => {
+      const app = c.applications?.[0]
+      const payment = c.payments?.[0]
+
+      // Evrak eksikse
+      if (app?.status === 'missing') {
+        liste.push({
+          id: `evrak-${c.id}`,
+          client_id: c.id,
+          client_name: c.full_name,
+          title: 'Eksik evrak hatırlatması gönder',
+          type: 'evrak',
+          priority: 'urgent',
+          aciklama: `${app.country} ${app.visa_type} başvurusu için evraklar eksik`,
+        })
+      }
+
+      // Randevu bekliyorsa
+      if (app?.status === 'appointment_waiting') {
+        liste.push({
+          id: `randevu-${c.id}`,
+          client_id: c.id,
+          client_name: c.full_name,
+          title: 'Randevu ayarla',
+          type: 'randevu',
+          priority: 'urgent',
+          aciklama: `${app.country} ${app.visa_type} için konsolosluk randevusu bekleniyor`,
+        })
+      }
+
+      // Ödeme eksikse
+      if (payment && payment.total_amount - payment.paid_amount > 0) {
+        liste.push({
+          id: `odeme-${c.id}`,
+          client_id: c.id,
+          client_name: c.full_name,
+          title: 'Ödeme takibi yap',
+          type: 'odeme',
+          priority: 'normal',
+          aciklama: `Kalan: ${(payment.total_amount - payment.paid_amount).toLocaleString('tr-TR')}₺`,
+        })
+      }
+
+      // Pasaport yakında doluyorsa (3 ay içinde)
+      if (c.passport_expiry) {
+        const expiry = new Date(c.passport_expiry)
+        const ucAySonra = new Date()
+        ucAySonra.setMonth(ucAySonra.getMonth() + 3)
+        if (expiry < ucAySonra) {
+          liste.push({
+            id: `pasaport-${c.id}`,
+            client_id: c.id,
+            client_name: c.full_name,
+            title: 'Pasaport yenileme uyarısı',
+            type: 'pasaport',
+            priority: 'normal',
+            aciklama: `Pasaport ${expiry.toLocaleDateString('tr-TR')} tarihinde sona eriyor`,
+          })
+        }
+      }
+    })
+
+    setGorevler(liste)
     setLoading(false)
   }
 
-  async function toggleTask(task: any) {
-    await supabase.from('tasks').update({ is_done: true }).eq('id', task.id)
-    fetchTasks()
+  function toggleTamamla(id: string) {
+    setTamamlanan(prev => {
+      const yeni = new Set(prev)
+      if (yeni.has(id)) yeni.delete(id)
+      else yeni.add(id)
+      return yeni
+    })
   }
 
-  const acil = tasks.filter(t => t.priority === 'urgent')
-  const normal = tasks.filter(t => t.priority === 'normal')
+  const aktif = gorevler.filter(g => !tamamlanan.has(g.id))
+  const acil = aktif.filter(g => g.priority === 'urgent')
+  const normal = aktif.filter(g => g.priority === 'normal')
+
+  const typeIcon: any = {
+    evrak: '📎',
+    randevu: '📅',
+    odeme: '💰',
+    pasaport: '🛂',
+  }
+
+  const typeBg: any = {
+    evrak: { bg: '#fef0ee', color: '#c0392b', border: '#f5b8b0' },
+    randevu: { bg: '#eef4fb', color: '#1a5fa5', border: '#b8d4f0' },
+    odeme: { bg: '#fff8ec', color: '#92600a', border: '#f0d896' },
+    pasaport: { bg: '#faf8f3', color: '#5a6a7a', border: '#e8e4da' },
+  }
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -43,25 +125,31 @@ export default function GorevlerPage() {
     </div>
   )
 
-  function GorevItem({ task }: { task: any }) {
+  function GorevItem({ gorev }: { gorev: any }) {
+    const style = typeBg[gorev.type] || typeBg.pasaport
     return (
       <div style={{
         display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '10px 12px', borderRadius: '8px',
-        border: '1px solid #f0ede6', marginBottom: '8px', background: 'white',
-        borderLeft: task.priority === 'urgent' ? '3px solid #c0392b' : '3px solid #c9a84c',
+        padding: '12px', borderRadius: '10px',
+        border: `1px solid ${style.border}`,
+        marginBottom: '8px', background: 'white',
+        borderLeft: `3px solid ${style.color}`,
+        opacity: tamamlanan.has(gorev.id) ? 0.4 : 1,
       }}>
-        <div onClick={() => toggleTask(task)} style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid #e8e4da', flexShrink: 0, cursor: 'pointer' }} />
+        <span style={{ fontSize: '18px', flexShrink: 0 }}>{typeIcon[gorev.type]}</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '13px', color: '#0d1f35' }}>{task.title}</div>
-          {task.clients && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>{task.clients.full_name}</div>}
+          <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35' }}>{gorev.title}</div>
+          <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
+            <strong>{gorev.client_name}</strong> — {gorev.aciklama}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          {task.due_date && <span style={{ fontSize: '11px', color: '#9aaabb' }}>{new Date(task.due_date).toLocaleDateString('tr-TR')}</span>}
-          {task.client_id && (
-            <button onClick={() => router.push(`/dashboard/musteriler/${task.client_id}`)} style={{ padding: '3px 8px', fontSize: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Profil</button>
-          )}
-          <button onClick={() => toggleTask(task)} style={{ padding: '3px 8px', fontSize: '10px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>✓ Tamamla</button>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button onClick={() => router.push(`/dashboard/musteriler/${gorev.client_id}`)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+            Profil
+          </button>
+          <button onClick={() => toggleTamamla(gorev.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+            ✓
+          </button>
         </div>
       </div>
     )
@@ -71,8 +159,11 @@ export default function GorevlerPage() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Görev Listesi" />
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        {tasks.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#9aaabb', fontSize: '13px' }}>🎉 Tüm görevler tamamlandı!</div>
+
+        {aktif.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#9aaabb', fontSize: '13px' }}>
+            🎉 Tüm görevler tamamlandı!
+          </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
             <div>
@@ -82,7 +173,11 @@ export default function GorevlerPage() {
                   <span style={{ background: '#fef0ee', color: '#c0392b', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f5b8b0' }}>{acil.length}</span>
                 </div>
                 <div style={{ padding: '0.75rem' }}>
-                  {acil.length === 0 ? <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Acil görev yok</div> : acil.map(t => <GorevItem key={t.id} task={t} />)}
+                  {acil.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Acil görev yok</div>
+                  ) : (
+                    acil.map(g => <GorevItem key={g.id} gorev={g} />)
+                  )}
                 </div>
               </div>
             </div>
@@ -93,7 +188,11 @@ export default function GorevlerPage() {
                   <span style={{ background: '#fff8ec', color: '#92600a', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f0d896' }}>{normal.length}</span>
                 </div>
                 <div style={{ padding: '0.75rem' }}>
-                  {normal.length === 0 ? <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Normal görev yok</div> : normal.map(t => <GorevItem key={t.id} task={t} />)}
+                  {normal.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Normal görev yok</div>
+                  ) : (
+                    normal.map(g => <GorevItem key={g.id} gorev={g} />)
+                  )}
                 </div>
               </div>
             </div>
