@@ -60,7 +60,7 @@ export default function LeadsPage() {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
 
-    const clientName = selectedLead.name || selectedLead.phone
+    const clientName = selectedLead.full_name || selectedLead.phone
 
     const { data: newClient, error: clientError } = await supabase
       .from('clients')
@@ -142,7 +142,7 @@ export default function LeadsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Telefon', 'Ne İstiyor?', 'Danışman', 'Durum', ''].map(h => (
+                {['Ad Soyad', 'Ne İstiyor?', 'Danışman', 'Durum', ''].map(h => (
                   <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
                 ))}
               </tr>
@@ -160,16 +160,11 @@ export default function LeadsPage() {
                 return (
                   <tr key={lead.id}>
                     <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>
-                      <div>{lead.name || '—'}</div>
+                      <div>{lead.full_name || '—'}</div>
                       <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>{lead.phone}</div>
                     </td>
                     <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6', maxWidth: '280px' }}>
-                      <div style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        maxWidth: '260px'
-                      }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>
                         {lead.ai_message || lead.message || '—'}
                       </div>
                     </td>
@@ -213,6 +208,9 @@ export default function LeadsPage() {
             <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '6px', color: '#0d1f35' }}>Müşteriye Dönüştür</h3>
 
             <div style={{ background: '#f5f8ff', border: '1px solid #e0e8f5', borderRadius: '8px', padding: '10px 12px', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '4px' }}>
+                {selectedLead.full_name || '—'}
+              </div>
               <div style={{ fontSize: '12px', color: '#5a6a7a', marginBottom: '4px' }}>📱 {selectedLead.phone}</div>
               {(selectedLead.ai_message || selectedLead.message) && (
                 <div style={{ fontSize: '12px', color: '#1a3a5c', fontStyle: 'italic' }}>
