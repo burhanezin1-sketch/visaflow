@@ -56,6 +56,7 @@ export default function LeadsPage() {
       .from('leads')
       .select('*')
       .eq('company_id', companyId)
+      .not('status', 'in', '("converted","lost")')
       .order('created_at', { ascending: false })
     if (error) console.error('Leads fetch error:', error)
     setLeads(data || [])
@@ -133,7 +134,8 @@ export default function LeadsPage() {
       })
     }
 
-    await supabase.from('leads').update({ status: 'converted' }).eq('id', selectedLead.id)
+    // Lead'i sil
+    await supabase.from('leads').delete().eq('id', selectedLead.id)
 
     setSaving(false)
     setShowDurumModal(false)
@@ -143,7 +145,8 @@ export default function LeadsPage() {
   async function iptalEt() {
     if (!selectedLead) return
     setSaving(true)
-    await supabase.from('leads').update({ status: 'lost' }).eq('id', selectedLead.id)
+    // Lead'i sil
+    await supabase.from('leads').delete().eq('id', selectedLead.id)
     setSaving(false)
     setShowDurumModal(false)
     fetchData()
@@ -161,9 +164,7 @@ export default function LeadsPage() {
   const statusLabel: any = {
     waiting: { label: 'Bekliyor', bg: '#fff8ec', color: '#92600a' },
     claimed: { label: 'Sahiplenildi', bg: '#eef4fb', color: '#1a5fa5' },
-    contacted: { label: 'Daha Sonra', bg: '#f0eeff', color: '#5b2eb5' },
-    converted: { label: 'Müşteri Oldu ✓', bg: '#edfaf3', color: '#1a7a45' },
-    lost: { label: 'İptal', bg: '#fef0ee', color: '#c0392b' },
+    contacted: { label: 'Daha Sonra Konuşulacak', bg: '#f0eeff', color: '#5b2eb5' },
   }
 
   const countries = [...new Set(prices.map(p => p.country))]
@@ -183,7 +184,7 @@ export default function LeadsPage() {
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Lead Listesi</h3>
             <span style={{ fontSize: '12px', color: '#9aaabb' }}>
-              {leads.filter(l => l.status === 'waiting' || l.status === 'claimed' || l.status === 'contacted').length} aktif
+              {leads.filter(l => l.status === 'waiting').length} bekliyor
             </span>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -324,7 +325,7 @@ export default function LeadsPage() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
                 <button onClick={iptalEt} disabled={saving} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : '#c0392b', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                  {saving ? 'Kaydediliyor...' : '✕ İptal Et'}
+                  {saving ? 'Siliniyor...' : '✕ İptal Et ve Sil'}
                 </button>
               </div>
             )}
