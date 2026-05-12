@@ -11,6 +11,7 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [usersMap, setUsersMap] = useState<Record<string, string>>({})
   const [showDurumModal, setShowDurumModal] = useState(false)
   const [selectedLead, setSelectedLead] = useState<any>(null)
   const [prices, setPrices] = useState<any[]>([])
@@ -24,6 +25,7 @@ export default function LeadsPage() {
     fetchData()
     fetchPrices()
     fetchCurrentUser()
+    fetchUsers()
   }, [companyId])
 
   async function fetchCurrentUser() {
@@ -31,29 +33,32 @@ export default function LeadsPage() {
     if (!user) return
     const { data } = await supabase
       .from('users')
-      .select('id, name')
+      .select('id, full_name')
       .eq('id', user.id)
       .single()
     setCurrentUser(data)
   }
 
+  async function fetchUsers() {
+    const { data } = await supabase
+      .from('users')
+      .select('id, full_name')
+      .eq('company_id', companyId)
+    if (data) {
+      const map: Record<string, string> = {}
+      data.forEach((u: any) => { map[u.id] = u.full_name })
+      setUsersMap(map)
+    }
+  }
+
   async function fetchData() {
     const { data, error } = await supabase
       .from('leads')
-      .select('*, claimed_user:users!leads_claimed_by_fkey(name)')
+      .select('*')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
-    if (error) {
-      // Join başarısız olursa sadece leads çek
-      const { data: data2 } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false })
-      setLeads(data2 || [])
-    } else {
-      setLeads(data || [])
-    }
+    if (error) console.error('Leads fetch error:', error)
+    setLeads(data || [])
     setLoading(false)
   }
 
@@ -200,7 +205,7 @@ export default function LeadsPage() {
               {leads.map(lead => {
                 const s = statusLabel[lead.status] || statusLabel.waiting
                 const isMine = currentUser && lead.claimed_by === currentUser.id
-                const claimedName = lead.claimed_user?.name || null
+                const claimedName = lead.claimed_by ? usersMap[lead.claimed_by] : null
 
                 return (
                   <tr key={lead.id}>
@@ -210,7 +215,7 @@ export default function LeadsPage() {
                     </td>
                     <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6', maxWidth: '320px' }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
-                        {lead.user_message || lead.message || '—'}
+                        {lead.user_message || '—'}
                       </div>
                     </td>
                     <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>
@@ -259,31 +264,22 @@ export default function LeadsPage() {
                 {selectedLead.full_name || '—'}
               </div>
               <div style={{ fontSize: '12px', color: '#5a6a7a', marginBottom: '4px' }}>📱 {selectedLead.phone}</div>
-              {(selectedLead.user_message || selectedLead.message) && (
+              {selectedLead.user_message && (
                 <div style={{ fontSize: '12px', color: '#1a3a5c', fontStyle: 'italic' }}>
-                  "{selectedLead.user_message || selectedLead.message}"
+                  "{selectedLead.user_message}"
                 </div>
               )}
             </div>
 
             {!durumAksiyon && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem' }}>
-                <button
-                  onClick={() => setDurumAksiyon('musteri')}
-                  style={{ padding: '12px', background: '#edfaf3', color: '#1a7a45', border: '1.5px solid #b7e8cc', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}
-                >
+                <button onClick={() => setDurumAksiyon('musteri')} style={{ padding: '12px', background: '#edfaf3', color: '#1a7a45', border: '1.5px solid #b7e8cc', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                   ✓ Müşteriye Dönüştür
                 </button>
-                <button
-                  onClick={() => setDurumAksiyon('sonra')}
-                  style={{ padding: '12px', background: '#f0eeff', color: '#5b2eb5', border: '1.5px solid #c9bdf0', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}
-                >
+                <button onClick={() => setDurumAksiyon('sonra')} style={{ padding: '12px', background: '#f0eeff', color: '#5b2eb5', border: '1.5px solid #c9bdf0', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                   🕐 Daha Sonra Konuşulacak
                 </button>
-                <button
-                  onClick={() => setDurumAksiyon('iptal')}
-                  style={{ padding: '12px', background: '#fef0ee', color: '#c0392b', border: '1.5px solid #f5c0b5', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}
-                >
+                <button onClick={() => setDurumAksiyon('iptal')} style={{ padding: '12px', background: '#fef0ee', color: '#c0392b', border: '1.5px solid #f5c0b5', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
                   ✕ İptal — Müşteri Olmayacak
                 </button>
               </div>
@@ -295,29 +291,19 @@ export default function LeadsPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1.5rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ülke</label>
-                    <select
-                      value={form.country}
-                      onChange={e => setForm({ ...form, country: e.target.value, visa_type: 'Turist' })}
-                      style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}
-                    >
+                    <select value={form.country} onChange={e => setForm({ ...form, country: e.target.value, visa_type: 'Turist' })} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}>
                       {countries.length > 0 ? countries.map(c => <option key={c}>{c}</option>) : <option>Schengen</option>}
                     </select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Tipi</label>
-                    <select
-                      value={form.visa_type}
-                      onChange={e => setForm({ ...form, visa_type: e.target.value })}
-                      style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}
-                    >
+                    <select value={form.visa_type} onChange={e => setForm({ ...form, visa_type: e.target.value })} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}>
                       {visaTypes.length > 0 ? visaTypes.map(v => <option key={v}>{v}</option>) : <option>Turist</option>}
                     </select>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    Geri
-                  </button>
+                  <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
                   <button onClick={musteriYap} disabled={saving} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : '#1a7a45', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                     {saving ? 'Kaydediliyor...' : '✓ Müşteri Olarak Ekle'}
                   </button>
@@ -327,20 +313,16 @@ export default function LeadsPage() {
 
             {durumAksiyon === 'sonra' && (
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Geri
-                </button>
+                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
                 <button onClick={sonraKonusulacak} disabled={saving} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : '#5b2eb5', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                  {saving ? 'Kaydediliyor...' : '🕐 Daha Sonra Konuşulacak Olarak İşaretle'}
+                  {saving ? 'Kaydediliyor...' : '🕐 Daha Sonra Konuşulacak'}
                 </button>
               </div>
             )}
 
             {durumAksiyon === 'iptal' && (
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Geri
-                </button>
+                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
                 <button onClick={iptalEt} disabled={saving} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : '#c0392b', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                   {saving ? 'Kaydediliyor...' : '✕ İptal Et'}
                 </button>
@@ -348,10 +330,7 @@ export default function LeadsPage() {
             )}
 
             {!durumAksiyon && (
-              <button
-                onClick={() => { setShowDurumModal(false); setSaving(false) }}
-                style={{ width: '100%', marginTop: '8px', padding: '10px', background: 'transparent', color: '#9aaabb', border: 'none', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
+              <button onClick={() => { setShowDurumModal(false); setSaving(false) }} style={{ width: '100%', marginTop: '8px', padding: '10px', background: 'transparent', color: '#9aaabb', border: 'none', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Kapat
               </button>
             )}
