@@ -24,11 +24,12 @@ export default function LeadsPage() {
   }, [companyId])
 
   async function fetchData() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('leads')
-      .select('*, users!leads_claimed_by_fkey(name)')
+      .select('*')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
+    if (error) console.error('Leads fetch error:', error)
     setLeads(data || [])
     setLoading(false)
   }
@@ -93,9 +94,7 @@ export default function LeadsPage() {
       .select()
       .single()
 
-    if (appError) {
-      console.error('Başvuru oluşturma hatası:', appError)
-    }
+    if (appError) console.error('Başvuru oluşturma hatası:', appError)
 
     if (app && price) {
       await supabase.from('payments').insert({
@@ -142,7 +141,7 @@ export default function LeadsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Ad Soyad', 'Ne İstiyor?', 'Danışman', 'Durum', ''].map(h => (
+                {['Ad Soyad', 'Ne İstiyor?', 'Durum', ''].map(h => (
                   <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
                 ))}
               </tr>
@@ -150,7 +149,7 @@ export default function LeadsPage() {
             <tbody>
               {leads.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#9aaabb', fontSize: '13px' }}>
+                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#9aaabb', fontSize: '13px' }}>
                     Henüz potansiyel müşteri yok
                   </td>
                 </tr>
@@ -163,13 +162,10 @@ export default function LeadsPage() {
                       <div>{lead.full_name || '—'}</div>
                       <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>{lead.phone}</div>
                     </td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6', maxWidth: '280px' }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6', maxWidth: '320px' }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
                         {lead.ai_message || lead.message || '—'}
                       </div>
-                    </td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>
-                      {lead.users?.name || 'Atanmadı'}
                     </td>
                     <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
                       <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px' }}>{s.label}</span>
