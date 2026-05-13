@@ -44,6 +44,7 @@ export default function MusteriDetayPage() {
   const [linkKopyalandi, setLinkKopyalandi] = useState(false)
   const [documents, setDocuments] = useState<any[]>([])
   const [visaDocuments, setVisaDocuments] = useState<any[]>([])
+  const [eldenVerildiSaving, setEldenVerildiSaving] = useState<Record<string, boolean>>({})
 
   useEffect(() => { fetchAll() }, [id, companyId, companyLoading])
 
@@ -158,6 +159,22 @@ export default function MusteriDetayPage() {
     setApplication({ ...application, status: val })
   }
 
+  async function eldenVerildiIsaretle(docName: string) {
+    if (!application) return
+    setEldenVerildiSaving(prev => ({ ...prev, [docName]: true }))
+    await supabase.from('documents').delete().eq('application_id', application.id).eq('name', docName)
+    await supabase.from('documents').insert({
+      application_id: application.id,
+      name: docName,
+      file_url: null,
+      file_name: null,
+      status: 'elden_verildi',
+      delivery_type: 'physical',
+    })
+    await fetchAll()
+    setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
+  }
+
   function copyPortalLink() {
     navigator.clipboard.writeText(`${window.location.origin}/portal/${client.portal_token}`)
     setLinkKopyalandi(true)
@@ -171,6 +188,8 @@ export default function MusteriDetayPage() {
   const kalan = payment ? payment.total_amount - payment.paid_amount : 0
   const isMyClient = client.danisan_id === currentUser?.id
   const digerDanismanlar = danismanlar.filter(d => d.id !== currentUser?.id)
+  const currentUserRole = danismanlar.find(d => d.id === currentUser?.id)?.role
+  const isStaff = currentUserRole === 'admin' || currentUserRole === 'danisan'
 
   // ✅ DÜZELTME: delivery_type'a göre doğru durum okunuyor
   const evrakDurumu = visaDocuments.map(vd => {
@@ -178,13 +197,14 @@ export default function MusteriDetayPage() {
     return {
       ...vd,
       yuklendi: doc?.delivery_type === 'digital',
-      eldenSecildi: doc?.delivery_type === 'physical',
+      eldenSecildi: doc?.delivery_type === 'physical' && doc?.status !== 'elden_verildi',
+      eldenVerildi: doc?.status === 'elden_verildi',
       fileUrl: doc?.file_url,
     }
   })
 
   // ✅ DÜZELTME: eldenSecildi de tamamlanmış sayılıyor
-  const tamamlanan = evrakDurumu.filter(e => e.yuklendi || e.eldenSecildi || e.delivery_type === 'company').length
+  const tamamlanan = evrakDurumu.filter(e => e.yuklendi || e.eldenSecildi || e.eldenVerildi || e.delivery_type === 'company').length
   const toplam = evrakDurumu.length
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
 
@@ -309,6 +329,8 @@ export default function MusteriDetayPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                           {evrak.delivery_type === 'company' ? (
                             <span style={{ fontSize: '14px' }}>🏢</span>
+                          ) : evrak.eldenVerildi ? (
+                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
                           ) : evrak.delivery_type === 'physical' ? (
                             <span style={{ fontSize: '14px' }}>🤝</span>
                           ) : evrak.yuklendi ? (
@@ -323,6 +345,8 @@ export default function MusteriDetayPage() {
                             <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
                               {evrak.delivery_type === 'company'
                                 ? 'Firma ekleyecek'
+                                : evrak.eldenVerildi
+                                ? 'Elden teslim alındı'
                                 : evrak.delivery_type === 'physical'
                                 ? 'Elden teslim'
                                 : evrak.yuklendi
@@ -333,20 +357,37 @@ export default function MusteriDetayPage() {
                             </div>
                           </div>
                         </div>
-                        {evrak.yuklendi && evrak.fileUrl && (
-                          <a href={evrak.fileUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                            Görüntüle
-                          </a>
-                        )}
-                        {evrak.eldenSecildi && (
-                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Elden</span>
-                        )}
-                        {!evrak.yuklendi && !evrak.eldenSecildi && evrak.delivery_type === 'physical' && (
-                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Zorunlu Elden</span>
-                        )}
-                        {evrak.delivery_type === 'company' && (
-                          <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>Firma</span>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          {evrak.eldenVerildi ? (
+                            <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>✓ Alındı</span>
+                          ) : (
+                            <>
+                              {evrak.yuklendi && evrak.fileUrl && (
+                                <a href={evrak.fileUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                  Görüntüle
+                                </a>
+                              )}
+                              {evrak.eldenSecildi && (
+                                <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Elden</span>
+                              )}
+                              {!evrak.yuklendi && !evrak.eldenSecildi && evrak.delivery_type === 'physical' && (
+                                <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Zorunlu Elden</span>
+                              )}
+                              {evrak.delivery_type === 'company' && (
+                                <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>Firma</span>
+                              )}
+                              {isStaff && evrak.delivery_type !== 'company' && (
+                                <button
+                                  onClick={() => eldenVerildiIsaretle(evrak.doc_name)}
+                                  disabled={!!eldenVerildiSaving[evrak.doc_name]}
+                                  style={{ padding: '3px 8px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: eldenVerildiSaving[evrak.doc_name] ? 0.6 : 1 }}
+                                >
+                                  {eldenVerildiSaving[evrak.doc_name] ? '...' : 'Elden Verildi'}
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     ))}
                     <button style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
