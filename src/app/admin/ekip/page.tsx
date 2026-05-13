@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
+import { checkUserLimit } from '@/lib/planCheck'
 
 export default function EkipPage() {
   const { companyId, loading: companyLoading } = useCompany()
@@ -60,6 +61,13 @@ export default function EkipPage() {
     if (!form.full_name || !form.email || !form.password || !companyId) return
     setSaving(true)
     setError('')
+
+    const limitCheck = await checkUserLimit(companyId)
+    if (!limitCheck.allowed) {
+      setError(limitCheck.message || 'Kullanıcı limitine ulaşıldı.')
+      setSaving(false)
+      return
+    }
 
     const res = await fetch('/api/create-user', {
       method: 'POST',
