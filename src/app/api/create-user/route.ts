@@ -44,10 +44,14 @@ export async function DELETE(request: Request) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // Önce users tablosundan sil
+  // Bağlı kayıtları temizle
+  await supabaseAdmin.from('leads').update({ claimed_by: null }).eq('claimed_by', userId)
+  await supabaseAdmin.from('clients').update({ danisan_id: null }).eq('danisan_id', userId)
+
+  // users tablosundan sil
   await supabaseAdmin.from('users').delete().eq('id', userId)
 
-  // Sonra Auth'dan sil
+  // Auth'dan sil
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
   if (error) {
