@@ -28,6 +28,8 @@ export default function MusteriDetayPage() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [newNote, setNewNote] = useState('')
   const [newMessage, setNewMessage] = useState('')
+  const [waStatus, setWaStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [waError, setWaError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('evrak')
   const [loading, setLoading] = useState(true)
   const [showDevirModal, setShowDevirModal] = useState(false)
@@ -106,10 +108,33 @@ export default function MusteriDetayPage() {
   }
 
   async function sendMessage() {
-    if (!newMessage.trim() || !client) return
+    if (!newMessage.trim() || !client || waStatus === 'sending') return
+    setWaStatus('sending')
+    setWaError(null)
+
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase.from('wa_messages').insert({ company_id: client.company_id, client_id: client.id, sender_id: user?.id, message: newMessage, direction: 'outbound' }).select().single()
+    const { data } = await supabase
+      .from('wa_messages')
+      .insert({ company_id: client.company_id, client_id: client.id, sender_id: user?.id, message: newMessage, direction: 'outbound' })
+      .select()
+      .single()
     if (data) setWaMessages([data, ...waMessages])
+
+    try {
+      const res = await fetch('/api/send-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: client.phone, message: newMessage, companyId: client.company_id }),
+      })
+      const result = await res.json()
+      if (!res.ok || result.error) throw new Error(result.error || 'Gönderim başarısız.')
+      setWaStatus('success')
+      setTimeout(() => setWaStatus('idle'), 3000)
+    } catch (err: any) {
+      setWaStatus('error')
+      setWaError(err.message)
+    }
+
     setNewMessage('')
   }
 
@@ -531,6 +556,16 @@ export default function MusteriDetayPage() {
 
             {activeTab === 'wp' && (
               <div style={{ padding: '1.25rem' }}>
+                {waStatus === 'success' && (
+                  <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '9px 12px', marginBottom: '10px', fontSize: '12px', color: '#1a7a45', fontWeight: '500' }}>
+                    ✓ Mesaj gönderildi
+                  </div>
+                )}
+                {waStatus === 'error' && waError && (
+                  <div style={{ background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '8px', padding: '9px 12px', marginBottom: '10px', fontSize: '12px', color: '#c0392b' }}>
+                    Hata: {waError}
+                  </div>
+                )}
                 <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '12px' }}>
                   {waMessages.length === 0 && <p style={{ fontSize: '12px', color: '#9aaabb' }}>Henüz mesaj yok.</p>}
                   {waMessages.map(m => (
@@ -554,7 +589,13 @@ export default function MusteriDetayPage() {
                   <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }} placeholder="Mesaj yaz... (Enter ile gönder)" style={{ width: '100%', padding: '10px 12px', border: 'none', background: '#f5f5f7', fontSize: '13px', resize: 'none', height: '80px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', display: 'block' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderTop: '1px solid #e2e2e8' }}>
                     <span style={{ fontSize: '11px', color: '#9aaabb' }}>{newMessage.length} karakter</span>
-                    <button onClick={sendMessage} style={{ padding: '6px 14px', background: '#25D366', color: 'white', border: 'none', borderRadius: '20px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}>➤ Gönder</button>
+                    <button
+                      onClick={sendMessage}
+                      disabled={waStatus === 'sending' || !newMessage.trim()}
+                      style={{ padding: '6px 14px', background: waStatus === 'sending' ? '#888' : '#25D366', color: 'white', border: 'none', borderRadius: '20px', fontSize: '12px', fontWeight: '500', cursor: waStatus === 'sending' ? 'not-allowed' : 'pointer', opacity: !newMessage.trim() ? 0.5 : 1 }}
+                    >
+                      {waStatus === 'sending' ? '⏳ Gönderiliyor...' : '➤ Gönder'}
+                    </button>
                   </div>
                 </div>
               </div>
