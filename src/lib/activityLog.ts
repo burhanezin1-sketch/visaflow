@@ -17,5 +17,7 @@ export function logAction(
     entity_type: entityType ?? null,
     entity_id: entityId ?? null,
     entity_name: entityName ?? null,
+  }).then(({ error }) => {
+    if (error) console.error('[activityLog] insert failed:', error.message)
   })
 }
