@@ -45,6 +45,7 @@ export default function MusteriDetayPage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [visaDocuments, setVisaDocuments] = useState<any[]>([])
   const [eldenVerildiSaving, setEldenVerildiSaving] = useState<Record<string, boolean>>({})
+  const [evrakHata, setEvrakHata] = useState<string | null>(null)
 
   useEffect(() => { fetchAll() }, [id, companyId, companyLoading])
 
@@ -162,15 +163,37 @@ export default function MusteriDetayPage() {
   async function eldenVerildiIsaretle(docName: string) {
     if (!application) return
     setEldenVerildiSaving(prev => ({ ...prev, [docName]: true }))
-    await supabase.from('documents').delete().eq('application_id', application.id).eq('name', docName)
-    await supabase.from('documents').insert({
-      application_id: application.id,
-      name: docName,
-      file_url: null,
-      file_name: null,
-      status: 'elden_verildi',
-      delivery_type: 'physical',
-    })
+    setEvrakHata(null)
+
+    const { error: delErr } = await supabase
+      .from('documents')
+      .delete()
+      .eq('application_id', application.id)
+      .eq('name', docName)
+
+    if (delErr) {
+      setEvrakHata(`Silme hatası: ${delErr.message}`)
+      setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
+      return
+    }
+
+    const { error: insErr } = await supabase
+      .from('documents')
+      .insert({
+        application_id: application.id,
+        name: docName,
+        file_url: null,
+        file_name: null,
+        status: 'elden_verildi',
+        delivery_type: 'physical',
+      })
+
+    if (insErr) {
+      setEvrakHata(`Kayıt hatası: ${insErr.message}`)
+      setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
+      return
+    }
+
     await fetchAll()
     setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
   }
@@ -311,6 +334,11 @@ export default function MusteriDetayPage() {
 
             {activeTab === 'evrak' && (
               <div style={{ padding: '1.25rem' }}>
+                {evrakHata && (
+                  <div style={{ background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#c0392b' }}>
+                    {evrakHata}
+                  </div>
+                )}
                 {visaDocuments.length === 0 ? (
                   <p style={{ fontSize: '12px', color: '#9aaabb' }}>Bu vize tipi için evrak listesi tanımlanmamış.</p>
                 ) : (
