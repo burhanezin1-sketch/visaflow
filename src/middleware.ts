@@ -1,7 +1,15 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PUBLIC_PREFIXES = ['/login', '/portal', '/superadmin', '/api']
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  if (PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -36,5 +44,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*'],
+  // _next/static, _next/image ve statik dosyaları middleware'den çıkar
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
 }
