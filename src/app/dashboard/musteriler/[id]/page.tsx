@@ -184,8 +184,8 @@ export default function MusteriDetayPage() {
         name: docName,
         file_url: null,
         file_name: null,
-        status: 'physical',
-        delivery_type: 'elden_verildi',
+        status: 'approved',
+        delivery_type: 'physical',
       })
 
     if (insErr) {
@@ -220,8 +220,8 @@ export default function MusteriDetayPage() {
     return {
       ...vd,
       yuklendi: doc?.delivery_type === 'digital',
-      eldenSecildi: doc?.delivery_type === 'physical',
-      eldenVerildi: doc?.delivery_type === 'elden_verildi',
+      eldenSecildi: doc?.delivery_type === 'physical' && doc?.status === 'physical',
+      eldenVerildi: doc?.delivery_type === 'physical' && doc?.status === 'approved',
       fileUrl: doc?.file_url,
     }
   })
