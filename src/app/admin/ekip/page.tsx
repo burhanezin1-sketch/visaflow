@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { checkUserLimit } from '@/lib/planCheck'
+import { logAction } from '@/lib/activityLog'
 
 export default function EkipPage() {
   const { companyId, loading: companyLoading } = useCompany()
@@ -83,6 +84,10 @@ export default function EkipPage() {
       return
     }
 
+    const { data: { user } } = await supabase.auth.getUser()
+    const actingUser = users.find(u => u.id === user?.id)
+    logAction(companyId!, user?.id, actingUser?.full_name || 'Bilinmeyen', `Danışman eklendi`, 'user', null, form.full_name)
+
     setSaving(false)
     setShowModal(false)
     setForm({ full_name: '', email: '', password: '', role: 'danisan' })
@@ -91,6 +96,7 @@ export default function EkipPage() {
 
   async function danismanSil(userId: string) {
     if (!confirm('Bu danışmanı silmek istediğinizden emin misiniz?')) return
+    const deletedUser = users.find(u => u.id === userId)
     const res = await fetch('/api/create-user', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -101,6 +107,9 @@ export default function EkipPage() {
       alert('Hata: ' + data.error)
       return
     }
+    const { data: { user } } = await supabase.auth.getUser()
+    const actingUser = users.find(u => u.id === user?.id)
+    logAction(companyId!, user?.id, actingUser?.full_name || 'Bilinmeyen', `Danışman silindi`, 'user', null, deletedUser?.full_name)
     fetchData()
   }
 

@@ -6,6 +6,7 @@ import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { checkApplicationLimit } from '@/lib/planCheck'
+import { logAction } from '@/lib/activityLog'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -128,6 +129,9 @@ export default function MusterilerPage() {
           paid_amount: 0,
         })
       }
+
+      const { data: userData } = await supabase.from('users').select('full_name').eq('id', user?.id).single()
+      logAction(companyId, user?.id, userData?.full_name || 'Bilinmeyen', 'Yeni müşteri eklendi', 'client', newClient.id, newClient.full_name)
 
       await fetchData()
       setShowModal(false)

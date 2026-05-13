@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter, useParams } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
+import { logAction } from '@/lib/activityLog'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -46,6 +47,7 @@ export default function MusteriDetayPage() {
   const [visaDocuments, setVisaDocuments] = useState<any[]>([])
   const [eldenVerildiSaving, setEldenVerildiSaving] = useState<Record<string, boolean>>({})
   const [evrakHata, setEvrakHata] = useState<string | null>(null)
+  const [currentUserName, setCurrentUserName] = useState('')
 
   useEffect(() => { fetchAll() }, [id, companyId, companyLoading])
 
@@ -80,6 +82,7 @@ export default function MusteriDetayPage() {
     setNotes(notesData || [])
     setWaMessages(waData || [])
     setDanismanlar(usersData || [])
+    setCurrentUserName(usersData?.find((u: any) => u.id === user?.id)?.full_name || user?.email || 'Bilinmeyen')
     setPendingTransfer(transferData || null)
     setDocuments(docsData || [])
     setLoading(false)
@@ -158,6 +161,7 @@ export default function MusteriDetayPage() {
     if (!confirm(`Durumu "${statusMap[val]?.label}" olarak değiştirmek istediğinizden emin misiniz?`)) return
     await supabase.from('applications').update({ status: val }).eq('id', application.id)
     setApplication({ ...application, status: val })
+    logAction(companyId!, currentUser?.id, currentUserName, `Başvuru durumu: ${statusMap[val]?.label}`, 'application', application.id, client?.full_name)
   }
 
   async function eldenVerildiIsaretle(docName: string) {
@@ -195,6 +199,7 @@ export default function MusteriDetayPage() {
     }
 
     await fetchAll()
+    logAction(companyId!, currentUser?.id, currentUserName, `Evrak elden verildi: ${docName}`, 'document', application.id, client?.full_name)
     setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
   }
 
