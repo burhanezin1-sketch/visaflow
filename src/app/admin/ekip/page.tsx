@@ -83,7 +83,16 @@ export default function EkipPage() {
 
   async function danismanSil(userId: string) {
     if (!confirm('Bu danışmanı silmek istediğinizden emin misiniz?')) return
-    await supabase.from('users').delete().eq('id', userId)
+    const res = await fetch('/api/create-user', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+    const data = await res.json()
+    if (data.error) {
+      alert('Hata: ' + data.error)
+      return
+    }
     fetchData()
   }
 

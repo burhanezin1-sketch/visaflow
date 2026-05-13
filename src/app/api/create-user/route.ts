@@ -30,3 +30,29 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ success: true })
 }
+
+export async function DELETE(request: Request) {
+  const { userId } = await request.json()
+
+  if (!userId) {
+    return NextResponse.json({ error: 'userId gerekli' }, { status: 400 })
+  }
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
+  // Önce users tablosundan sil
+  await supabaseAdmin.from('users').delete().eq('id', userId)
+
+  // Sonra Auth'dan sil
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
+  return NextResponse.json({ success: true })
+}
