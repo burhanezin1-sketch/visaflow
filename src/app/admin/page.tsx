@@ -25,7 +25,8 @@ export default function AdminPage() {
   const TR_AYLAR = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']
 
   useEffect(() => {
-    if (!companyId) return
+    if (companyLoading) return
+    if (!companyId) { setLoading(false); return }
     async function fetchData() {
       const { data: clients } = await supabase.from('clients').select('*').eq('company_id', companyId)
       const { data: applications } = await supabase.from('applications').select('*').eq('company_id', companyId)
@@ -73,7 +74,7 @@ export default function AdminPage() {
       setLoading(false)
     }
     fetchData()
-  }, [companyId])
+  }, [companyId, companyLoading])
 
   useEffect(() => {
     if (loading || !aylikCiro.length) return

@@ -23,7 +23,8 @@ export default function DashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!companyId) return
+    if (companyLoading) return
+    if (!companyId) { setLoading(false); return }
     async function fetchData() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -37,7 +38,7 @@ export default function DashboardPage() {
       setLoading(false)
     }
     fetchData()
-  }, [companyId])
+  }, [companyId, companyLoading])
 
   const bekleyenEvrak = clients.filter(c => c.applications?.some((a: any) => a.status === 'missing'))
   const randevular = clients.filter(c => c.applications?.some((a: any) => a.status === 'appointment'))

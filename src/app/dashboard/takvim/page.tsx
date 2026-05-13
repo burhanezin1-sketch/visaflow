@@ -21,7 +21,8 @@ export default function TakvimPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!companyId) return
+    if (companyLoading) return
+    if (!companyId) { setLoading(false); return }
     async function fetchData() {
       const { data } = await supabase
         .from('applications')
@@ -33,7 +34,7 @@ export default function TakvimPage() {
       setLoading(false)
     }
     fetchData()
-  }, [companyId])
+  }, [companyId, companyLoading])
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

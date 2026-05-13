@@ -14,10 +14,10 @@ export default function GorevlerPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!companyId) return
+    if (companyLoading) return
+    if (!companyId) { setLoading(false); return }
     fetchGorevler()
 
-    // Realtime — applications veya clients değişince otomatik güncelle
     const channel = supabase
       .channel('gorevler-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => fetchGorevler())
@@ -26,7 +26,7 @@ export default function GorevlerPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [companyId])
+  }, [companyId, companyLoading])
 
   async function fetchGorevler() {
     const { data: clients } = await supabase

@@ -21,12 +21,13 @@ export default function LeadsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!companyId) return
+    if (companyLoading) return
+    if (!companyId) { setLoading(false); return }
     fetchData()
     fetchPrices()
     fetchCurrentUser()
     fetchUsers()
-  }, [companyId])
+  }, [companyId, companyLoading])
 
   async function fetchCurrentUser() {
     const { data: { user } } = await supabase.auth.getUser()

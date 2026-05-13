@@ -32,11 +32,12 @@ export default function MusterilerPage() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!companyId) return
+    if (companyLoading) return
+    if (!companyId) { setLoading(false); return }
     fetchData()
     fetchPrices()
     fetchVisaOptions()
-  }, [companyId])
+  }, [companyId, companyLoading])
 
   async function fetchData() {
     const { data } = await supabase

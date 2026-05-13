@@ -17,7 +17,7 @@ const statusMap: any = {
 export default function MusteriDetayPage() {
   const { id } = useParams()
   const router = useRouter()
-  const { companyId } = useCompany()
+  const { companyId, loading: companyLoading } = useCompany()
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
   const [payment, setPayment] = useState<any>(null)
@@ -45,10 +45,11 @@ export default function MusteriDetayPage() {
   const [documents, setDocuments] = useState<any[]>([])
   const [visaDocuments, setVisaDocuments] = useState<any[]>([])
 
-  useEffect(() => { fetchAll() }, [id, companyId])
+  useEffect(() => { fetchAll() }, [id, companyId, companyLoading])
 
   async function fetchAll() {
-    if (!companyId) return
+    if (companyLoading) return
+    if (!companyId) { setLoading(false); return }
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).single()
