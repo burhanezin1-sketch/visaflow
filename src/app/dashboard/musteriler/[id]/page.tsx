@@ -48,6 +48,13 @@ export default function MusteriDetayPage() {
   const [eldenVerildiSaving, setEldenVerildiSaving] = useState<Record<string, boolean>>({})
   const [evrakHata, setEvrakHata] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState('')
+  const [companyPlan, setCompanyPlan] = useState('')
+  const [showNiyetModal, setShowNiyetModal] = useState(false)
+  const [niyetStep, setNiyetStep] = useState<'form' | 'result'>('form')
+  const [niyetForm, setNiyetForm] = useState({ seyahatTarihi: '', konaklamaAdresi: '', davetEden: '' })
+  const [niyetMektubu, setNiyetMektubu] = useState('')
+  const [niyetLoading, setNiyetLoading] = useState(false)
+  const [niyetHata, setNiyetHata] = useState<string | null>(null)
 
   useEffect(() => { fetchAll() }, [id, companyId, companyLoading])
 
@@ -62,6 +69,7 @@ export default function MusteriDetayPage() {
     const { data: notesData } = await supabase.from('notes').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
     const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
     const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
+    const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
     const { data: transferData } = await supabase.from('transfer_requests').select('*, to_user_info:users!transfer_requests_to_user_fkey(full_name)').eq('client_id', id).eq('status', 'pending').single()
     const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
 
@@ -83,6 +91,7 @@ export default function MusteriDetayPage() {
     setWaMessages(waData || [])
     setDanismanlar(usersData || [])
     setCurrentUserName(usersData?.find((u: any) => u.id === user?.id)?.full_name || user?.email || 'Bilinmeyen')
+    setCompanyPlan(companyData?.plan || 'starter')
     setPendingTransfer(transferData || null)
     setDocuments(docsData || [])
     setLoading(false)
@@ -203,6 +212,41 @@ export default function MusteriDetayPage() {
     setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
   }
 
+  async function niyetMektubuOlustur() {
+    if (!niyetForm.seyahatTarihi || !niyetForm.konaklamaAdresi) return
+    setNiyetLoading(true)
+    setNiyetHata(null)
+    try {
+      const res = await fetch('/api/niyet-mektubu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: client?.full_name,
+          country: application?.country,
+          visaType: application?.visa_type,
+          travelDate: niyetForm.seyahatTarihi,
+          accommodation: niyetForm.konaklamaAdresi,
+          inviter: niyetForm.davetEden,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setNiyetMektubu(data.letter)
+      setNiyetStep('result')
+    } catch (err: any) {
+      setNiyetHata(err.message || 'Bir hata oluştu.')
+    }
+    setNiyetLoading(false)
+  }
+
+  function pdfIndir() {
+    const win = window.open('', '_blank')
+    if (!win) return
+    const safe = niyetMektubu.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Niyet Mektubu - ${client?.full_name}</title><style>body{font-family:Georgia,serif;font-size:12pt;line-height:1.9;margin:3cm 2.5cm;color:#111}pre{white-space:pre-wrap;font-family:inherit;font-size:12pt}@media print{body{margin:2cm}}</style></head><body><pre>${safe}</pre><script>window.onload=function(){window.print();window.close()}<\/script></body></html>`)
+    win.document.close()
+  }
+
   function copyPortalLink() {
     navigator.clipboard.writeText(`${window.location.origin}/portal/${client.portal_token}`)
     setLinkKopyalandi(true)
@@ -275,6 +319,21 @@ export default function MusteriDetayPage() {
               <option value="rejected">Reddedildi</option>
             </select>
             <button onClick={() => setShowRandevuModal(true)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: '#1a5fa5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>📅 Randevu Ekle</button>
+            <button
+              onClick={() => {
+                if (companyPlan === 'starter') {
+                  alert('Bu özellik Pro ve Kurumsal planlarda kullanılabilir. Planınızı yükseltin.')
+                  return
+                }
+                setNiyetStep('form')
+                setNiyetHata(null)
+                setNiyetMektubu('')
+                setShowNiyetModal(true)
+              }}
+              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: companyPlan === 'starter' ? '#f0f0f4' : '#5b21b6', color: companyPlan === 'starter' ? '#9aaabb' : 'white', border: companyPlan === 'starter' ? '1px solid #e2e2e8' : 'none', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              ✍️ Niyet Mektubu{companyPlan === 'starter' ? ' 🔒' : ''}
+            </button>
             {isMyClient && digerDanismanlar.length > 0 && !pendingTransfer && (
               <button onClick={() => setShowDevirModal(true)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: '#854f0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>↗ Devret</button>
             )}
@@ -550,6 +609,82 @@ export default function MusteriDetayPage() {
                 {devirSaving ? 'Gönderiliyor...' : '↗ Devir Talebi Gönder'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showNiyetModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: niyetStep === 'result' ? '600px' : '420px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.15)', maxHeight: '90vh', overflowY: 'auto' }}>
+
+            {niyetStep === 'form' ? (
+              <>
+                <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '4px', color: '#0d1f35' }}>✍️ Niyet Mektubu Oluştur</h3>
+                <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '1.5rem' }}>{client.full_name} — {application?.country} {application?.visa_type}</p>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Seyahat Tarihi *</label>
+                  <input
+                    type="date"
+                    value={niyetForm.seyahatTarihi}
+                    onChange={e => setNiyetForm({ ...niyetForm, seyahatTarihi: e.target.value })}
+                    style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Konaklama Adresi *</label>
+                  <input
+                    value={niyetForm.konaklamaAdresi}
+                    onChange={e => setNiyetForm({ ...niyetForm, konaklamaAdresi: e.target.value })}
+                    placeholder="Hotel Grand Paris, 12 Rue de Rivoli, Paris"
+                    style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Davet Eden (opsiyonel)</label>
+                  <input
+                    value={niyetForm.davetEden}
+                    onChange={e => setNiyetForm({ ...niyetForm, davetEden: e.target.value })}
+                    placeholder="Ahmet Müller (kardeşi, Berlin)"
+                    style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+                {niyetHata && (
+                  <div style={{ background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#c0392b' }}>{niyetHata}</div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setShowNiyetModal(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+                  <button
+                    onClick={niyetMektubuOlustur}
+                    disabled={niyetLoading || !niyetForm.seyahatTarihi || !niyetForm.konaklamaAdresi}
+                    style={{ flex: 2, padding: '10px', background: niyetLoading ? '#9b7ecb' : '#5b21b6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit', opacity: !niyetForm.seyahatTarihi || !niyetForm.konaklamaAdresi ? 0.5 : 1 }}
+                  >
+                    {niyetLoading ? '✨ Oluşturuluyor...' : '✨ Mektubu Oluştur'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '17px', fontWeight: '600', margin: 0, color: '#0d1f35' }}>Niyet Mektubu</h3>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => setNiyetStep('form')} style={{ padding: '6px 12px', fontSize: '12px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', cursor: 'pointer' }}>← Düzenle</button>
+                    <button onClick={pdfIndir} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>📄 PDF İndir</button>
+                    <button onClick={() => setShowNiyetModal(false)} style={{ padding: '6px 10px', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', color: '#9aaabb' }}>✕</button>
+                  </div>
+                </div>
+                <textarea
+                  value={niyetMektubu}
+                  onChange={e => setNiyetMektubu(e.target.value)}
+                  style={{ width: '100%', padding: '14px', border: '1.5px solid #e2e2e8', borderRadius: '10px', fontSize: '13px', lineHeight: '1.8', resize: 'vertical', minHeight: '420px', outline: 'none', boxSizing: 'border-box', fontFamily: 'Georgia, serif', color: '#111' }}
+                />
+                <p style={{ fontSize: '11px', color: '#9aaabb', marginTop: '8px' }}>Metni düzenleyebilirsiniz. PDF indir butonuna basınca yazdırma ekranı açılır.</p>
+              </>
+            )}
           </div>
         </div>
       )}
