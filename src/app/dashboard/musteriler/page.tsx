@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
+import { checkApplicationLimit } from '@/lib/planCheck'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -27,6 +28,7 @@ export default function MusterilerPage() {
   const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: 'Schengen', visa_type: 'Turist' })
   const [autoPrice, setAutoPrice] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
+  const [limitError, setLimitError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -80,7 +82,16 @@ export default function MusterilerPage() {
 
   async function saveClient() {
     if (!form.ad || !form.soyad || !companyId) return
+    setLimitError(null)
     setSaving(true)
+
+    const limitCheck = await checkApplicationLimit(companyId)
+    if (!limitCheck.allowed) {
+      setLimitError(limitCheck.message || 'Başvuru limitine ulaşıldı.')
+      setSaving(false)
+      return
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
 
     const { data: newClient } = await supabase
@@ -247,8 +258,13 @@ export default function MusterilerPage() {
                 Bu vize tipi için fiyat tanımlanmamış. Admin panelinden ekleyebilirsiniz.
               </div>
             )}
+            {limitError && (
+              <div style={{ background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#c0392b' }}>
+                {limitError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={() => { setShowModal(false); setLimitError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={saveClient} disabled={saving} style={{ flex: 2, padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {saving ? 'Kaydediliyor...' : 'Kaydet ve Profile Git'}
               </button>
