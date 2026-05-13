@@ -44,18 +44,11 @@ export async function DELETE(request: Request) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // Public tablolardaki referansları temizle
+  // Diğer tablolardaki referansları temizle
   await supabaseAdmin.from('leads').update({ claimed_by: null }).eq('claimed_by', userId)
   await supabaseAdmin.from('clients').update({ danisan_id: null }).eq('danisan_id', userId)
-  await supabaseAdmin.from('wa_messages').delete().eq('user_id', userId)
-  await supabaseAdmin.from('tasks').update({ assigned_to: null }).eq('assigned_to', userId)
-  await supabaseAdmin.from('superadmins').delete().eq('id', userId)
-  await supabaseAdmin.from('notes').delete().eq('user_id', userId)
 
-  // users tablosundan sil
-  await supabaseAdmin.from('users').delete().eq('id', userId)
-
-  // Auth'dan sil
+  // Auth'dan sil — cascade sayesinde public.users da otomatik silinir
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
   if (error) {
