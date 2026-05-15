@@ -38,7 +38,7 @@ export default function DashboardPage() {
       const { data: clientsData } = await supabase.from('clients').select('*, applications(*)').eq('company_id', companyId)
       const { data: leadsData } = await supabase.from('leads').select('*').eq('status', 'waiting').eq('company_id', companyId)
       const { data: company } = await supabase.from('companies').select('plan').eq('id', companyId).single()
-      const { data: count } = await supabase.rpc('get_monthly_application_count', { company_id: companyId })
+      const { data: count } = await supabase.rpc('get_monthly_application_count', { p_company_id: companyId })
       setClients(clientsData || [])
       setLeads(leadsData || [])
       setMonthlyCount(count || 0)

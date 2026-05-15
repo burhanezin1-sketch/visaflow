@@ -57,7 +57,7 @@ export default function SuperAdminDashboard() {
 
     const counts: Record<string, number> = {}
     await Promise.all(list.map(async (c: any) => {
-      const { data: cnt } = await supabase.rpc('get_monthly_application_count', { company_id: c.id })
+      const { data: cnt } = await supabase.rpc('get_monthly_application_count', { p_company_id: c.id })
       counts[c.id] = cnt || 0
     }))
     setMonthlyCounts(counts)

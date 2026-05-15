@@ -5,14 +5,44 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 const PLAN_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
+const PLAN_PRICES: Record<string, number> = { basic: 2999, pro: 5499 }
+
+const PLAN_OPTIONS = [
+  {
+    key: 'basic',
+    label: 'Basic',
+    price: '2.999 TL/ay',
+    features: ['1 Admin + 2 Danışman', '30 Dosya/Ay', 'AI Kısıtlı'],
+    color: '#5a6a7a',
+    bg: '#f0f0f4',
+    border: '#d8dce4',
+  },
+  {
+    key: 'pro',
+    label: 'Pro',
+    price: '5.499 TL/ay',
+    features: ['1 Admin + 4 Danışman', '100 Dosya/Ay', 'Tüm AI Açık'],
+    color: '#1a5fa5',
+    bg: '#eef4fb',
+    border: '#b8d4f0',
+  },
+]
 
 export default function FirmaListPage() {
   const [companies, setCompanies] = useState<any[]>([])
   const [userCounts, setUserCounts] = useState<Record<string, number>>({})
   const [monthlyCounts, setMonthlyCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
-  const [changingPlan, setChangingPlan] = useState<string | null>(null)
+
+  // Plan modal state
+  const [planModal, setPlanModal] = useState<{ id: string; name: string; current: string } | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<string>('')
+  const [savingPlan, setSavingPlan] = useState(false)
+  const [planSuccess, setPlanSuccess] = useState(false)
+
+  // Delete state
   const [deleting, setDeleting] = useState<string | null>(null)
+
   const router = useRouter()
 
   useEffect(() => {
@@ -28,6 +58,7 @@ export default function FirmaListPage() {
   }
 
   async function fetchAll() {
+    setLoading(true)
     const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false })
     const list = data || []
     setCompanies(list)
@@ -39,20 +70,35 @@ export default function FirmaListPage() {
 
     const monthlyData: Record<string, number> = {}
     await Promise.all(list.map(async (c: any) => {
-      const { data: cnt } = await supabase.rpc('get_monthly_application_count', { company_id: c.id })
+      const { data: cnt } = await supabase.rpc('get_monthly_application_count', { p_company_id: c.id })
       monthlyData[c.id] = cnt || 0
     }))
     setMonthlyCounts(monthlyData)
     setLoading(false)
   }
 
-  async function changePlan(companyId: string, currentPlan: string) {
-    const newPlan = currentPlan === 'basic' ? 'pro' : 'basic'
-    if (!confirm(`Planı "${newPlan.toUpperCase()}" olarak değiştirmek istiyor musunuz?`)) return
-    setChangingPlan(companyId)
-    await supabase.from('companies').update({ plan: newPlan }).eq('id', companyId)
-    setCompanies(prev => prev.map(c => c.id === companyId ? { ...c, plan: newPlan } : c))
-    setChangingPlan(null)
+  function openPlanModal(id: string, name: string, current: string) {
+    setSelectedPlan(current || 'basic')
+    setPlanSuccess(false)
+    setPlanModal({ id, name, current: current || 'basic' })
+  }
+
+  async function confirmPlanChange() {
+    if (!planModal || selectedPlan === planModal.current) {
+      setPlanModal(null)
+      return
+    }
+    setSavingPlan(true)
+    const { error } = await supabase
+      .from('companies')
+      .update({ plan: selectedPlan })
+      .eq('id', planModal.id)
+    setSavingPlan(false)
+    if (!error) {
+      setPlanSuccess(true)
+      setCompanies(prev => prev.map(c => c.id === planModal.id ? { ...c, plan: selectedPlan } : c))
+      setTimeout(() => setPlanModal(null), 800)
+    }
   }
 
   async function deleteFirma(companyId: string, name: string) {
@@ -143,17 +189,10 @@ export default function FirmaListPage() {
                     <td style={{ padding: '14px 1.25rem' }}>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button
-                          onClick={() => changePlan(c.id, c.plan || 'basic')}
-                          disabled={changingPlan === c.id}
-                          style={{
-                            padding: '5px 10px', fontSize: '11px', fontWeight: '500', cursor: 'pointer', borderRadius: '6px',
-                            background: c.plan === 'pro' ? '#fff8ec' : '#eef4fb',
-                            color: c.plan === 'pro' ? '#92600a' : '#1a5fa5',
-                            border: `1px solid ${c.plan === 'pro' ? '#f0d090' : '#b8d4f0'}`,
-                            opacity: changingPlan === c.id ? 0.6 : 1,
-                          }}
+                          onClick={() => openPlanModal(c.id, c.name, c.plan)}
+                          style={{ padding: '5px 10px', fontSize: '11px', fontWeight: '500', cursor: 'pointer', borderRadius: '6px', background: '#f5f5f7', color: '#1c1c24', border: '1px solid #e2e2e8' }}
                         >
-                          {changingPlan === c.id ? '...' : c.plan === 'pro' ? '→ Basic' : '→ Pro'}
+                          Plan Değiştir
                         </button>
                         <button
                           onClick={() => deleteFirma(c.id, c.name)}
@@ -171,6 +210,87 @@ export default function FirmaListPage() {
           </table>
         </div>
       </div>
+
+      {/* Plan Değiştir Modal */}
+      {planModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'white', borderRadius: '18px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(13,31,53,0.18)' }}>
+            {planSuccess ? (
+              <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a7a45' }}>Plan Güncellendi</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '17px', fontWeight: '600', color: '#1c1c24', margin: 0 }}>Plan Değiştir</h3>
+                  <p style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>{planModal.name}</p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.5rem' }}>
+                  {PLAN_OPTIONS.map(opt => {
+                    const isSelected = selectedPlan === opt.key
+                    const isCurrent = planModal.current === opt.key
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() => setSelectedPlan(opt.key)}
+                        style={{
+                          padding: '14px 16px',
+                          borderRadius: '12px',
+                          border: isSelected ? `2px solid ${opt.border === '#d8dce4' ? '#378ADD' : opt.border}` : '2px solid #e2e2e8',
+                          background: isSelected ? opt.bg : 'white',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                          fontFamily: 'system-ui',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: isSelected ? opt.color : '#1c1c24', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{opt.label}</span>
+                            {isCurrent && (
+                              <span style={{ fontSize: '10px', fontWeight: '600', padding: '1px 7px', borderRadius: '20px', background: '#f0f0f4', color: '#9aaabb' }}>Mevcut</span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: isSelected ? opt.color : '#9aaabb' }}>{opt.price}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                          {opt.features.map(f => (
+                            <span key={f} style={{ fontSize: '11px', color: isSelected ? opt.color : '#9aaabb' }}>• {f}</span>
+                          ))}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setPlanModal(null)}
+                    style={{ flex: 1, padding: '11px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    İptal
+                  </button>
+                  <button
+                    onClick={confirmPlanChange}
+                    disabled={savingPlan || selectedPlan === planModal.current}
+                    style={{
+                      flex: 2, padding: '11px', background: selectedPlan === planModal.current ? '#e2e2e8' : '#1c1c24',
+                      color: selectedPlan === planModal.current ? '#9aaabb' : 'white',
+                      border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '500',
+                      cursor: selectedPlan === planModal.current ? 'not-allowed' : 'pointer',
+                      fontFamily: 'inherit', opacity: savingPlan ? 0.7 : 1,
+                    }}
+                  >
+                    {savingPlan ? 'Güncelleniyor...' : selectedPlan === planModal.current ? 'Değişiklik Yok' : `${selectedPlan.toUpperCase()} Planına Geç`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

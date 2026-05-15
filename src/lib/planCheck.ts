@@ -15,7 +15,7 @@ export async function checkApplicationLimit(companyId: string): Promise<{ allowe
   const limit = APPLICATION_LIMITS[company.plan]
   if (!limit) return { allowed: true }
 
-  const { data: count } = await supabase.rpc('get_monthly_application_count', { company_id: companyId })
+  const { data: count } = await supabase.rpc('get_monthly_application_count', { p_company_id: companyId })
 
   if ((count || 0) >= limit) {
     return {
