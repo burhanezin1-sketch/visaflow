@@ -14,12 +14,16 @@ const statusMap: any = {
   rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
 }
 
+const PLAN_MONTHLY_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
+
 export default function DashboardPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const [clients, setClients] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState('')
+  const [monthlyCount, setMonthlyCount] = useState(0)
+  const [monthlyLimit, setMonthlyLimit] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -33,8 +37,12 @@ export default function DashboardPage() {
       }
       const { data: clientsData } = await supabase.from('clients').select('*, applications(*)').eq('company_id', companyId)
       const { data: leadsData } = await supabase.from('leads').select('*').eq('status', 'waiting').eq('company_id', companyId)
+      const { data: company } = await supabase.from('companies').select('plan').eq('id', companyId).single()
+      const { data: count } = await supabase.rpc('get_monthly_application_count', { company_id: companyId })
       setClients(clientsData || [])
       setLeads(leadsData || [])
+      setMonthlyCount(count || 0)
+      setMonthlyLimit(PLAN_MONTHLY_LIMITS[company?.plan] || 0)
       setLoading(false)
     }
     fetchData()
@@ -59,6 +67,18 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
+
+        {monthlyLimit > 0 && (
+          <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#5a6a7a' }}>Bu Ayki Dosya Kullanımı</span>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: '#0d1f35' }}>{monthlyCount}/{monthlyLimit}</span>
+            </div>
+            <div style={{ height: '8px', background: '#f0ede6', borderRadius: '99px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.min((monthlyCount / monthlyLimit) * 100, 100)}%`, background: '#378ADD', borderRadius: '99px', transition: 'width 0.4s ease' }} />
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
           {[

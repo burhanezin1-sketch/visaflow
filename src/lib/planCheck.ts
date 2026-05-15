@@ -1,5 +1,8 @@
 import { supabase } from './supabase'
 
+const APPLICATION_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
+const USER_LIMITS: Record<string, number> = { basic: 3, pro: 5 }
+
 export async function checkApplicationLimit(companyId: string): Promise<{ allowed: boolean; message?: string }> {
   const { data: company } = await supabase
     .from('companies')
@@ -9,21 +12,15 @@ export async function checkApplicationLimit(companyId: string): Promise<{ allowe
 
   if (!company) return { allowed: true }
 
-  if (company.plan === 'pro' || company.plan === 'kurumsal') {
-    return { allowed: true }
-  }
+  const limit = APPLICATION_LIMITS[company.plan]
+  if (!limit) return { allowed: true }
 
-  const { count } = await supabase
-    .from('applications')
-    .select('*', { count: 'exact', head: true })
-    .eq('company_id', companyId)
-    .neq('status', 'completed')
+  const { data: count } = await supabase.rpc('get_monthly_application_count', { company_id: companyId })
 
-  const limit = 50
   if ((count || 0) >= limit) {
     return {
       allowed: false,
-      message: 'Starter paketinizde maksimum 50 aktif başvuru hakkınız var. Pro pakete geçmek için bizimle iletişime geçin.'
+      message: `${company.plan === 'basic' ? 'Basic' : 'Pro'} paketinizde aylık maksimum ${limit} dosya hakkınız var. Üst pakete geçmek için bizimle iletişime geçin.`
     }
   }
 
@@ -33,29 +30,26 @@ export async function checkApplicationLimit(companyId: string): Promise<{ allowe
 export async function checkUserLimit(companyId: string): Promise<{ allowed: boolean; message?: string }> {
   const { data: company } = await supabase
     .from('companies')
-    .select('plan')
+    .select('plan, extra_user_count')
     .eq('id', companyId)
     .single()
 
   if (!company) return { allowed: true }
 
-  const { data: planLimit } = await supabase
-    .from('plan_limits')
-    .select('max_users')
-    .eq('plan', company.plan)
-    .single()
+  const baseLimit = USER_LIMITS[company.plan]
+  if (!baseLimit) return { allowed: true }
 
-  if (!planLimit || planLimit.max_users === null) return { allowed: true }
+  const totalLimit = baseLimit + (company.extra_user_count || 0)
 
   const { count } = await supabase
     .from('users')
     .select('*', { count: 'exact', head: true })
     .eq('company_id', companyId)
 
-  if ((count || 0) >= planLimit.max_users) {
+  if ((count || 0) >= totalLimit) {
     return {
       allowed: false,
-      message: `Starter paketinizde maksimum ${planLimit.max_users} kullanıcı (admin dahil) ekleyebilirsiniz. Pro pakete geçmek için bizimle iletişime geçin.`
+      message: `Paketinizde maksimum ${totalLimit} kullanıcı ekleyebilirsiniz. Ekstra kullanıcı veya üst paket için bizimle iletişime geçin.`
     }
   }
 
