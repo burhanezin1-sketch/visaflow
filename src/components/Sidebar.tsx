@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
+import { logAction } from '@/lib/activityLog'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -26,6 +27,7 @@ export default function Sidebar() {
   const [userId, setUserId] = useState('')
   const [showTransfers, setShowTransfers] = useState(false)
   const [transfers, setTransfers] = useState<any[]>([])
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchUser() {
@@ -57,7 +59,7 @@ export default function Sidebar() {
 
       const { data: tr } = await supabase
         .from('transfer_requests')
-        .select('*, clients(full_name)')
+        .select('*, clients(full_name), from_user_info:users!from_user(full_name)')
         .eq('to_user', userId)
         .eq('status', 'pending')
       setTransfers(tr || [])
@@ -71,6 +73,34 @@ export default function Sidebar() {
   async function handleLogout() {
     await supabase.auth.signOut()
     window.location.href = '/login'
+  }
+
+  function removeTransfer(id: string) {
+    setTransfers(prev => {
+      const next = prev.filter(t => t.id !== id)
+      setTransferCount(next.length)
+      if (next.length === 0) setShowTransfers(false)
+      return next
+    })
+  }
+
+  async function handleOnayla(t: any) {
+    if (processingId) return
+    setProcessingId(t.id)
+    await supabase.from('transfer_requests').update({ status: 'accepted' }).eq('id', t.id)
+    await supabase.from('clients').update({ danisan_id: userId }).eq('id', t.client_id)
+    logAction(companyId!, userId, userName, `Devir talebi onaylandı`, 'transfer', t.id, t.clients?.full_name)
+    removeTransfer(t.id)
+    setProcessingId(null)
+  }
+
+  async function handleReddet(t: any) {
+    if (processingId) return
+    setProcessingId(t.id)
+    await supabase.from('transfer_requests').update({ status: 'rejected' }).eq('id', t.id)
+    logAction(companyId!, userId, userName, `Devir talebi reddedildi`, 'transfer', t.id, t.clients?.full_name)
+    removeTransfer(t.id)
+    setProcessingId(null)
   }
 
   return (
@@ -90,51 +120,90 @@ export default function Sidebar() {
       }} />
 
       {/* Firma adı + danışman */}
-<div style={{
-  padding: '0 1.25rem 1.5rem',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
-  marginBottom: '0.75rem',
-}}>
-  <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>
-    {companyName || '...'}
-  </div>
-  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>
-    {userName || '...'}
-  </div>
-</div>
+      <div style={{
+        padding: '0 1.25rem 1.5rem',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: '0.75rem',
+      }}>
+        <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>
+          {companyName || '...'}
+        </div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>
+          {userName || '...'}
+        </div>
+      </div>
 
       {/* Devir bildirimi */}
       {transferCount > 0 && (
-        <div
-          onClick={() => setShowTransfers(!showTransfers)}
-          style={{
-            margin: '0 0.75rem 0.75rem',
-            background: 'rgba(55,138,221,0.12)',
-            border: '1px solid rgba(55,138,221,0.25)',
-            borderRadius: '8px',
-            padding: '8px 10px',
-            cursor: 'pointer',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{
+          margin: '0 0.75rem 0.75rem',
+          background: 'rgba(55,138,221,0.12)',
+          border: '1px solid rgba(55,138,221,0.25)',
+          borderRadius: '8px',
+          overflow: 'hidden',
+        }}>
+          <div
+            onClick={() => setShowTransfers(v => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 10px', cursor: 'pointer',
+            }}
+          >
             <span style={{ fontSize: '12px', color: '#378ADD', fontWeight: '600' }}>
               📨 {transferCount} Devir Talebi
             </span>
             <span style={{ fontSize: '10px', color: '#378ADD' }}>{showTransfers ? '▲' : '▼'}</span>
           </div>
+
           {showTransfers && (
-            <div style={{ marginTop: '8px' }}>
+            <div style={{ borderTop: '1px solid rgba(55,138,221,0.2)' }}>
               {transfers.map(t => (
                 <div
                   key={t.id}
-                  onClick={e => { e.stopPropagation(); router.push(`/dashboard/musteriler/${t.client_id}`) }}
                   style={{
-                    fontSize: '11px', color: 'rgba(255,255,255,0.7)',
-                    padding: '4px 0', borderTop: '1px solid rgba(255,255,255,0.08)',
-                    cursor: 'pointer',
+                    padding: '8px 10px',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  → {t.clients?.full_name}
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.82)', fontWeight: '500', marginBottom: '2px' }}>
+                    {t.clients?.full_name}
+                  </div>
+                  {t.from_user_info?.full_name && (
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>
+                      {t.from_user_info.full_name} tarafından
+                    </div>
+                  )}
+                  {t.note && (
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.38)', fontStyle: 'italic', marginBottom: '6px' }}>
+                      "{t.note}"
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleOnayla(t) }}
+                      disabled={!!processingId}
+                      style={{
+                        flex: 1, padding: '5px 4px', fontSize: '10px', fontWeight: '600',
+                        background: processingId === t.id ? '#555' : '#1a7a45',
+                        color: 'white', border: 'none', borderRadius: '5px',
+                        cursor: processingId ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {processingId === t.id ? '...' : '✓ Onayla'}
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleReddet(t) }}
+                      disabled={!!processingId}
+                      style={{
+                        flex: 1, padding: '5px 4px', fontSize: '10px', fontWeight: '600',
+                        background: processingId === t.id ? '#555' : 'rgba(192,57,43,0.85)',
+                        color: 'white', border: 'none', borderRadius: '5px',
+                        cursor: processingId ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      ✕ Reddet
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -154,12 +154,14 @@ export default function MusteriDetayPage() {
     if (!pendingTransfer) return
     await supabase.from('transfer_requests').update({ status: 'accepted' }).eq('id', pendingTransfer.id)
     await supabase.from('clients').update({ danisan_id: currentUser?.id }).eq('id', id)
+    logAction(companyId!, currentUser?.id, currentUserName, `Devir talebi onaylandı`, 'transfer', pendingTransfer.id, client?.full_name)
     fetchAll()
   }
 
   async function devirReddet() {
     if (!pendingTransfer) return
     await supabase.from('transfer_requests').update({ status: 'rejected' }).eq('id', pendingTransfer.id)
+    logAction(companyId!, currentUser?.id, currentUserName, `Devir talebi reddedildi`, 'transfer', pendingTransfer.id, client?.full_name)
     fetchAll()
   }
 
