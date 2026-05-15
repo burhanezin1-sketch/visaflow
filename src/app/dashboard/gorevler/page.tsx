@@ -57,6 +57,14 @@ export default function GorevlerPage() {
   const router = useRouter()
 
   useEffect(() => {
+    if (!companyId) return
+    try {
+      const stored = localStorage.getItem(`gorevler-done-${companyId}`)
+      if (stored) setTamamlanan(new Set(JSON.parse(stored)))
+    } catch {}
+  }, [companyId])
+
+  useEffect(() => {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
     fetchGorevler()
@@ -151,6 +159,11 @@ export default function GorevlerPage() {
       const yeni = new Set(prev)
       if (yeni.has(id)) yeni.delete(id)
       else yeni.add(id)
+      if (companyId) {
+        try {
+          localStorage.setItem(`gorevler-done-${companyId}`, JSON.stringify([...yeni]))
+        } catch {}
+      }
       return yeni
     })
   }
