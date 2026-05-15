@@ -1,7 +1,31 @@
 import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+async function requireSuperadmin(): Promise<boolean> {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll() {},
+      },
+    }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data: sa } = await supabase.from('superadmins').select('id').eq('id', user.id).single()
+  return !!sa
+}
+
 export async function POST(request: Request) {
+  if (!(await requireSuperadmin())) {
+    return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+  }
+
   const { full_name, email, password, role, company_id } = await request.json()
 
   const supabaseAdmin = createClient(
@@ -32,6 +56,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!(await requireSuperadmin())) {
+    return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+  }
+
   const { userId } = await request.json()
 
   if (!userId) {
@@ -44,11 +72,9 @@ export async function DELETE(request: Request) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // Diğer tablolardaki referansları temizle
   await supabaseAdmin.from('leads').update({ claimed_by: null }).eq('claimed_by', userId)
   await supabaseAdmin.from('clients').update({ danisan_id: null }).eq('danisan_id', userId)
 
-  // Auth'dan sil — cascade sayesinde public.users da otomatik silinir
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
   if (error) {
