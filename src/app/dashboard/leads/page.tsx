@@ -18,6 +18,7 @@ export default function LeadsPage() {
   const [form, setForm] = useState({ country: 'Schengen', visa_type: 'Turist' })
   const [saving, setSaving] = useState(false)
   const [durumAksiyon, setDurumAksiyon] = useState<'musteri' | 'iptal' | 'sonra' | null>(null)
+  const [musteriYapError, setMusteriYapError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -88,8 +89,23 @@ export default function LeadsPage() {
 
   async function musteriYap() {
     if (!selectedLead || !companyId) return
+    setMusteriYapError(null)
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
+
+    if (selectedLead.phone) {
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id, full_name')
+        .eq('company_id', companyId)
+        .eq('phone', selectedLead.phone)
+        .maybeSingle()
+      if (existing) {
+        setMusteriYapError(`Bu müşteri zaten kayıtlı: ${existing.full_name}`)
+        setSaving(false)
+        return
+      }
+    }
 
     const clientName = selectedLead.full_name || selectedLead.phone
 
@@ -304,8 +320,13 @@ export default function LeadsPage() {
                     </select>
                   </div>
                 </div>
+                {musteriYapError && (
+                  <div style={{ background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#c0392b' }}>
+                    {musteriYapError}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
+                  <button onClick={() => { setDurumAksiyon(null); setMusteriYapError(null) }} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
                   <button onClick={musteriYap} disabled={saving} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : '#1a7a45', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                     {saving ? 'Kaydediliyor...' : '✓ Müşteri Olarak Ekle'}
                   </button>

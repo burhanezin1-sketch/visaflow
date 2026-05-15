@@ -87,6 +87,20 @@ export default function MusterilerPage() {
     setLimitError(null)
     setSaving(true)
 
+    if (form.phone) {
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id, full_name')
+        .eq('company_id', companyId)
+        .eq('phone', form.phone)
+        .maybeSingle()
+      if (existing) {
+        setLimitError(`Bu müşteri zaten kayıtlı: ${existing.full_name}`)
+        setSaving(false)
+        return
+      }
+    }
+
     const limitCheck = await checkApplicationLimit(companyId)
     if (!limitCheck.allowed) {
       setLimitError(limitCheck.message || 'Başvuru limitine ulaşıldı.')
