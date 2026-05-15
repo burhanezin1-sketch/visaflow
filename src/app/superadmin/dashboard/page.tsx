@@ -4,11 +4,23 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
+const PLAN_PRICES: Record<string, number> = { basic: 2999, pro: 5499 }
+const PLAN_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
+
+const statusLabels: Record<string, string> = {
+  missing: 'Evrak Eksik',
+  appointment_waiting: 'Randevu Bekleniyor',
+  appointment: 'Randevu Alındı',
+  approved: 'Onaylandı',
+  rejected: 'Reddedildi',
+}
+
 export default function SuperAdminDashboard() {
   const [companies, setCompanies] = useState<any[]>([])
+  const [monthlyCounts, setMonthlyCounts] = useState<Record<string, number>>({})
+  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'firmalar' | 'evraklar'>('firmalar')
-  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'genel' | 'firmalar' | 'evraklar'>('genel')
 
   // Evrak şablonları state
   const [visaDocs, setVisaDocs] = useState<any[]>([])
@@ -23,24 +35,41 @@ export default function SuperAdminDashboard() {
   const [newVisa, setNewVisa] = useState('')
   const [showNewCombo, setShowNewCombo] = useState(false)
 
+  const router = useRouter()
+
   useEffect(() => {
     checkAuth()
-    fetchCompanies()
-    fetchVisaDocs()
-    fetchVisaOptions()
   }, [])
 
   async function checkAuth() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/superadmin/login'); return }
     const { data: sa } = await supabase.from('superadmins').select('id').eq('id', user.id).single()
-    if (!sa) router.push('/superadmin/login')
+    if (!sa) { router.push('/superadmin/login'); return }
+    await Promise.all([fetchCompanies(), fetchVisaDocs(), fetchVisaOptions(), fetchActivities()])
+    setLoading(false)
   }
 
   async function fetchCompanies() {
     const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false })
-    setCompanies(data || [])
-    setLoading(false)
+    const list = data || []
+    setCompanies(list)
+
+    const counts: Record<string, number> = {}
+    await Promise.all(list.map(async (c: any) => {
+      const { data: cnt } = await supabase.rpc('get_monthly_application_count', { company_id: c.id })
+      counts[c.id] = cnt || 0
+    }))
+    setMonthlyCounts(counts)
+  }
+
+  async function fetchActivities() {
+    const { data } = await supabase
+      .from('applications')
+      .select('id, status, country, visa_type, created_at, clients(full_name, companies(name))')
+      .order('created_at', { ascending: false })
+      .limit(10)
+    setActivities(data || [])
   }
 
   async function fetchVisaDocs() {
@@ -52,7 +81,7 @@ export default function SuperAdminDashboard() {
     const { data } = await supabase.from('visa_documents').select('country, visa_type').order('country')
     const unique = Array.from(new Map(data?.map((d: any) => [`${d.country}__${d.visa_type}`, d])).values()) as { country: string; visa_type: string }[]
     setVisaOptions(unique)
-    if (unique.length > 0 && !selectedCountry) {
+    if (unique.length > 0) {
       setSelectedCountry(unique[0].country)
       setSelectedVisa(unique[0].visa_type)
     }
@@ -68,19 +97,13 @@ export default function SuperAdminDashboard() {
     setSavingEvrak(true)
     if (editEvrak) {
       await supabase.from('visa_documents').update({
-        country: evrakForm.country,
-        visa_type: evrakForm.visa_type,
-        doc_name: evrakForm.doc_name,
-        delivery_type: evrakForm.delivery_type,
-        order_num: evrakForm.order_num,
+        country: evrakForm.country, visa_type: evrakForm.visa_type,
+        doc_name: evrakForm.doc_name, delivery_type: evrakForm.delivery_type, order_num: evrakForm.order_num,
       }).eq('id', editEvrak.id)
     } else {
       await supabase.from('visa_documents').insert({
-        country: evrakForm.country,
-        visa_type: evrakForm.visa_type,
-        doc_name: evrakForm.doc_name,
-        delivery_type: evrakForm.delivery_type,
-        order_num: evrakForm.order_num,
+        country: evrakForm.country, visa_type: evrakForm.visa_type,
+        doc_name: evrakForm.doc_name, delivery_type: evrakForm.delivery_type, order_num: evrakForm.order_num,
       })
     }
     setSavingEvrak(false)
@@ -112,6 +135,10 @@ export default function SuperAdminDashboard() {
   const visaTypesForCountry = [...new Set(visaOptions.filter(v => v.country === selectedCountry).map(v => v.visa_type))].sort()
   const filteredDocs = visaDocs.filter(d => d.country === selectedCountry && d.visa_type === selectedVisa)
 
+  const basicFirms = companies.filter(c => c.plan === 'basic')
+  const proFirms = companies.filter(c => c.plan === 'pro')
+  const monthlyRevenue = basicFirms.length * PLAN_PRICES.basic + proFirms.length * PLAN_PRICES.pro
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#888' }}>Yükleniyor...</div>
@@ -141,7 +168,7 @@ export default function SuperAdminDashboard() {
 
       {/* Tabs */}
       <div style={{ background: 'white', borderBottom: '1px solid #e2e2e8', padding: '0 2rem', display: 'flex', gap: '0' }}>
-        {[['firmalar', '🏢 Firmalar'], ['evraklar', '📋 Evrak Şablonları']].map(([key, label]) => (
+        {[['genel', '📊 Genel Bakış'], ['firmalar', '🏢 Firmalar'], ['evraklar', '📋 Evrak Şablonları']].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key as any)} style={{
             padding: '14px 20px', fontSize: '13px', fontWeight: '500',
             border: 'none', background: 'transparent', cursor: 'pointer',
@@ -154,46 +181,123 @@ export default function SuperAdminDashboard() {
 
       <div style={{ padding: '2rem' }}>
 
+        {/* GENEL BAKIŞ */}
+        {activeTab === 'genel' && (
+          <>
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '2rem' }}>
+              {[
+                { label: 'Toplam Firma', value: companies.length, color: '#1c1c24', sub: 'Aktif müşteri' },
+                { label: 'Basic Plan', value: basicFirms.length, color: '#5a6a7a', sub: '₺2.999/ay' },
+                { label: 'Pro Plan', value: proFirms.length, color: '#1a5fa5', sub: '₺5.499/ay' },
+                { label: 'Aylık Gelir', value: `₺${monthlyRevenue.toLocaleString('tr-TR')}`, color: '#1a7a45', sub: 'Toplam MRR' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
+                  <div style={{ fontSize: '26px', fontWeight: '600', color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '6px' }}>{s.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Son Aktiviteler */}
+            <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
+              <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e2e8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#1c1c24' }}>Son Aktiviteler</h3>
+                <span style={{ fontSize: '12px', color: '#9aaabb' }}>Son 10 işlem</span>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {['Müşteri', 'Firma', 'Vize', 'Durum', 'Tarih'].map(h => (
+                      <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {activities.length === 0 && (
+                    <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>Henüz aktivite yok.</td></tr>
+                  )}
+                  {activities.map((a: any) => (
+                    <tr key={a.id}>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{a.clients?.full_name || '—'}</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0f0f4' }}>{(a.clients as any)?.companies?.name || '—'}</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0f0f4' }}>{a.country} {a.visa_type}</td>
+                      <td style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '20px', background: '#f0f0f4', color: '#5a6a7a' }}>
+                          {statusLabels[a.status] || a.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid #f0f0f4' }}>
+                        {new Date(a.created_at).toLocaleDateString('tr-TR')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
         {/* FİRMALAR */}
         {activeTab === 'firmalar' && (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <div>
                 <h2 style={{ fontSize: '18px', fontWeight: '600', margin: 0, color: '#1c1c24' }}>Firmalar</h2>
-                <p style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>{companies.length} aktif firma</p>
+                <p style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>{companies.length} firma kayıtlı</p>
               </div>
-              <button onClick={() => router.push('/superadmin/firma/yeni')} style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '500', background: '#1c1c24', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
-                + Yeni Firma Ekle
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => router.push('/superadmin/firma')} style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '500', background: 'white', color: '#1c1c24', border: '1px solid #e2e2e8', borderRadius: '10px', cursor: 'pointer' }}>
+                  Firma Yönetimi →
+                </button>
+                <button onClick={() => router.push('/superadmin/firma/yeni')} style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '500', background: '#1c1c24', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
+                  + Yeni Firma Ekle
+                </button>
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-              {companies.map(c => (
-                <div key={c.id} style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                    <div style={{ width: '40px', height: '40px', background: '#eef4fb', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🏢</div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#1c1c24' }}>{c.name}</div>
-                      <div style={{ fontSize: '12px', color: '#9aaabb', marginTop: '2px' }}>{c.city || '-'}</div>
+              {companies.map(c => {
+                const limit = PLAN_LIMITS[c.plan] || 0
+                const used = monthlyCounts[c.id] || 0
+                const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0
+                return (
+                  <div key={c.id} style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '40px', height: '40px', background: '#eef4fb', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🏢</div>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#1c1c24' }}>{c.name}</div>
+                          <div style={{ fontSize: '12px', color: '#9aaabb', marginTop: '2px' }}>{c.city || c.email}</div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '20px', background: c.plan === 'pro' ? '#eef4fb' : '#f0f0f4', color: c.plan === 'pro' ? '#1a5fa5' : '#5a6a7a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {c.plan || 'basic'}
+                      </span>
                     </div>
+                    {limit > 0 && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#5a6a7a', marginBottom: '5px' }}>
+                          <span>Bu Ayki Dosya</span>
+                          <span style={{ fontWeight: '600', color: pct >= 90 ? '#c0392b' : '#1c1c24' }}>{used}/{limit}</span>
+                        </div>
+                        <div style={{ height: '6px', background: '#f0f0f4', borderRadius: '99px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: pct >= 90 ? '#c0392b' : '#378ADD', borderRadius: '99px', transition: 'width 0.4s ease' }} />
+                        </div>
+                      </div>
+                    )}
+                    {[
+                      ['Kayıt', new Date(c.created_at).toLocaleDateString('tr-TR')],
+                      ['Aylık Ücret', `₺${(PLAN_PRICES[c.plan] || 0).toLocaleString('tr-TR')}`],
+                    ].map(([label, value]) => (
+                      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #f0f0f4', fontSize: '12px' }}>
+                        <span style={{ color: '#9aaabb' }}>{label}</span>
+                        <span style={{ color: '#1c1c24', fontWeight: '500' }}>{value}</span>
+                      </div>
+                    ))}
                   </div>
-                  {[
-                    ['Email', c.email],
-                    ['Telefon', c.phone || '-'],
-                    ['Plan', c.plan || 'Standart'],
-                    ['Kayıt', new Date(c.created_at).toLocaleDateString('tr-TR')],
-                  ].map(([label, value]) => (
-                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f4', fontSize: '12px' }}>
-                      <span style={{ color: '#9aaabb' }}>{label}</span>
-                      <span style={{ color: '#1c1c24', fontWeight: '500' }}>{value}</span>
-                    </div>
-                  ))}
-                  <div style={{ marginTop: '12px' }}>
-                    <button onClick={() => router.push('/login')} style={{ width: '100%', padding: '7px', fontSize: '11px', background: '#1c1c24', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                      Panele Git
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </>
         )}
@@ -217,7 +321,6 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            {/* Ülke + Vize Tipi Seçici */}
             <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1rem', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <label style={{ fontSize: '11px', color: '#9aaabb', fontWeight: '600', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Ülke</label>
@@ -239,7 +342,6 @@ export default function SuperAdminDashboard() {
               <span style={{ fontSize: '12px', color: '#9aaabb' }}>{filteredDocs.length} evrak</span>
             </div>
 
-            {/* Evrak Listesi */}
             <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
@@ -251,11 +353,7 @@ export default function SuperAdminDashboard() {
                 </thead>
                 <tbody>
                   {filteredDocs.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
-                        Bu kombinasyon için evrak tanımlanmamış.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>Bu kombinasyon için evrak tanımlanmamış.</td></tr>
                   )}
                   {filteredDocs.map((d, idx) => (
                     <tr key={d.id}>
@@ -296,21 +394,21 @@ export default function SuperAdminDashboard() {
             <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '1.5rem', color: '#1c1c24' }}>
               {editEvrak ? 'Evrak Düzenle' : 'Yeni Evrak Ekle'}
             </h3>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ülke</label>
-              <input value={evrakForm.country} readOnly={!!editEvrak} onChange={e => setEvrakForm({...evrakForm, country: e.target.value})} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', background: editEvrak ? '#f5f5f7' : 'white' }} />
-            </div>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Tipi</label>
-              <input value={evrakForm.visa_type} readOnly={!!editEvrak} onChange={e => setEvrakForm({...evrakForm, visa_type: e.target.value})} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', background: editEvrak ? '#f5f5f7' : 'white' }} />
-            </div>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Evrak Adı</label>
-              <input value={evrakForm.doc_name} onChange={e => setEvrakForm({...evrakForm, doc_name: e.target.value})} placeholder="Pasaport fotokopisi" style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-            </div>
+            {[
+              { label: 'Ülke', key: 'country', readOnly: !!editEvrak },
+              { label: 'Vize Tipi', key: 'visa_type', readOnly: !!editEvrak },
+              { label: 'Evrak Adı', key: 'doc_name', readOnly: false, placeholder: 'Pasaport fotokopisi' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{f.label}</label>
+                <input value={(evrakForm as any)[f.key]} readOnly={f.readOnly} placeholder={f.placeholder}
+                  onChange={e => setEvrakForm({ ...evrakForm, [f.key]: e.target.value })}
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', background: f.readOnly ? '#f5f5f7' : 'white', fontFamily: 'inherit' }} />
+              </div>
+            ))}
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Teslimat Tipi</label>
-              <select value={evrakForm.delivery_type} onChange={e => setEvrakForm({...evrakForm, delivery_type: e.target.value})} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}>
+              <select value={evrakForm.delivery_type} onChange={e => setEvrakForm({ ...evrakForm, delivery_type: e.target.value })} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}>
                 <option value="digital">Dijital (portal üzerinden yüklenir)</option>
                 <option value="physical">Elden (randevu günü teslim)</option>
                 <option value="company">Firma (danışmanlık firması ekler)</option>
@@ -318,7 +416,7 @@ export default function SuperAdminDashboard() {
             </div>
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Sıra No</label>
-              <input type="number" value={evrakForm.order_num} onChange={e => setEvrakForm({...evrakForm, order_num: parseInt(e.target.value)})} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input type="number" value={evrakForm.order_num} onChange={e => setEvrakForm({ ...evrakForm, order_num: parseInt(e.target.value) })} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => { setShowEvrakModal(false); setEditEvrak(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
