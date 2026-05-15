@@ -27,7 +27,7 @@ export default function PortalPage() {
         setClient(c)
         setEmail(c.email || '')
         setPhone(c.phone || '')
-        const { data: appData } = await supabase.from('applications').select('*').eq('client_id', c.id).single()
+        const { data: appData } = await supabase.from('applications').select('*').eq('client_id', c.id).maybeSingle()
         setApplication(appData)
         if (appData?.country && appData?.visa_type) {
           const { data: visaDocs } = await supabase

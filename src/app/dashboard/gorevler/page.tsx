@@ -6,6 +6,49 @@ import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 
+const typeIcon: Record<string, string> = {
+  evrak: '📎',
+  randevu: '📅',
+  odeme: '💰',
+  pasaport: '🛂',
+}
+
+const typeBg: Record<string, { color: string; border: string }> = {
+  evrak: { color: '#c0392b', border: '#f5b8b0' },
+  randevu: { color: '#1a5fa5', border: '#b8d4f0' },
+  odeme: { color: '#92600a', border: '#f0d896' },
+  pasaport: { color: '#5a6a7a', border: '#e8e4da' },
+}
+
+function GorevItem({ gorev, onToggle, onNavigate }: { gorev: any; onToggle: (id: string) => void; onNavigate: (clientId: string) => void }) {
+  const style = typeBg[gorev.type] || typeBg.pasaport
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '12px', borderRadius: '10px',
+      border: `1px solid ${style.border}`,
+      marginBottom: '8px', background: 'white',
+      borderLeft: `3px solid ${style.color}`,
+    }}>
+      <span style={{ fontSize: '18px', flexShrink: 0 }}>{typeIcon[gorev.type]}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35' }}>{gorev.title}</div>
+        <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
+          <strong>{gorev.client_name}</strong> — {gorev.aciklama}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <button onClick={() => onNavigate(gorev.client_id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+          Profil
+        </button>
+        <button onClick={() => onToggle(gorev.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+          ✓
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function GorevlerPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const [gorevler, setGorevler] = useState<any[]>([])
@@ -116,54 +159,11 @@ export default function GorevlerPage() {
   const acil = aktif.filter(g => g.priority === 'urgent')
   const normal = aktif.filter(g => g.priority === 'normal')
 
-  const typeIcon: any = {
-    evrak: '📎',
-    randevu: '📅',
-    odeme: '💰',
-    pasaport: '🛂',
-  }
-
-  const typeBg: any = {
-    evrak: { color: '#c0392b', border: '#f5b8b0' },
-    randevu: { color: '#1a5fa5', border: '#b8d4f0' },
-    odeme: { color: '#92600a', border: '#f0d896' },
-    pasaport: { color: '#5a6a7a', border: '#e8e4da' },
-  }
-
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#888' }}>Yükleniyor...</div>
     </div>
   )
-
-  function GorevItem({ gorev }: { gorev: any }) {
-    const style = typeBg[gorev.type] || typeBg.pasaport
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '12px', borderRadius: '10px',
-        border: `1px solid ${style.border}`,
-        marginBottom: '8px', background: 'white',
-        borderLeft: `3px solid ${style.color}`,
-      }}>
-        <span style={{ fontSize: '18px', flexShrink: 0 }}>{typeIcon[gorev.type]}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35' }}>{gorev.title}</div>
-          <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
-            <strong>{gorev.client_name}</strong> — {gorev.aciklama}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button onClick={() => router.push(`/dashboard/musteriler/${gorev.client_id}`)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-            Profil
-          </button>
-          <button onClick={() => toggleTamamla(gorev.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-            ✓
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -185,7 +185,7 @@ export default function GorevlerPage() {
                   {acil.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Acil görev yok</div>
                   ) : (
-                    acil.map(g => <GorevItem key={g.id} gorev={g} />)
+                    acil.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={clientId => router.push(`/dashboard/musteriler/${clientId}`)} />)
                   )}
                 </div>
               </div>
@@ -200,7 +200,7 @@ export default function GorevlerPage() {
                   {normal.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Normal görev yok</div>
                   ) : (
-                    normal.map(g => <GorevItem key={g.id} gorev={g} />)
+                    normal.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={clientId => router.push(`/dashboard/musteriler/${clientId}`)} />)
                   )}
                 </div>
               </div>

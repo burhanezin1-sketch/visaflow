@@ -66,13 +66,13 @@ export default function MusteriDetayPage() {
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).single()
-    const { data: appData } = await supabase.from('applications').select('*').eq('client_id', id).single()
-    const { data: paymentData } = await supabase.from('payments').select('*').eq('application_id', appData?.id).single()
+    const { data: appData } = await supabase.from('applications').select('*').eq('client_id', id).maybeSingle()
+    const { data: paymentData } = await supabase.from('payments').select('*').eq('application_id', appData?.id ?? 'none').maybeSingle()
     const { data: notesData } = await supabase.from('notes').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
     const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
     const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
     const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
-    const { data: transferData } = await supabase.from('transfer_requests').select('*, to_user_info:users!transfer_requests_to_user_fkey(full_name)').eq('client_id', id).eq('status', 'pending').single()
+    const { data: transferData } = await supabase.from('transfer_requests').select('*, to_user_info:users!transfer_requests_to_user_fkey(full_name)').eq('client_id', id).eq('status', 'pending').maybeSingle()
     const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
 
     if (appData?.country && appData?.visa_type) {
@@ -93,7 +93,7 @@ export default function MusteriDetayPage() {
     setWaMessages(waData || [])
     setDanismanlar(usersData || [])
     setCurrentUserName(usersData?.find((u: any) => u.id === user?.id)?.full_name || user?.email || 'Bilinmeyen')
-    setCompanyPlan(companyData?.plan || 'starter')
+    setCompanyPlan(companyData?.plan || 'basic')
     setPendingTransfer(transferData || null)
     setDocuments(docsData || [])
     setLoading(false)
@@ -346,7 +346,7 @@ export default function MusteriDetayPage() {
             <button onClick={() => setShowRandevuModal(true)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: '#1a5fa5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>📅 Randevu Ekle</button>
             <button
               onClick={() => {
-                if (companyPlan === 'starter') {
+                if (companyPlan === 'basic') {
                   alert('Bu özellik Pro ve Kurumsal planlarda kullanılabilir. Planınızı yükseltin.')
                   return
                 }
@@ -355,9 +355,9 @@ export default function MusteriDetayPage() {
                 setNiyetMektubu('')
                 setShowNiyetModal(true)
               }}
-              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: companyPlan === 'starter' ? '#f0f0f4' : '#5b21b6', color: companyPlan === 'starter' ? '#9aaabb' : 'white', border: companyPlan === 'starter' ? '1px solid #e2e2e8' : 'none', borderRadius: '8px', cursor: 'pointer' }}
+              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: companyPlan === 'basic' ? '#f0f0f4' : '#5b21b6', color: companyPlan === 'basic' ? '#9aaabb' : 'white', border: companyPlan === 'basic' ? '1px solid #e2e2e8' : 'none', borderRadius: '8px', cursor: 'pointer' }}
             >
-              ✍️ Niyet Mektubu{companyPlan === 'starter' ? ' 🔒' : ''}
+              ✍️ Niyet Mektubu{companyPlan === 'basic' ? ' 🔒' : ''}
             </button>
             {isMyClient && digerDanismanlar.length > 0 && !pendingTransfer && (
               <button onClick={() => setShowDevirModal(true)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: '#854f0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>↗ Devret</button>

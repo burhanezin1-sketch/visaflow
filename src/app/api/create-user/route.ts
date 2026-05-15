@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-async function requireSuperadmin(): Promise<boolean> {
+async function getCallerInfo() {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,17 +16,28 @@ async function requireSuperadmin(): Promise<boolean> {
     }
   )
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return false
+  if (!user) return null
+
   const { data: sa } = await supabase.from('superadmins').select('id').eq('id', user.id).single()
-  return !!sa
+  if (sa) return { isSuperadmin: true, companyId: null as string | null, role: null as string | null }
+
+  const { data: u } = await supabase.from('users').select('company_id, role').eq('id', user.id).single()
+  return { isSuperadmin: false, companyId: u?.company_id ?? null, role: u?.role ?? null }
 }
 
 export async function POST(request: Request) {
-  if (!(await requireSuperadmin())) {
+  const caller = await getCallerInfo()
+  if (!caller) {
     return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
   }
 
   const { full_name, email, password, role, company_id } = await request.json()
+
+  if (!caller.isSuperadmin) {
+    if (caller.role !== 'admin' || caller.companyId !== company_id) {
+      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    }
+  }
 
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,7 +67,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!(await requireSuperadmin())) {
+  const caller = await getCallerInfo()
+  if (!caller) {
     return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
   }
 
@@ -71,6 +83,16 @@ export async function DELETE(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
+
+  if (!caller.isSuperadmin) {
+    if (caller.role !== 'admin') {
+      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    }
+    const { data: targetUser } = await supabaseAdmin.from('users').select('company_id').eq('id', userId).single()
+    if (!targetUser || targetUser.company_id !== caller.companyId) {
+      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
+    }
+  }
 
   await supabaseAdmin.from('leads').update({ claimed_by: null }).eq('claimed_by', userId)
   await supabaseAdmin.from('clients').update({ danisan_id: null }).eq('danisan_id', userId)
