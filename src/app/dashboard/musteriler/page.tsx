@@ -30,7 +30,15 @@ export default function MusterilerPage() {
   const [autoPrice, setAutoPrice] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'tumu' | 'benimkiler'>('tumu')
+  const [currentUserId, setCurrentUserId] = useState('')
   const router = useRouter()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id)
+    })
+  }, [])
 
   useEffect(() => {
     if (companyLoading) return
@@ -164,15 +172,49 @@ export default function MusterilerPage() {
   const countries = [...new Set(visaOptions.map(v => v.country))].sort()
   const visaTypes = [...new Set(visaOptions.filter(v => v.country === form.country).map(v => v.visa_type))].sort()
 
+  const displayed = activeTab === 'benimkiler'
+    ? filtered.filter(c => c.danisan_id === currentUserId)
+    : filtered
+
+  const benimkilerCount = clients.filter(c => c.danisan_id === currentUserId).length
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Müşteriler" />
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
         <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0f0f4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Tüm Müşteriler</h3>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '7px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', outline: 'none', width: '160px' }} />
+          {/* Sekmeler */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f4' }}>
+            {([
+              { key: 'tumu', label: 'Tüm Müşteriler', count: clients.length },
+              { key: 'benimkiler', label: 'Müşterilerim', count: benimkilerCount },
+            ] as const).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  padding: '11px 18px', fontSize: '13px', fontWeight: '500',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  color: activeTab === tab.key ? '#0d1f35' : '#9aaabb',
+                  borderBottom: activeTab === tab.key ? '2px solid #1a5fa5' : '2px solid transparent',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {tab.label}
+                <span style={{
+                  fontSize: '11px', fontWeight: '600',
+                  background: activeTab === tab.key ? '#eef4fb' : '#f5f5f7',
+                  color: activeTab === tab.key ? '#1a5fa5' : '#9aaabb',
+                  padding: '1px 7px', borderRadius: '10px',
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+            {/* Sağ taraf: arama + filtreler + buton */}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center', padding: '8px 1rem', flexWrap: 'wrap' }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '7px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', outline: 'none', width: '150px' }} />
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '7px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', background: '#f5f5f7', outline: 'none' }}>
                 <option value="">Tüm Durumlar</option>
                 <option value="missing">Evrak Eksik</option>
@@ -195,14 +237,14 @@ export default function MusterilerPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {displayed.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
-                    Henüz müşteri yok.
+                    {activeTab === 'benimkiler' ? 'Size atanmış müşteri yok.' : 'Henüz müşteri yok.'}
                   </td>
                 </tr>
               )}
-              {filtered.map(c => {
+              {displayed.map(c => {
                 const app = c.applications?.[0]
                 const s = statusMap[app?.status] || statusMap.missing
                 return (
