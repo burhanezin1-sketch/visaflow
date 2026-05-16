@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_PREFIXES = ['/login', '/portal', '/superadmin/login', '/api']
+const SUPERADMIN_PREFIXES = ['/superadmin']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -31,12 +32,14 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // getUser() sunucu tarafında token'ı doğrular — getSession()'dan daha güvenli
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/login'
+    const isSuperadminRoute = SUPERADMIN_PREFIXES.some(
+      p => pathname === p || pathname.startsWith(p + '/')
+    )
+    loginUrl.pathname = isSuperadminRoute ? '/superadmin/login' : '/login'
     return NextResponse.redirect(loginUrl)
   }
 
