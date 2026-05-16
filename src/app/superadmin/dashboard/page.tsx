@@ -98,24 +98,31 @@ export default function SuperAdminDashboard() {
   }
 
   async function fetchSaglik() {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-    const sevenDaysAgo = new Date(now)
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const [{ count: leads }, { count: monthlyApps }, { data: recentActivity }, { data: logs }] = await Promise.all([
-      supabase.from('leads').select('*', { count: 'exact', head: true }),
-      supabase.from('applications').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth),
-      supabase.from('activity_logs').select('user_id').gte('created_at', sevenDaysAgo.toISOString()),
-      supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(20),
-    ])
-    const activeUsers = new Set(recentActivity?.map((r: any) => r.user_id).filter(Boolean)).size
-    setSaglik({ leads: leads || 0, monthlyApps: monthlyApps || 0, activeUsers7d: activeUsers, logs: logs || [] })
+    try {
+      const res = await fetch('/api/superadmin/saglik')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      setSaglik({
+        leads: json.leads ?? 0,
+        monthlyApps: json.monthlyApps ?? 0,
+        activeUsers7d: json.activeUsers7d ?? 0,
+        logs: json.logs ?? [],
+      })
+    } catch {
+      setSaglik({ leads: 0, monthlyApps: 0, activeUsers7d: 0, logs: [] })
+    }
   }
 
   async function fetchDestekLogs(firmaId: string) {
     if (!firmaId) return
-    const { data } = await supabase.from('activity_logs').select('*').eq('company_id', firmaId).order('created_at', { ascending: false }).limit(50)
-    setDestekLogs(data || [])
+    try {
+      const res = await fetch(`/api/superadmin/firma-logs?company_id=${encodeURIComponent(firmaId)}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      setDestekLogs(json.logs ?? [])
+    } catch {
+      setDestekLogs([])
+    }
   }
 
   async function fetchVisaDocs() {
