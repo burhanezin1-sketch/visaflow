@@ -72,7 +72,7 @@ export default function MusteriDetayPage() {
     const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
     const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
     const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
-    const { data: transferData } = await supabase.from('transfer_requests').select('*, to_user_info:users!transfer_requests_to_user_fkey(full_name)').eq('client_id', id).eq('status', 'pending').maybeSingle()
+    const { data: transferData } = await supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').maybeSingle()
     const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
 
     if (appData?.country && appData?.visa_type) {
@@ -141,10 +141,17 @@ export default function MusteriDetayPage() {
   async function devirGonder() {
     if (!devirHedef || !companyId) return
     setDevirSaving(true)
-    await supabase.from('transfer_requests').insert({
+    const { error } = await supabase.from('transfer_requests').insert({
       company_id: companyId,
-      client_id: id, from_user: currentUser?.id, to_user: devirHedef, note: devirNot,
+      client_id: id,
+      from_user: currentUser?.id,
+      to_user: devirHedef,
+      note: devirNot || null,
+      status: 'pending',
     })
+    if (error) {
+      alert('Devir talebi gönderilemedi: ' + error.message)
+    }
     setDevirSaving(false)
     setShowDevirModal(false)
     fetchAll()
@@ -152,15 +159,17 @@ export default function MusteriDetayPage() {
 
   async function devirKabul() {
     if (!pendingTransfer) return
-    await supabase.from('transfer_requests').update({ status: 'accepted' }).eq('id', pendingTransfer.id)
-    await supabase.from('clients').update({ danisan_id: currentUser?.id }).eq('id', id)
+    const { error: e1 } = await supabase.from('transfer_requests').update({ status: 'accepted' }).eq('id', pendingTransfer.id)
+    const { error: e2 } = await supabase.from('clients').update({ danisan_id: currentUser?.id }).eq('id', id)
+    if (e1 || e2) { alert('Hata: ' + (e1?.message || e2?.message)); return }
     logAction(companyId!, currentUser?.id, currentUserName, `Devir talebi onaylandı`, 'transfer', pendingTransfer.id, client?.full_name)
     fetchAll()
   }
 
   async function devirReddet() {
     if (!pendingTransfer) return
-    await supabase.from('transfer_requests').update({ status: 'rejected' }).eq('id', pendingTransfer.id)
+    const { error } = await supabase.from('transfer_requests').update({ status: 'rejected' }).eq('id', pendingTransfer.id)
+    if (error) { alert('Hata: ' + error.message); return }
     logAction(companyId!, currentUser?.id, currentUserName, `Devir talebi reddedildi`, 'transfer', pendingTransfer.id, client?.full_name)
     fetchAll()
   }
@@ -361,7 +370,7 @@ export default function MusteriDetayPage() {
             >
               ✍️ Niyet Mektubu{companyPlan === 'basic' ? ' 🔒' : ''}
             </button>
-            {isMyClient && digerDanismanlar.length > 0 && !pendingTransfer && (
+            {(isMyClient || currentUserRole === 'admin') && digerDanismanlar.length > 0 && !pendingTransfer && (
               <button onClick={() => setShowDevirModal(true)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: '#854f0b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>↗ Devret</button>
             )}
             <button onClick={() => setShowDeleteConfirm(true)} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5b8b0', borderRadius: '8px', cursor: 'pointer' }}>🗑 Sil</button>

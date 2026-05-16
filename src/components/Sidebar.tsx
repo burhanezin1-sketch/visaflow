@@ -50,25 +50,45 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (!userId || !companyId) return
-    async function fetchCounts() {
-      const { count: lc } = await supabase
-        .from('leads').select('*', { count: 'exact', head: true })
-        .eq('status', 'waiting')
-        .eq('company_id', companyId)
-      setLeadCount(lc || 0)
-
-      const { data: tr } = await supabase
-        .from('transfer_requests')
-        .select('*, clients(full_name), from_user_info:users!from_user(full_name)')
-        .eq('to_user', userId)
-        .eq('status', 'pending')
-      setTransfers(tr || [])
-      setTransferCount(tr?.length || 0)
-    }
     fetchCounts()
     const interval = setInterval(fetchCounts, 30000)
     return () => clearInterval(interval)
   }, [userId, companyId])
+
+  async function fetchCounts() {
+    const { count: lc } = await supabase
+      .from('leads').select('*', { count: 'exact', head: true })
+      .eq('status', 'waiting')
+      .eq('company_id', companyId)
+    setLeadCount(lc || 0)
+
+    // FK join kullanma — ayrı batch sorgu ile gönderen adlarını getir
+    const { data: tr } = await supabase
+      .from('transfer_requests')
+      .select('id, client_id, from_user, to_user, note, clients(full_name)')
+      .eq('to_user', userId)
+      .eq('status', 'pending')
+
+    if (!tr || tr.length === 0) {
+      setTransfers([])
+      setTransferCount(0)
+      return
+    }
+
+    // Gönderen adlarını batch olarak çek
+    const fromIds = [...new Set(tr.map((t: any) => t.from_user).filter(Boolean))]
+    const { data: senders } = fromIds.length > 0
+      ? await supabase.from('users').select('id, full_name').in('id', fromIds)
+      : { data: [] as any[] }
+
+    const enriched = tr.map((t: any) => ({
+      ...t,
+      from_user_name: senders?.find((u: any) => u.id === t.from_user)?.full_name ?? null,
+    }))
+
+    setTransfers(enriched)
+    setTransferCount(enriched.length)
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -105,14 +125,9 @@ export default function Sidebar() {
 
   return (
     <div style={{
-      width: '220px',
-      flexShrink: 0,
-      background: '#1c1c24',
-      padding: '1.25rem 0',
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      position: 'relative',
+      width: '220px', flexShrink: 0, background: '#1c1c24',
+      padding: '1.25rem 0', display: 'flex', flexDirection: 'column',
+      minHeight: '100vh', position: 'relative',
     }}>
       <div style={{
         position: 'absolute', right: 0, top: 0, bottom: 0,
@@ -139,8 +154,7 @@ export default function Sidebar() {
           margin: '0 0.75rem 0.75rem',
           background: 'rgba(55,138,221,0.12)',
           border: '1px solid rgba(55,138,221,0.25)',
-          borderRadius: '8px',
-          overflow: 'hidden',
+          borderRadius: '8px', overflow: 'hidden',
         }}>
           <div
             onClick={() => setShowTransfers(v => !v)}
@@ -158,23 +172,17 @@ export default function Sidebar() {
           {showTransfers && (
             <div style={{ borderTop: '1px solid rgba(55,138,221,0.2)' }}>
               {transfers.map(t => (
-                <div
-                  key={t.id}
-                  style={{
-                    padding: '8px 10px',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
+                <div key={t.id} style={{ padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.82)', fontWeight: '500', marginBottom: '2px' }}>
-                    {t.clients?.full_name}
+                    {t.clients?.full_name ?? '—'}
                   </div>
-                  {t.from_user_info?.full_name && (
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>
-                      {t.from_user_info.full_name} tarafından
+                  {t.from_user_name && (
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.38)', marginBottom: '4px' }}>
+                      {t.from_user_name} tarafından
                     </div>
                   )}
                   {t.note && (
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.38)', fontStyle: 'italic', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', fontStyle: 'italic', marginBottom: '6px' }}>
                       "{t.note}"
                     </div>
                   )}
