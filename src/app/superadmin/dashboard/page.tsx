@@ -3,6 +3,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { Bar } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 const PLAN_PRICES: Record<string, number> = { basic: 2999, pro: 5499 }
 const PLAN_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
@@ -20,9 +31,19 @@ export default function SuperAdminDashboard() {
   const [monthlyCounts, setMonthlyCounts] = useState<Record<string, number>>({})
   const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'genel' | 'firmalar' | 'evraklar'>('genel')
+  const [activeTab, setActiveTab] = useState<'genel' | 'gelir' | 'saglik' | 'destek' | 'firmalar' | 'evraklar'>('genel')
 
-  // Evrak şablonları state
+  // Saglik state
+  const [saglik, setSaglik] = useState<{ leads: number; monthlyApps: number; activeUsers7d: number; logs: any[] }>({ leads: 0, monthlyApps: 0, activeUsers7d: 0, logs: [] })
+
+  // Destek state
+  const [destekFirmaId, setDestekFirmaId] = useState('')
+  const [destekLogs, setDestekLogs] = useState<any[]>([])
+  const [destekMsg, setDestekMsg] = useState('')
+  const [destekSent, setDestekSent] = useState(false)
+  const [sendingDestek, setSendingDestek] = useState(false)
+
+  // Evrak state
   const [visaDocs, setVisaDocs] = useState<any[]>([])
   const [visaOptions, setVisaOptions] = useState<{ country: string; visa_type: string }[]>([])
   const [selectedCountry, setSelectedCountry] = useState('')
@@ -46,7 +67,7 @@ export default function SuperAdminDashboard() {
     if (!user) { router.push('/superadmin/login'); return }
     const { data: sa } = await supabase.from('superadmins').select('id').eq('id', user.id).single()
     if (!sa) { router.push('/superadmin/login'); return }
-    await Promise.all([fetchCompanies(), fetchVisaDocs(), fetchVisaOptions(), fetchActivities()])
+    await Promise.all([fetchCompanies(), fetchVisaDocs(), fetchVisaOptions(), fetchActivities(), fetchSaglik()])
     setLoading(false)
   }
 
@@ -54,7 +75,6 @@ export default function SuperAdminDashboard() {
     const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false })
     const list = data || []
     setCompanies(list)
-
     const counts: Record<string, number> = {}
     await Promise.all(list.map(async (c: any) => {
       const { data: cnt } = await supabase.rpc('get_monthly_application_count', { p_company_id: c.id })
@@ -70,6 +90,37 @@ export default function SuperAdminDashboard() {
       .order('created_at', { ascending: false })
       .limit(10)
     setActivities(data || [])
+  }
+
+  async function fetchSaglik() {
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const sevenDaysAgo = new Date(now)
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const [
+      { count: leads },
+      { count: monthlyApps },
+      { data: recentActivity },
+      { data: logs },
+    ] = await Promise.all([
+      supabase.from('leads').select('*', { count: 'exact', head: true }),
+      supabase.from('applications').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth),
+      supabase.from('activity_logs').select('user_id').gte('created_at', sevenDaysAgo.toISOString()),
+      supabase.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(20),
+    ])
+    const activeUsers = new Set(recentActivity?.map((r: any) => r.user_id).filter(Boolean)).size
+    setSaglik({ leads: leads || 0, monthlyApps: monthlyApps || 0, activeUsers7d: activeUsers, logs: logs || [] })
+  }
+
+  async function fetchDestekLogs(firmaId: string) {
+    if (!firmaId) return
+    const { data } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('company_id', firmaId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setDestekLogs(data || [])
   }
 
   async function fetchVisaDocs() {
@@ -131,6 +182,16 @@ export default function SuperAdminDashboard() {
     setShowEvrakModal(true)
   }
 
+  async function handleDestekSend() {
+    if (!destekMsg.trim() || !destekFirmaId) return
+    setSendingDestek(true)
+    await new Promise(r => setTimeout(r, 800))
+    setSendingDestek(false)
+    setDestekSent(true)
+    setDestekMsg('')
+    setTimeout(() => setDestekSent(false), 3000)
+  }
+
   const countries = [...new Set(visaOptions.map(v => v.country))].sort()
   const visaTypesForCountry = [...new Set(visaOptions.filter(v => v.country === selectedCountry).map(v => v.visa_type))].sort()
   const filteredDocs = visaDocs.filter(d => d.country === selectedCountry && d.visa_type === selectedVisa)
@@ -138,6 +199,60 @@ export default function SuperAdminDashboard() {
   const basicFirms = companies.filter(c => c.plan === 'basic')
   const proFirms = companies.filter(c => c.plan === 'pro')
   const monthlyRevenue = basicFirms.length * PLAN_PRICES.basic + proFirms.length * PLAN_PRICES.pro
+
+  // Gelir tab computed values
+  const now = new Date()
+  const last12Months = Array.from({ length: 12 }, (_, i) =>
+    new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+  )
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const thisMonthFirms = companies.filter(c => new Date(c.created_at) >= thisMonthStart)
+  const activeFirms = companies.filter(c => !c.trial_ends_at || new Date(c.trial_ends_at) > now)
+  const avgRevenue = companies.length > 0 ? Math.round(monthlyRevenue / companies.length) : 0
+
+  const mrrChartData = {
+    labels: last12Months.map(m => m.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' })),
+    datasets: [
+      {
+        label: 'Basic (₺)',
+        data: last12Months.map(m => {
+          const end = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59)
+          return companies.filter(c => c.plan === 'basic' && new Date(c.created_at) <= end).length * PLAN_PRICES.basic
+        }),
+        backgroundColor: 'rgba(90,106,122,0.7)',
+        borderRadius: 4,
+      },
+      {
+        label: 'Pro (₺)',
+        data: last12Months.map(m => {
+          const end = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59)
+          return companies.filter(c => c.plan === 'pro' && new Date(c.created_at) <= end).length * PLAN_PRICES.pro
+        }),
+        backgroundColor: 'rgba(55,138,221,0.85)',
+        borderRadius: 4,
+      },
+    ],
+  }
+
+  const mrrChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' as const },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => `${ctx.dataset.label}: ₺${Number(ctx.raw).toLocaleString('tr-TR')}`,
+        },
+      },
+    },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: {
+        stacked: true,
+        ticks: { callback: (v: any) => v === 0 ? '₺0' : `₺${(v / 1000).toFixed(0)}K` },
+        grid: { color: 'rgba(0,0,0,0.05)' },
+      },
+    },
+  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -167,11 +282,18 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Tabs */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e2e8', padding: '0 2rem', display: 'flex', gap: '0' }}>
-        {[['genel', '📊 Genel Bakış'], ['firmalar', '🏢 Firmalar'], ['evraklar', '📋 Evrak Şablonları']].map(([key, label]) => (
+      <div style={{ background: 'white', borderBottom: '1px solid #e2e2e8', padding: '0 2rem', display: 'flex', gap: '0', overflowX: 'auto' }}>
+        {([
+          ['genel', '📊 Genel'],
+          ['gelir', '💰 Gelir'],
+          ['saglik', '🔍 Sistem'],
+          ['destek', '💬 Destek'],
+          ['firmalar', '🏢 Firmalar'],
+          ['evraklar', '📋 Evraklar'],
+        ] as [string, string][]).map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key as any)} style={{
-            padding: '14px 20px', fontSize: '13px', fontWeight: '500',
-            border: 'none', background: 'transparent', cursor: 'pointer',
+            padding: '14px 18px', fontSize: '13px', fontWeight: '500',
+            border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap',
             color: activeTab === key ? '#1c1c24' : '#9aaabb',
             borderBottom: activeTab === key ? '2px solid #378ADD' : '2px solid transparent',
             fontFamily: 'inherit',
@@ -184,7 +306,6 @@ export default function SuperAdminDashboard() {
         {/* GENEL BAKIŞ */}
         {activeTab === 'genel' && (
           <>
-            {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '2rem' }}>
               {[
                 { label: 'Toplam Firma', value: companies.length, color: '#1c1c24', sub: 'Aktif müşteri' },
@@ -200,7 +321,6 @@ export default function SuperAdminDashboard() {
               ))}
             </div>
 
-            {/* Son Aktiviteler */}
             <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
               <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e2e8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#1c1c24' }}>Son Aktiviteler</h3>
@@ -237,6 +357,221 @@ export default function SuperAdminDashboard() {
               </table>
             </div>
           </>
+        )}
+
+        {/* GELİR TAKİBİ */}
+        {activeTab === 'gelir' && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '2rem' }}>
+              {[
+                { label: 'Toplam Firma', value: companies.length, color: '#1c1c24', sub: 'Kayıtlı' },
+                { label: 'Aktif Firma', value: activeFirms.length, color: '#1a7a45', sub: 'Deneme dışı' },
+                { label: 'Bu Ay Kazanılan', value: thisMonthFirms.length, color: '#1a5fa5', sub: 'Yeni kayıt' },
+                { label: 'Ort. Gelir/Firma', value: `₺${avgRevenue.toLocaleString('tr-TR')}`, color: '#92600a', sub: 'Aylık ortalama' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
+                  <div style={{ fontSize: '26px', fontWeight: '600', color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '6px' }}>{s.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1c1c24' }}>Aylık MRR Tahmini (Son 12 Ay)</h3>
+                <div style={{ fontSize: '20px', fontWeight: '700', color: '#1a7a45' }}>₺{monthlyRevenue.toLocaleString('tr-TR')}</div>
+              </div>
+              <div style={{ height: '280px' }}>
+                <Bar data={mrrChartData} options={mrrChartOptions} />
+              </div>
+              <div style={{ marginTop: '1rem', fontSize: '11px', color: '#9aaabb', textAlign: 'center' }}>
+                * Firmalar mevcut planlarına göre hesaplanmıştır. Plan değişiklikleri tarihlenmez.
+              </div>
+            </div>
+
+            <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden', marginTop: '1.5rem' }}>
+              <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e2e8', background: '#f5f5f7' }}>
+                <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1c1c24' }}>Plan Dağılımı</h3>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {['Plan', 'Firma Sayısı', 'Aylık Ücret', 'Toplam Gelir'].map(h => (
+                      <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { plan: 'Basic', count: basicFirms.length, price: PLAN_PRICES.basic, color: '#5a6a7a', bg: '#f0f0f4' },
+                    { plan: 'Pro', count: proFirms.length, price: PLAN_PRICES.pro, color: '#1a5fa5', bg: '#eef4fb' },
+                  ].map(row => (
+                    <tr key={row.plan}>
+                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: row.bg, color: row.color, textTransform: 'uppercase' }}>{row.plan}</span>
+                      </td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '14px', fontWeight: '600', color: '#1c1c24', borderBottom: '1px solid #f0f0f4' }}>{row.count}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', color: '#5a6a7a', borderBottom: '1px solid #f0f0f4' }}>₺{row.price.toLocaleString('tr-TR')}/ay</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '14px', fontWeight: '700', color: '#1a7a45', borderBottom: '1px solid #f0f0f4' }}>₺{(row.count * row.price).toLocaleString('tr-TR')}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: '#f5f5f7' }}>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', color: '#1c1c24' }}>Toplam</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '14px', fontWeight: '700', color: '#1c1c24' }}>{companies.length}</td>
+                    <td style={{ padding: '12px 1.25rem' }}></td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '16px', fontWeight: '700', color: '#1a7a45' }}>₺{monthlyRevenue.toLocaleString('tr-TR')}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* SİSTEM SAĞLIĞI */}
+        {activeTab === 'saglik' && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '2rem' }}>
+              {[
+                { label: 'Son 7 Gün Aktif Kullanıcı', value: saglik.activeUsers7d, color: '#1a5fa5', sub: 'Activity log\'a göre' },
+                { label: 'Toplam Lead', value: saglik.leads, color: '#92600a', sub: 'Tüm firmalar' },
+                { label: 'Bu Ay Başvuru', value: saglik.monthlyApps, color: '#1a7a45', sub: 'Tüm firmalar' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
+                  <div style={{ fontSize: '30px', fontWeight: '600', color: s.color, lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '6px' }}>{s.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
+              <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e2e8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f7' }}>
+                <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1c1c24' }}>Son 20 Sistem Aktivitesi</h3>
+                <button onClick={fetchSaglik} style={{ padding: '5px 12px', fontSize: '11px', background: 'white', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '6px', cursor: 'pointer' }}>Yenile</button>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    {['Kullanıcı', 'İşlem', 'Tür', 'Tarih & Saat'].map(h => (
+                      <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {saglik.logs.length === 0 && (
+                    <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>Kayıt yok.</td></tr>
+                  )}
+                  {saglik.logs.map((log: any) => (
+                    <tr key={log.id}>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{log.user_name || '—'}</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0f0f4' }}>{log.action}</td>
+                      <td style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
+                        {log.entity_type && (
+                          <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', background: '#f0f0f4', color: '#5a6a7a' }}>
+                            {log.entity_type}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '11px', color: '#9aaabb', borderBottom: '1px solid #f0f0f4' }}>
+                        {new Date(log.created_at).toLocaleString('tr-TR')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* DESTEK */}
+        {activeTab === 'destek' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.5rem', alignItems: 'start' }}>
+            {/* Sol: Firma Activity Log */}
+            <div>
+              <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem', marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Firma Seç</label>
+                <select
+                  value={destekFirmaId}
+                  onChange={e => { setDestekFirmaId(e.target.value); fetchDestekLogs(e.target.value) }}
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}
+                >
+                  <option value="">— Firma seçin —</option>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
+              <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
+                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e2e2e8', background: '#f5f5f7', display: 'flex', justifyContent: 'space-between' }}>
+                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#1c1c24' }}>
+                    {destekFirmaId ? `${companies.find(c => c.id === destekFirmaId)?.name} — Activity Log` : 'Activity Log'}
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#9aaabb' }}>Son 50 kayıt</span>
+                </div>
+                <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                  {!destekFirmaId && (
+                    <div style={{ padding: '3rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>Yukarıdan bir firma seçin.</div>
+                  )}
+                  {destekFirmaId && destekLogs.length === 0 && (
+                    <div style={{ padding: '3rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>Bu firmaya ait kayıt yok.</div>
+                  )}
+                  {destekLogs.map((log: any) => (
+                    <div key={log.id} style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0f0f4', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#378ADD', marginTop: '6px', flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', color: '#1c1c24' }}>{log.action}</div>
+                        {log.entity_name && <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '1px' }}>{log.entity_name}</div>}
+                        <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>
+                          {log.user_name} · {new Date(log.created_at).toLocaleString('tr-TR')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Sağ: Bildirim Gönder */}
+            <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1.25rem', fontSize: '15px', fontWeight: '600', color: '#1c1c24' }}>📢 Bildirim Gönder</h3>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Alıcı Firma</label>
+                <select
+                  value={destekFirmaId}
+                  onChange={e => { setDestekFirmaId(e.target.value); fetchDestekLogs(e.target.value) }}
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}
+                >
+                  <option value="">— Firma seçin —</option>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Mesaj</label>
+                <textarea
+                  value={destekMsg}
+                  onChange={e => setDestekMsg(e.target.value)}
+                  placeholder="Mesajınızı yazın..."
+                  rows={5}
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                />
+              </div>
+              {destekSent && (
+                <div style={{ background: '#edfaf3', border: '1px solid #a3e4bf', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45' }}>
+                  ✓ Bildirim gönderildi.
+                </div>
+              )}
+              <button
+                onClick={handleDestekSend}
+                disabled={sendingDestek || !destekFirmaId || !destekMsg.trim()}
+                style={{ width: '100%', padding: '11px', background: !destekFirmaId || !destekMsg.trim() ? '#e2e2e8' : '#1c1c24', color: !destekFirmaId || !destekMsg.trim() ? '#9aaabb' : 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: !destekFirmaId || !destekMsg.trim() ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sendingDestek ? 0.7 : 1 }}
+              >
+                {sendingDestek ? 'Gönderiliyor...' : 'Gönder'}
+              </button>
+              <div style={{ marginTop: '8px', fontSize: '11px', color: '#9aaabb', textAlign: 'center' }}>
+                WhatsApp / sistem bildirimi entegrasyonu için API bağlantısı gereklidir.
+              </div>
+            </div>
+          </div>
         )}
 
         {/* FİRMALAR */}
