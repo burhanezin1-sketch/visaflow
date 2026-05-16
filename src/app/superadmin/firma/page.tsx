@@ -12,78 +12,39 @@ const PLAN_OPTIONS = [
   { key: 'pro', label: 'Pro', price: '5.499 TL/ay', features: ['1 Admin + 4 Danışman', '100 Dosya/Ay', 'Tüm AI Açık'] },
 ]
 
-const PAYMENT_OPTS: Record<string, { bg: string; color: string; border: string; label: string }> = {
-  paid:    { bg: 'rgba(0,212,100,0.12)', color: '#00D464', border: 'rgba(0,212,100,0.25)', label: 'Ödendi' },
-  pending: { bg: 'rgba(255,168,0,0.12)', color: '#FFB800', border: 'rgba(255,168,0,0.25)', label: 'Bekliyor' },
-  overdue: { bg: 'rgba(255,80,80,0.12)', color: '#FF6B6B', border: 'rgba(255,80,80,0.25)', label: 'Gecikmiş' },
+const PAYMENT_OPTS: Record<string, { bg: string; color: string; label: string }> = {
+  paid:    { bg: 'rgba(34,197,94,0.12)', color: '#4ade80', label: 'Ödendi' },
+  pending: { bg: 'rgba(234,179,8,0.12)', color: '#fbbf24', label: 'Bekliyor' },
+  overdue: { bg: 'rgba(239,68,68,0.12)', color: '#f87171', label: 'Gecikmiş' },
 }
 
-// ── styles ──────────────────────────────────────────────
-const C = {
-  bg: '#050810',
-  header: '#0a0f1e',
-  accent: '#6C47FF',
-  cyan: '#00D4FF',
-  card: 'rgba(108,71,255,0.05)',
-  cardBorder: 'rgba(108,71,255,0.15)',
+const S = {
+  bg: '#0f172a',
+  sidebar: '#1e293b',
+  card: '#1e293b',
+  border: '#334155',
+  accent: '#6366f1',
   text: 'white',
-  muted: 'rgba(255,255,255,0.45)',
-  faint: 'rgba(255,255,255,0.12)',
+  muted: '#94a3b8',
+  faint: '#475569',
 }
 
-const thStyle: React.CSSProperties = {
-  fontSize: '10px',
-  color: C.muted,
-  fontWeight: '600',
-  textTransform: 'uppercase',
-  letterSpacing: '0.8px',
-  padding: '12px 1.25rem',
-  textAlign: 'left',
-  borderBottom: 'rgba(108,71,255,0.12)',
-  background: 'rgba(108,71,255,0.1)',
+const thS: React.CSSProperties = {
+  fontSize: '11px', fontWeight: '600', color: S.muted, textTransform: 'uppercase',
+  letterSpacing: '0.6px', padding: '10px 1rem', textAlign: 'left',
+  borderBottom: `1px solid ${S.border}`, background: '#1e293b',
 }
 
-const tdStyle: React.CSSProperties = {
-  padding: '14px 1.25rem',
-  fontSize: '13px',
-  borderBottom: '1px solid rgba(108,71,255,0.08)',
-  color: C.text,
+const tdS: React.CSSProperties = {
+  padding: '13px 1rem', fontSize: '13px', borderBottom: `1px solid #1e3a5f30`, color: S.text,
 }
 
-const modalOverlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(5,8,16,0.88)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 500,
-  backdropFilter: 'blur(8px)',
+const inpS: React.CSSProperties = {
+  width: '100%', padding: '9px 12px', background: '#0f172a', border: `1px solid ${S.border}`,
+  borderRadius: '8px', fontSize: '13px', color: 'white', outline: 'none',
+  boxSizing: 'border-box', fontFamily: 'inherit',
 }
 
-const modalBoxStyle: React.CSSProperties = {
-  background: '#0d1428',
-  border: '1px solid rgba(108,71,255,0.3)',
-  borderRadius: '18px',
-  padding: '2rem',
-  maxWidth: '95vw',
-  boxShadow: '0 0 80px rgba(108,71,255,0.2)',
-}
-
-const saInpStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px',
-  background: 'rgba(108,71,255,0.08)',
-  border: '1px solid rgba(108,71,255,0.25)',
-  borderRadius: '8px',
-  fontSize: '13px',
-  color: 'white',
-  outline: 'none',
-  boxSizing: 'border-box',
-  fontFamily: 'inherit',
-}
-
-// ── component ────────────────────────────────────────────
 export default function FirmaListPage() {
   const [companies, setCompanies] = useState<any[]>([])
   const [userCounts, setUserCounts] = useState<Record<string, number>>({})
@@ -122,12 +83,10 @@ export default function FirmaListPage() {
     const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false })
     const list = data || []
     setCompanies(list)
-
     const { data: users } = await supabase.from('users').select('company_id')
     const counts: Record<string, number> = {}
     users?.forEach((u: any) => { counts[u.company_id] = (counts[u.company_id] || 0) + 1 })
     setUserCounts(counts)
-
     const monthlyData: Record<string, number> = {}
     await Promise.all(list.map(async (c: any) => {
       const { data: cnt } = await supabase.rpc('get_monthly_application_count', { p_company_id: c.id })
@@ -186,53 +145,62 @@ export default function FirmaListPage() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg, fontFamily: 'system-ui' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '40px', height: '40px', border: '2px solid rgba(108,71,255,0.25)', borderTop: `2px solid ${C.accent}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
-        <div style={{ color: C.muted, fontSize: '13px' }}>Yükleniyor...</div>
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: S.bg, fontFamily: 'system-ui' }}>
+      <div style={{ color: S.muted, fontSize: '13px' }}>Yükleniyor...</div>
     </div>
   )
+
+  const modalOverlay: React.CSSProperties = {
+    position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 500, backdropFilter: 'blur(4px)',
+  }
+
+  const modalBox: React.CSSProperties = {
+    background: '#1e293b', border: `1px solid ${S.border}`, borderRadius: '14px',
+    padding: '1.75rem', maxWidth: '95vw', boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+  }
 
   return (
     <>
       <style>{`
-        .sa-inp::placeholder { color: rgba(255,255,255,0.25); }
-        .sa-inp:focus { border-color: rgba(108,71,255,0.55) !important; outline: none; }
-        .sa-sel option { background: #0d1428; color: white; }
-        .firma-row:hover { background: rgba(108,71,255,0.07) !important; }
+        .fp-inp::placeholder { color: #475569; }
+        .fp-inp:focus { border-color: #6366f1 !important; outline: none; }
+        .fp-sel option { background: #1e293b; color: white; }
+        .fp-row:hover td { background: #273548; }
+        .fp-btn-ghost { background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 7px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: inherit; }
+        .fp-btn-ghost:hover { background: #273548; }
+        .fp-btn-primary { background: #6366f1; color: white; border: none; border-radius: 7px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .fp-btn-primary:hover { background: #4f46e5; }
+        .fp-btn-primary:disabled { background: #334155; color: #475569; cursor: not-allowed; }
+        .fp-btn-danger { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); border-radius: 7px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: inherit; }
       `}</style>
-      <div style={{ minHeight: '100vh', background: C.bg, fontFamily: 'system-ui' }}>
+      <div style={{ minHeight: '100vh', background: S.bg, fontFamily: 'system-ui' }}>
 
-        {/* ── Header ── */}
-        <div style={{ background: C.header, borderBottom: `1px solid rgba(108,71,255,0.2)`, padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button onClick={() => router.push('/superadmin/dashboard')} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: '13px', padding: 0, fontFamily: 'inherit' }}>← Dashboard</button>
-            <span style={{ color: 'rgba(108,71,255,0.4)', fontSize: '16px' }}>|</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>Firma Yönetimi</span>
-              <span style={{ background: 'rgba(108,71,255,0.18)', color: '#a78bfa', fontSize: '11px', fontWeight: '600', padding: '2px 9px', borderRadius: '20px', border: '1px solid rgba(108,71,255,0.25)' }}>{companies.length} firma</span>
-            </div>
+        {/* Header */}
+        <div style={{ background: S.sidebar, borderBottom: `1px solid ${S.border}`, padding: '0.875rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button onClick={() => router.push('/superadmin/dashboard')} style={{ background: 'none', border: 'none', color: S.muted, cursor: 'pointer', fontSize: '13px', padding: 0, fontFamily: 'inherit' }}>← Dashboard</button>
+            <span style={{ color: S.border }}>|</span>
+            <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>Firma Yönetimi</span>
+            <span style={{ background: '#273548', color: S.muted, fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '4px' }}>{companies.length}</span>
           </div>
-          <button onClick={() => router.push('/superadmin/firma/yeni')} style={{ padding: '8px 18px', fontSize: '12px', fontWeight: '600', background: 'linear-gradient(135deg, #6C47FF 0%, #00D4FF 100%)', color: 'white', border: 'none', borderRadius: '9px', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 0 24px rgba(108,71,255,0.45)', letterSpacing: '0.5px' }}>
-            + Yeni Firma
-          </button>
+          <button onClick={() => router.push('/superadmin/firma/yeni')} className="fp-btn-primary">+ Yeni Firma</button>
         </div>
 
-        <div style={{ padding: '2rem' }}>
-          <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: '14px', overflow: 'hidden' }}>
+        <div style={{ padding: '1.5rem' }}>
+          <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: '10px', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Firma', 'Plan', 'Ödeme', 'Kullanıcı', 'Aylık Kullanım', 'Kayıt Tarihi', 'İşlemler'].map(h => (
-                    <th key={h} style={{ fontSize: '10px', color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '12px 1.25rem', textAlign: 'left', borderBottom: '1px solid rgba(108,71,255,0.12)', background: 'rgba(108,71,255,0.1)' }}>{h}</th>
+                  {['Firma', 'Plan', 'Ödeme', 'Kullanıcı', 'Aylık Kullanım', 'Kayıt', 'İşlemler'].map(h => (
+                    <th key={h} style={thS}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {companies.length === 0 && (
-                  <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', fontSize: '13px', color: C.muted }}>Henüz kayıtlı firma yok.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', fontSize: '13px', color: S.muted }}>Henüz kayıtlı firma yok.</td></tr>
                 )}
                 {companies.map(c => {
                   const limit = PLAN_LIMITS[c.plan] || 0
@@ -242,48 +210,31 @@ export default function FirmaListPage() {
                   const trialExpired = c.trial_ends_at && new Date(c.trial_ends_at) <= now
                   const payOpt = PAYMENT_OPTS[c.payment_status || 'pending'] || PAYMENT_OPTS.pending
                   return (
-                    <tr key={c.id} className="firma-row" style={{ borderBottom: '1px solid rgba(108,71,255,0.07)' }}>
+                    <tr key={c.id} className="fp-row">
                       {/* Firma */}
-                      <td style={{ ...tdStyle, maxWidth: '220px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'white' }}>{c.name}</div>
-                        <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>{c.email}</div>
-                        {c.city && <div style={{ fontSize: '11px', color: C.faint, marginTop: '1px' }}>{c.city}</div>}
+                      <td style={{ ...tdS, maxWidth: '200px' }}>
+                        <div style={{ fontWeight: '600', color: 'white' }}>{c.name}</div>
+                        <div style={{ fontSize: '11px', color: S.muted, marginTop: '2px' }}>{c.email}</div>
+                        {c.city && <div style={{ fontSize: '11px', color: S.faint }}>{c.city}</div>}
                         {c.notes && (
-                          <div title={c.notes} style={{ fontSize: '11px', color: '#a78bfa', marginTop: '4px', fontStyle: 'italic', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            📝 {c.notes}
+                          <div title={c.notes} style={{ fontSize: '11px', color: '#a5b4fc', marginTop: '3px', fontStyle: 'italic', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.notes}
                           </div>
                         )}
                       </td>
 
                       {/* Plan */}
-                      <td style={tdStyle}>
-                        <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: c.plan === 'pro' ? 'rgba(108,71,255,0.25)' : 'rgba(255,255,255,0.08)', color: c.plan === 'pro' ? '#a78bfa' : 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'inline-block' }}>
+                      <td style={tdS}>
+                        <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '4px', background: c.plan === 'pro' ? '#312e81' : '#273548', color: c.plan === 'pro' ? '#a5b4fc' : S.muted, textTransform: 'uppercase', display: 'inline-block' }}>
                           {c.plan || 'basic'}
                         </span>
-                        {trialActive && (
-                          <div style={{ marginTop: '4px' }}>
-                            <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', background: 'rgba(255,168,0,0.12)', color: '#FFB800' }}>
-                              Deneme: {new Date(c.trial_ends_at).toLocaleDateString('tr-TR')}
-                            </span>
-                          </div>
-                        )}
-                        {trialExpired && (
-                          <div style={{ marginTop: '4px' }}>
-                            <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', background: 'rgba(255,80,80,0.1)', color: '#FF6B6B' }}>
-                              Deneme Sona Erdi
-                            </span>
-                          </div>
-                        )}
+                        {trialActive && <div style={{ marginTop: '3px' }}><span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(234,179,8,0.1)', color: '#fbbf24' }}>Deneme: {new Date(c.trial_ends_at).toLocaleDateString('tr-TR')}</span></div>}
+                        {trialExpired && <div style={{ marginTop: '3px' }}><span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>Sona Erdi</span></div>}
                       </td>
 
                       {/* Ödeme */}
-                      <td style={tdStyle}>
-                        <select
-                          className="sa-sel"
-                          value={c.payment_status || 'pending'}
-                          onChange={e => savePaymentStatus(c.id, e.target.value)}
-                          style={{ padding: '5px 9px', fontSize: '11px', fontWeight: '600', background: payOpt.bg, color: payOpt.color, border: `1px solid ${payOpt.border}`, borderRadius: '20px', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}
-                        >
+                      <td style={tdS}>
+                        <select className="fp-sel" value={c.payment_status || 'pending'} onChange={e => savePaymentStatus(c.id, e.target.value)} style={{ padding: '3px 8px', fontSize: '11px', fontWeight: '600', background: payOpt.bg, color: payOpt.color, border: 'none', borderRadius: '4px', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}>
                           <option value="paid">Ödendi</option>
                           <option value="pending">Bekliyor</option>
                           <option value="overdue">Gecikmiş</option>
@@ -291,41 +242,33 @@ export default function FirmaListPage() {
                       </td>
 
                       {/* Kullanıcı */}
-                      <td style={{ ...tdStyle, fontWeight: '500' }}>{userCounts[c.id] || 0}</td>
+                      <td style={{ ...tdS, fontWeight: '500' }}>{userCounts[c.id] || 0}</td>
 
                       {/* Aylık Kullanım */}
-                      <td style={tdStyle}>
+                      <td style={tdS}>
                         {limit > 0 ? (
-                          <div style={{ minWidth: '120px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '5px' }}>
-                              <span style={{ color: C.muted }}>{used}/{limit}</span>
-                              <span style={{ fontWeight: '600', color: pct >= 90 ? '#FF6B6B' : C.muted }}>{Math.round(pct)}%</span>
+                          <div style={{ minWidth: '110px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                              <span style={{ color: S.muted }}>{used}/{limit}</span>
+                              <span style={{ fontWeight: '600', color: pct >= 90 ? '#f87171' : S.muted }}>{Math.round(pct)}%</span>
                             </div>
-                            <div style={{ height: '5px', background: 'rgba(255,255,255,0.08)', borderRadius: '99px', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${pct}%`, background: pct >= 90 ? '#FF6B6B' : `linear-gradient(90deg, ${C.accent}, ${C.cyan})`, borderRadius: '99px' }} />
+                            <div style={{ height: '4px', background: '#273548', borderRadius: '99px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, background: pct >= 90 ? '#ef4444' : S.accent, borderRadius: '99px' }} />
                             </div>
                           </div>
-                        ) : (
-                          <span style={{ fontSize: '11px', color: C.faint }}>—</span>
-                        )}
+                        ) : <span style={{ fontSize: '11px', color: S.faint }}>—</span>}
                       </td>
 
-                      {/* Kayıt Tarihi */}
-                      <td style={{ ...tdStyle, color: C.muted }}>{new Date(c.created_at).toLocaleDateString('tr-TR')}</td>
+                      {/* Kayıt */}
+                      <td style={{ ...tdS, color: S.muted }}>{new Date(c.created_at).toLocaleDateString('tr-TR')}</td>
 
                       {/* İşlemler */}
-                      <td style={tdStyle}>
-                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                          <button onClick={() => openPlanModal(c.id, c.name, c.plan)} style={{ padding: '5px 9px', fontSize: '11px', fontWeight: '500', cursor: 'pointer', borderRadius: '6px', background: 'rgba(108,71,255,0.15)', color: '#a78bfa', border: '1px solid rgba(108,71,255,0.25)', fontFamily: 'inherit' }}>
-                            Plan
-                          </button>
-                          <button onClick={() => { setEditNoteId(c.id); setEditNoteText(c.notes || '') }} style={{ padding: '5px 9px', fontSize: '11px', cursor: 'pointer', borderRadius: '6px', background: c.notes ? 'rgba(0,212,100,0.1)' : 'rgba(255,255,255,0.05)', color: c.notes ? '#00D464' : C.muted, border: c.notes ? '1px solid rgba(0,212,100,0.2)' : '1px solid rgba(255,255,255,0.1)', fontFamily: 'inherit' }}>
-                            Not
-                          </button>
-                          <button onClick={() => { setEditTrialId(c.id); setEditTrialDate(c.trial_ends_at ? c.trial_ends_at.split('T')[0] : '') }} style={{ padding: '5px 9px', fontSize: '11px', cursor: 'pointer', borderRadius: '6px', background: trialActive ? 'rgba(255,168,0,0.1)' : 'rgba(255,255,255,0.05)', color: trialActive ? '#FFB800' : C.muted, border: trialActive ? '1px solid rgba(255,168,0,0.2)' : '1px solid rgba(255,255,255,0.1)', fontFamily: 'inherit' }}>
-                            Deneme
-                          </button>
-                          <button onClick={() => deleteFirma(c.id, c.name)} disabled={deleting === c.id} style={{ padding: '5px 9px', fontSize: '11px', background: 'rgba(255,80,80,0.1)', color: '#FF6B6B', border: '1px solid rgba(255,80,80,0.2)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit', opacity: deleting === c.id ? 0.6 : 1 }}>
+                      <td style={tdS}>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          <button onClick={() => openPlanModal(c.id, c.name, c.plan)} className="fp-btn-ghost">Plan</button>
+                          <button onClick={() => { setEditNoteId(c.id); setEditNoteText(c.notes || '') }} className="fp-btn-ghost" style={{ color: c.notes ? '#a5b4fc' : S.muted }}>Not</button>
+                          <button onClick={() => { setEditTrialId(c.id); setEditTrialDate(c.trial_ends_at ? c.trial_ends_at.split('T')[0] : '') }} className="fp-btn-ghost" style={{ color: trialActive ? '#fbbf24' : S.muted }}>Deneme</button>
+                          <button onClick={() => deleteFirma(c.id, c.name)} disabled={deleting === c.id} className="fp-btn-danger" style={{ opacity: deleting === c.id ? 0.5 : 1 }}>
                             {deleting === c.id ? '...' : 'Sil'}
                           </button>
                         </div>
@@ -338,45 +281,44 @@ export default function FirmaListPage() {
           </div>
         </div>
 
-        {/* ── Plan Modal ── */}
+        {/* Plan Modal */}
         {planModal && (
-          <div style={modalOverlayStyle}>
-            <div style={{ ...modalBoxStyle, width: '440px' }}>
+          <div style={modalOverlay}>
+            <div style={{ ...modalBox, width: '420px' }}>
               {planSuccess ? (
-                <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>✨</div>
-                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#00D464' }}>Plan Güncellendi</div>
+                <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#4ade80' }}>✓ Plan güncellendi</div>
                 </div>
               ) : (
                 <>
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ fontSize: '17px', fontWeight: '700', color: 'white', margin: 0 }}>Plan Değiştir</h3>
-                    <p style={{ fontSize: '13px', color: C.muted, marginTop: '4px' }}>{planModal.name}</p>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: 0 }}>Plan Değiştir</h3>
+                    <p style={{ fontSize: '13px', color: S.muted, marginTop: '3px' }}>{planModal.name}</p>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' }}>
                     {PLAN_OPTIONS.map(opt => {
                       const isSelected = selectedPlan === opt.key
                       const isPro = opt.key === 'pro'
                       const isCurrent = planModal.current === opt.key
                       return (
-                        <button key={opt.key} onClick={() => setSelectedPlan(opt.key)} style={{ padding: '14px 16px', borderRadius: '12px', border: isSelected ? `2px solid ${isPro ? C.accent : 'rgba(255,255,255,0.3)'}` : '2px solid rgba(255,255,255,0.08)', background: isSelected ? (isPro ? 'rgba(108,71,255,0.15)' : 'rgba(255,255,255,0.06)') : 'rgba(255,255,255,0.03)', cursor: 'pointer', textAlign: 'left', fontFamily: 'system-ui' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <button key={opt.key} onClick={() => setSelectedPlan(opt.key)} style={{ padding: '12px 14px', borderRadius: '10px', border: isSelected ? `2px solid ${isPro ? S.accent : '#64748b'}` : `2px solid ${S.border}`, background: isSelected ? (isPro ? 'rgba(99,102,241,0.1)' : '#273548') : S.bg, cursor: 'pointer', textAlign: 'left', fontFamily: 'system-ui' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: '700', color: isSelected ? (isPro ? '#a78bfa' : 'white') : C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{opt.label}</span>
-                              {isCurrent && <span style={{ fontSize: '10px', fontWeight: '600', padding: '1px 7px', borderRadius: '20px', background: 'rgba(255,255,255,0.08)', color: C.muted }}>Mevcut</span>}
+                              <span style={{ fontSize: '13px', fontWeight: '700', color: isSelected ? (isPro ? '#a5b4fc' : 'white') : S.muted, textTransform: 'uppercase' }}>{opt.label}</span>
+                              {isCurrent && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: '#273548', color: S.faint }}>Mevcut</span>}
                             </div>
-                            <span style={{ fontSize: '13px', fontWeight: '700', color: isSelected ? (isPro ? '#a78bfa' : 'rgba(255,255,255,0.7)') : C.muted }}>{opt.price}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: isSelected ? (isPro ? '#a5b4fc' : 'white') : S.muted }}>{opt.price}</span>
                           </div>
-                          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                            {opt.features.map(f => <span key={f} style={{ fontSize: '11px', color: isSelected ? (isPro ? '#a78bfa' : 'rgba(255,255,255,0.6)') : C.muted }}>• {f}</span>)}
+                          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                            {opt.features.map(f => <span key={f} style={{ fontSize: '11px', color: isSelected ? (isPro ? '#a5b4fc' : S.muted) : S.faint }}>· {f}</span>)}
                           </div>
                         </button>
                       )
                     })}
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => setPlanModal(null)} style={{ flex: 1, padding: '11px', background: 'rgba(255,255,255,0.05)', color: C.muted, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-                    <button onClick={confirmPlanChange} disabled={savingPlan || selectedPlan === planModal.current} style={{ flex: 2, padding: '11px', background: selectedPlan === planModal.current ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #6C47FF, #00D4FF)', color: selectedPlan === planModal.current ? C.muted : 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: selectedPlan === planModal.current ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: savingPlan ? 0.7 : 1, boxShadow: selectedPlan === planModal.current ? 'none' : '0 0 20px rgba(108,71,255,0.3)' }}>
+                    <button onClick={() => setPlanModal(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
+                    <button onClick={confirmPlanChange} disabled={savingPlan || selectedPlan === planModal.current} className="fp-btn-primary" style={{ flex: 2 }}>
                       {savingPlan ? 'Güncelleniyor...' : selectedPlan === planModal.current ? 'Değişiklik Yok' : `${selectedPlan.toUpperCase()} Planına Geç`}
                     </button>
                   </div>
@@ -386,24 +328,17 @@ export default function FirmaListPage() {
           </div>
         )}
 
-        {/* ── Not Düzenle Modal ── */}
+        {/* Not Modal */}
         {editNoteId !== null && (
-          <div style={modalOverlayStyle}>
-            <div style={{ ...modalBoxStyle, width: '440px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'white', margin: '0 0 1.25rem' }}>
-                Firma Notu — {companies.find(c => c.id === editNoteId)?.name}
+          <div style={modalOverlay}>
+            <div style={{ ...modalBox, width: '420px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: '0 0 1rem' }}>
+                Not — {companies.find(c => c.id === editNoteId)?.name}
               </h3>
-              <textarea
-                value={editNoteText}
-                onChange={e => setEditNoteText(e.target.value)}
-                placeholder="Ödeme durumu, müşteri talebi, özel koşullar..."
-                rows={4}
-                className="sa-inp"
-                style={{ ...saInpStyle, resize: 'vertical' }}
-              />
-              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                <button onClick={() => setEditNoteId(null)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.05)', color: C.muted, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-                <button onClick={saveNote} disabled={savingNote} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #6C47FF, #00D4FF)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', opacity: savingNote ? 0.7 : 1, boxShadow: '0 0 20px rgba(108,71,255,0.3)' }}>
+              <textarea value={editNoteText} onChange={e => setEditNoteText(e.target.value)} placeholder="Ödeme durumu, müşteri talebi, özel koşullar..." rows={4} className="fp-inp" style={{ ...inpS, resize: 'vertical' }} />
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button onClick={() => setEditNoteId(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
+                <button onClick={saveNote} disabled={savingNote} className="fp-btn-primary" style={{ flex: 2 }}>
                   {savingNote ? 'Kaydediliyor...' : 'Kaydet'}
                 </button>
               </div>
@@ -411,27 +346,21 @@ export default function FirmaListPage() {
           </div>
         )}
 
-        {/* ── Deneme Süresi Modal ── */}
+        {/* Deneme Modal */}
         {editTrialId !== null && (
-          <div style={modalOverlayStyle}>
-            <div style={{ ...modalBoxStyle, width: '380px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'white', margin: '0 0 1.25rem' }}>
+          <div style={modalOverlay}>
+            <div style={{ ...modalBox, width: '360px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: '0 0 1rem' }}>
                 Deneme Süresi — {companies.find(c => c.id === editTrialId)?.name}
               </h3>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: C.muted, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Deneme Bitiş Tarihi</label>
-                <input
-                  type="date"
-                  value={editTrialDate}
-                  onChange={e => setEditTrialDate(e.target.value)}
-                  className="sa-inp"
-                  style={{ ...saInpStyle }}
-                />
-                <div style={{ fontSize: '11px', color: C.muted, marginTop: '5px' }}>Boş bırakırsanız deneme süresi kaldırılır.</div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Bitiş Tarihi</label>
+                <input type="date" value={editTrialDate} onChange={e => setEditTrialDate(e.target.value)} className="fp-inp" style={inpS} />
+                <div style={{ fontSize: '11px', color: S.faint, marginTop: '4px' }}>Boş bırakırsanız deneme süresi kaldırılır.</div>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setEditTrialId(null)} style={{ flex: 1, padding: '10px', background: 'rgba(255,255,255,0.05)', color: C.muted, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-                <button onClick={saveTrial} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #6C47FF, #00D4FF)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 0 20px rgba(108,71,255,0.3)' }}>Kaydet</button>
+                <button onClick={() => setEditTrialId(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
+                <button onClick={saveTrial} className="fp-btn-primary" style={{ flex: 2 }}>Kaydet</button>
               </div>
             </div>
           </div>
