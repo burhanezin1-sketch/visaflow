@@ -1,17 +1,24 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PREFIXES = ['/login', '/portal', '/superadmin/login', '/api']
-const SUPERADMIN_PREFIXES = ['/superadmin']
+const PUBLIC_PATHS = ['/login', '/superadmin/login']
+const PUBLIC_PREFIXES = ['/portal/', '/api/', '/_next/']
+const PUBLIC_EXT = /\.(svg|png|jpg|jpeg|gif|webp|ico)$/
+
+function isPublic(pathname: string): boolean {
+  if (PUBLIC_PATHS.includes(pathname)) return true
+  if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) return true
+  if (pathname === '/favicon.ico') return true
+  if (PUBLIC_EXT.test(pathname)) return true
+  return false
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) {
-    return NextResponse.next()
-  }
+  if (isPublic(pathname)) return NextResponse.next()
 
-  let supabaseResponse = NextResponse.next({ request })
+  let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,9 +30,9 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+          response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           )
         },
       },
@@ -35,18 +42,14 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    const loginUrl = request.nextUrl.clone()
-    const isSuperadminRoute = SUPERADMIN_PREFIXES.some(
-      p => pathname === p || pathname.startsWith(p + '/')
-    )
-    loginUrl.pathname = isSuperadminRoute ? '/superadmin/login' : '/login'
-    return NextResponse.redirect(loginUrl)
+    const target = request.nextUrl.clone()
+    target.pathname = pathname.startsWith('/superadmin') ? '/superadmin/login' : '/login'
+    return NextResponse.redirect(target)
   }
 
-  return supabaseResponse
+  return response
 }
 
 export const config = {
-  // _next/static, _next/image ve statik dosyaları middleware'den çıkar
-  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
+  matcher: ['/(.*)',],
 }
