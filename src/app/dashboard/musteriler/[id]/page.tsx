@@ -68,12 +68,12 @@ export default function MusteriDetayPage() {
     const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).single()
     const { data: appData } = await supabase.from('applications').select('*').eq('client_id', id).maybeSingle()
     const { data: paymentData } = await supabase.from('payments').select('*').eq('application_id', appData?.id ?? 'none').maybeSingle()
-    const { data: notesData } = await supabase.from('notes').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
+    const { data: notesData } = await supabase.from('notes').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
     const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
     const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
     const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
     const { data: transferData } = await supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').maybeSingle()
-    const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id).order('created_at', { ascending: false })
+    const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
 
     if (appData?.country && appData?.visa_type) {
       const { data: visaDocs } = await supabase
