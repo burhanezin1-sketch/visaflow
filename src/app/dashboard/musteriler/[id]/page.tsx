@@ -102,7 +102,7 @@ export default function MusteriDetayPage() {
   async function addNote() {
     if (!newNote.trim() || !application) return
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase.from('notes').insert({ application_id: application.id, user_id: user?.id, content: newNote }).select().single()
+    const { data } = await supabase.from('notes').insert({ application_id: application.id, company_id: application.company_id, user_id: user?.id, content: newNote }).select().single()
     if (data) setNotes([data, ...notes])
     setNewNote('')
   }
