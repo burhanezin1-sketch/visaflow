@@ -57,6 +57,9 @@ export default function MusteriDetayPage() {
   const [niyetMektubu, setNiyetMektubu] = useState('')
   const [niyetLoading, setNiyetLoading] = useState(false)
   const [niyetHata, setNiyetHata] = useState<string | null>(null)
+  const [passportRevealed, setPassportRevealed] = useState(false)
+  const [passportDecrypted, setPassportDecrypted] = useState<string | null>(null)
+  const [passportLoading, setPassportLoading] = useState(false)
 
   useEffect(() => { fetchAll() }, [id, companyId, companyLoading])
 
@@ -97,6 +100,26 @@ export default function MusteriDetayPage() {
     setPendingTransfer(transferData || null)
     setDocuments(docsData || [])
     setLoading(false)
+  }
+
+  async function revealPassport() {
+    if (!client?.id || passportLoading) return
+    setPassportLoading(true)
+    try {
+      const res = await fetch('/api/decrypt-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, field: 'passport_no' }),
+      })
+      const data = await res.json()
+      setPassportDecrypted(data.value ?? client.passport_no)
+      setPassportRevealed(true)
+    } catch {
+      setPassportDecrypted(client.passport_no)
+      setPassportRevealed(true)
+    } finally {
+      setPassportLoading(false)
+    }
   }
 
   async function addNote() {
@@ -386,7 +409,6 @@ export default function MusteriDetayPage() {
                 ['Ad Soyad', client.full_name],
                 ['Telefon', client.phone],
                 ['Email', client.email],
-                ['Pasaport No', client.passport_no],
                 ['Doğum Tarihi', client.birth_date ? new Date(client.birth_date).toLocaleDateString('tr-TR') : '-'],
                 ['Son Geçerlilik', client.passport_expiry ? new Date(client.passport_expiry).toLocaleDateString('tr-TR') : '-'],
                 ['Vize', application?.country + ' ' + application?.visa_type],
@@ -398,6 +420,23 @@ export default function MusteriDetayPage() {
                   <span style={{ fontWeight: '500', color: label === 'Randevu' ? '#1a5fa5' : '#0d1f35' }}>{value}</span>
                 </div>
               ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #f0f0f4', fontSize: '13px' }}>
+                <span style={{ color: '#5a6a7a' }}>Pasaport No</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: '500', color: '#0d1f35', fontFamily: passportRevealed ? 'monospace' : 'inherit', letterSpacing: passportRevealed ? '0.5px' : 0 }}>
+                    {passportRevealed ? (passportDecrypted || '-') : (client.passport_no ? '••••••••' : '-')}
+                  </span>
+                  {client.passport_no && (
+                    <button
+                      onClick={passportRevealed ? () => { setPassportRevealed(false); setPassportDecrypted(null) } : revealPassport}
+                      disabled={passportLoading}
+                      style={{ fontSize: '11px', padding: '2px 8px', border: '1px solid #e2e2e8', borderRadius: '5px', background: '#f5f5f7', color: '#5a6a7a', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      {passportLoading ? '...' : passportRevealed ? 'Gizle' : '🔓 Göster'}
+                    </button>
+                  )}
+                </span>
+              </div>
               <div style={{ marginTop: '12px', padding: '10px 12px', background: '#f5f5f7', border: '1px solid #e2e2e8', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                 <span style={{ fontSize: '12px', color: '#5a6a7a' }}>🔗 Müşteri Portal Linki</span>
                 <button onClick={copyPortalLink} style={{ padding: '4px 12px', fontSize: '11px', fontWeight: '500', background: linkKopyalandi ? '#1a7a45' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
