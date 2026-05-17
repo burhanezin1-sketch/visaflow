@@ -423,8 +423,8 @@ export default function MusteriDetayPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #f0f0f4', fontSize: '13px' }}>
                 <span style={{ color: '#5a6a7a' }}>Pasaport No</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontWeight: '500', color: '#0d1f35', fontFamily: passportRevealed ? 'monospace' : 'inherit', letterSpacing: passportRevealed ? '0.5px' : 0 }}>
-                    {passportRevealed ? (passportDecrypted || '-') : (client.passport_no ? '••••••••' : '-')}
+                  <span style={{ fontWeight: '500', color: client.passport_no ? '#0d1f35' : '#9aaabb', fontFamily: passportRevealed ? 'monospace' : 'inherit', letterSpacing: passportRevealed ? '0.5px' : 0 }}>
+                    {passportRevealed ? (passportDecrypted || 'Girilmemiş') : (client.passport_no ? '••••••••' : 'Girilmemiş')}
                   </span>
                   {client.passport_no && (
                     <button

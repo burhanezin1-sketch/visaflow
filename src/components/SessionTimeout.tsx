@@ -13,7 +13,7 @@ export default function SessionTimeout() {
   useEffect(() => {
     async function handleTimeout() {
       await supabase.auth.signOut()
-      router.push('/login')
+      window.location.href = '/login'
     }
 
     function resetTimer() {

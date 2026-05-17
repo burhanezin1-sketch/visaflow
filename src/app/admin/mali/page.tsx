@@ -14,13 +14,19 @@ export default function MaliPage() {
     async function fetchData() {
       const { data } = await supabase
         .from('payments')
-        .select('*, applications(country, visa_type, company_id, clients(full_name, users(full_name)))')
+        .select('*, applications(country, visa_type, company_id, client_id, clients(full_name, users(full_name)))')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
-      const seen = new Set()
+      const seenPayments = new Set()
+      const seenClients = new Set()
       const unique = (data || []).filter((p: any) => {
-        if (seen.has(p.id)) return false
-        seen.add(p.id)
+        if (seenPayments.has(p.id)) return false
+        seenPayments.add(p.id)
+        const clientId = p.applications?.client_id
+        if (clientId) {
+          if (seenClients.has(clientId)) return false
+          seenClients.add(clientId)
+        }
         return true
       })
       setPayments(unique)
