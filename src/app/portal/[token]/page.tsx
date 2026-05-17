@@ -94,10 +94,11 @@ export default function PortalPage() {
     const isIdDoc = docName.toLowerCase().includes('pasaport') || docName.toLowerCase().includes('kimlik')
     if (isIdDoc && file.type.startsWith('image/')) {
       setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
+      const tokenStr = Array.isArray(token) ? token[0] : token
       fetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileUrl: urlData.publicUrl, clientId: client.id, token }),
+        body: JSON.stringify({ storagePath: fileName, mimeType: file.type, clientId: client.id, token: tokenStr }),
       }).then(res => {
         setOcrStatus(prev => ({ ...prev, [idx]: res.ok ? 'done' : 'error' }))
       }).catch(() => {

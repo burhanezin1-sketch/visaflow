@@ -7,8 +7,8 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
-    const { fileUrl, clientId, token } = await req.json()
-    if (!fileUrl || !clientId || !token) {
+    const { storagePath, mimeType, clientId, token } = await req.json()
+    if (!storagePath || !mimeType || !clientId || !token) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 })
     }
 
@@ -18,21 +18,24 @@ export async function POST(req: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
+    // Token doğrulama
     const { data: clients } = await supabaseAdmin.rpc('get_client_by_token', { token })
     const client = clients?.[0]
     if (!client || client.id !== clientId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const imgRes = await fetch(fileUrl)
-    const contentType = imgRes.headers.get('content-type') || ''
-    if (!contentType.startsWith('image/')) {
-      return NextResponse.json({ skipped: true, reason: 'pdf' })
+    // Dosyayı admin client ile doğrudan indir (bucket private olsa bile çalışır)
+    const { data: blob, error: dlError } = await supabaseAdmin.storage
+      .from('documents')
+      .download(storagePath)
+    if (dlError || !blob) {
+      return NextResponse.json({ error: 'Download failed: ' + dlError?.message }, { status: 500 })
     }
 
-    const buffer = await imgRes.arrayBuffer()
+    const buffer = await blob.arrayBuffer()
     const base64 = Buffer.from(buffer).toString('base64')
-    const mediaType = (contentType.split(';')[0]) as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+    const mediaType = mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -56,7 +59,7 @@ Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY
 
     const raw = message.content[0].type === 'text' ? message.content[0].text : ''
     const match = raw.match(/\{[\s\S]*?\}/)
-    if (!match) return NextResponse.json({ error: 'OCR parse failed' }, { status: 500 })
+    if (!match) return NextResponse.json({ error: 'OCR parse failed', raw }, { status: 500 })
 
     const extracted = JSON.parse(match[0])
 
