@@ -64,7 +64,13 @@ Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY
     const extracted = JSON.parse(match[0])
 
     const updateData: Record<string, string> = {}
-    if (extracted.passport_no) updateData.passport_no = encrypt(String(extracted.passport_no))
+    if (extracted.passport_no) {
+      try {
+        updateData.passport_no = encrypt(String(extracted.passport_no))
+      } catch {
+        updateData.passport_no = String(extracted.passport_no) // ENCRYPTION_KEY yoksa plaintext kaydet
+      }
+    }
     if (extracted.birth_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.birth_date)) {
       updateData.birth_date = extracted.birth_date
     }
@@ -72,11 +78,14 @@ Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY
       updateData.passport_expiry = extracted.passport_expiry
     }
 
+    console.log('[ocr] extracted:', extracted, 'updateData keys:', Object.keys(updateData))
+
     if (Object.keys(updateData).length > 0) {
-      await supabaseAdmin.from('clients').update(updateData).eq('id', clientId)
+      const { error: updateErr } = await supabaseAdmin.from('clients').update(updateData).eq('id', clientId)
+      if (updateErr) console.error('[ocr] update error:', updateErr.message)
     }
 
-    return NextResponse.json({ success: true, fields: Object.keys(updateData) })
+    return NextResponse.json({ success: true, fields: Object.keys(updateData), extracted })
   } catch (err: any) {
     console.error('[ocr]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

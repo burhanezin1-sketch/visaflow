@@ -91,7 +91,7 @@ export default function PortalPage() {
     setUploadedDocs(uploaded || [])
     setUploading(prev => ({ ...prev, [idx]: false }))
 
-    const isIdDoc = docName.toLowerCase().includes('pasaport') || docName.toLowerCase().includes('kimlik')
+    const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
     if (isIdDoc && file.type.startsWith('image/')) {
       setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
       const tokenStr = Array.isArray(token) ? token[0] : token
