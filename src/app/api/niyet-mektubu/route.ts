@@ -34,7 +34,7 @@ ${inviter ? `7. Davet eden: ${inviter} tarafından davet edildiği` : ''}
 Sadece mektup metnini yaz. Hiç açıklama, başlık veya not ekleme. Resmi, doğal ve inandırıcı bir Türkçe kullan.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     })
