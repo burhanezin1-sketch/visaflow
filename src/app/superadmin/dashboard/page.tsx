@@ -500,22 +500,11 @@ export default function SuperAdminDashboard() {
 
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: '10px', padding: '1.25rem' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: 'white', marginBottom: '1rem' }}>Bildirim Gönder</div>
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Alıcı Firma</label>
-                  <select className="sd-sel" value={destekFirmaId} onChange={e => { setDestekFirmaId(e.target.value); fetchDestekLogs(e.target.value) }} style={selS}>
-                    <option value="">— Firma seçin —</option>
-                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                <div style={{ padding: '2rem 0', textAlign: 'center' }}>
+                  <div style={{ fontSize: '24px', marginBottom: '10px' }}>🚧</div>
+                  <div style={{ fontSize: '13px', fontWeight: '500', color: 'white', marginBottom: '4px' }}>Yakında aktif olacak</div>
+                  <div style={{ fontSize: '12px', color: S.muted }}>Firma bildirim sistemi geliştirme aşamasında.</div>
                 </div>
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Mesaj</label>
-                  <textarea value={destekMsg} onChange={e => setDestekMsg(e.target.value)} placeholder="Mesajınızı yazın..." rows={4} className="sd-inp" style={{ ...inpS, resize: 'vertical' }} />
-                </div>
-                {destekSent && <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '6px', padding: '8px 12px', marginBottom: '10px', fontSize: '13px', color: '#4ade80' }}>✓ Bildirim gönderildi.</div>}
-                <button onClick={handleDestekSend} disabled={sendingDestek || !destekFirmaId || !destekMsg.trim()} className="sd-btn-primary" style={{ width: '100%', padding: '10px' }}>
-                  {sendingDestek ? 'Gönderiliyor...' : 'Gönder'}
-                </button>
-                <div style={{ marginTop: '8px', fontSize: '11px', color: S.faint, textAlign: 'center' }}>API entegrasyonu gereklidir.</div>
               </div>
             </div>
           )}

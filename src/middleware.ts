@@ -39,7 +39,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // getUser() ağ hatası verirse unauthenticated say
+  }
 
   if (!user) {
     const target = request.nextUrl.clone()
