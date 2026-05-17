@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
 
 export default function PortalPage() {
@@ -27,30 +26,21 @@ export default function PortalPage() {
   useEffect(() => {
     async function fetchClient() {
       const tokenStr = Array.isArray(token) ? token[0] : String(token)
-      const { data } = await supabase.rpc('get_client_by_token', { token: tokenStr })
-      if (data && data.length > 0) {
-        const c = data[0]
-        setClient(c)
-        setEmail(c.email || '')
-        setPhone(c.phone || '')
-        if (c.consent_approved !== true) setShowConsent(true)
-        const { data: appArr } = await supabase.from('applications').select('*').eq('client_id', c.id).order('created_at', { ascending: false })
-        const appData = appArr?.[0] ?? null
-        setApplication(appData)
-        if (appData?.country && appData?.visa_type) {
-          const { data: visaDocs } = await supabase
-            .from('visa_documents')
-            .select('*')
-            .eq('country', appData.country)
-            .eq('visa_type', appData.visa_type)
-            .order('order_num', { ascending: true })
-          setVisaDocuments(visaDocs || [])
-          const { data: uploaded } = await supabase
-            .from('documents')
-            .select('*')
-            .eq('application_id', appData.id)
-          setUploadedDocs(uploaded || [])
-        }
+      if (!tokenStr || tokenStr === 'undefined') return
+      try {
+        const res = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr)}`)
+        if (!res.ok) { setLoading(false); return }
+        const data = await res.json()
+        if (!data.client) { setLoading(false); return }
+        setClient(data.client)
+        setEmail(data.client.email || '')
+        setPhone(data.client.phone || '')
+        if (data.client.consent_approved !== true) setShowConsent(true)
+        setApplication(data.application)
+        setVisaDocuments(data.visaDocuments || [])
+        setUploadedDocs(data.uploadedDocs || [])
+      } catch (err) {
+        console.error('[portal] fetchClient error', err)
       }
       setLoading(false)
     }
@@ -60,7 +50,16 @@ export default function PortalPage() {
   async function approveConsent() {
     if (!client) return
     setConsentSaving(true)
-    await supabase.from('clients').update({ consent_approved: true }).eq('id', client.id)
+    const tokenStr = Array.isArray(token) ? token[0] : String(token)
+    try {
+      await fetch('/api/portal-bilgi-kaydet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenStr, clientId: client.id, consentApproved: true }),
+      })
+    } catch (err) {
+      console.error('[consent] fetch error', err)
+    }
     setConsentSaving(false)
     setShowConsent(false)
   }
@@ -125,8 +124,12 @@ export default function PortalPage() {
     }
 
     // Güncel evrak listesini yenile
-    const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
-    setUploadedDocs(uploaded || [])
+    const tokenStr2 = Array.isArray(token) ? token[0] : String(token)
+    const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr2)}`)
+    if (refreshRes.ok) {
+      const refreshData = await refreshRes.json()
+      setUploadedDocs(refreshData.uploadedDocs || [])
+    }
     setUploading(prev => ({ ...prev, [idx]: false }))
   }
 
@@ -151,8 +154,12 @@ export default function PortalPage() {
       setEldenSaving(prev => ({ ...prev, [idx]: false }))
       return
     }
-    const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
-    setUploadedDocs(uploaded || [])
+    const tokenStr2 = Array.isArray(token) ? token[0] : String(token)
+    const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr2)}`)
+    if (refreshRes.ok) {
+      const refreshData = await refreshRes.json()
+      setUploadedDocs(refreshData.uploadedDocs || [])
+    }
     setEldenSaving(prev => ({ ...prev, [idx]: false }))
   }
 

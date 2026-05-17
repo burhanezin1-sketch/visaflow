@@ -11,7 +11,7 @@ function getAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, clientId, email, phone } = await req.json()
+    const { token, clientId, email, phone, consentApproved } = await req.json()
 
     if (!token || !clientId) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 })
@@ -25,9 +25,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const updatePayload: Record<string, any> = {}
+    if (email !== undefined) updatePayload.email = email ?? null
+    if (phone !== undefined) updatePayload.phone = phone ?? null
+    if (consentApproved === true) updatePayload.consent_approved = true
+
     const { error } = await supabase
       .from('clients')
-      .update({ email: email ?? null, phone: phone ?? null })
+      .update(updatePayload)
       .eq('id', clientId)
 
     if (error) {
