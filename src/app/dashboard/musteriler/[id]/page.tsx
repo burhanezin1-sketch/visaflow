@@ -53,7 +53,7 @@ export default function MusteriDetayPage() {
   const [companyPlan, setCompanyPlan] = useState('')
   const [showNiyetModal, setShowNiyetModal] = useState(false)
   const [niyetStep, setNiyetStep] = useState<'form' | 'result'>('form')
-  const [niyetForm, setNiyetForm] = useState({ seyahatTarihi: '', konaklamaAdresi: '', davetEden: '' })
+  const [niyetForm, setNiyetForm] = useState({ seyahatTarihi: '', donusTarihi: '', konaklamaAdresi: '', konsolosluk: '', davetEden: '' })
   const [niyetMektubu, setNiyetMektubu] = useState('')
   const [niyetLoading, setNiyetLoading] = useState(false)
   const [niyetHata, setNiyetHata] = useState<string | null>(null)
@@ -249,7 +249,6 @@ export default function MusteriDetayPage() {
   }
 
   async function niyetMektubuOlustur() {
-    if (!niyetForm.seyahatTarihi || !niyetForm.konaklamaAdresi) return
     setNiyetLoading(true)
     setNiyetHata(null)
     try {
@@ -261,7 +260,9 @@ export default function MusteriDetayPage() {
           country: application?.country,
           visaType: application?.visa_type,
           travelDate: niyetForm.seyahatTarihi,
+          returnDate: niyetForm.donusTarihi,
           accommodation: niyetForm.konaklamaAdresi,
+          consulate: niyetForm.konsolosluk,
           inviter: niyetForm.davetEden,
         }),
       })
@@ -674,18 +675,39 @@ export default function MusteriDetayPage() {
                 <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '4px', color: '#0d1f35' }}>✍️ Niyet Mektubu Oluştur</h3>
                 <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '1.5rem' }}>{client.full_name} — {application?.country} {application?.visa_type}</p>
 
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Seyahat Tarihi</label>
+                    <input
+                      type="date"
+                      value={niyetForm.seyahatTarihi}
+                      onChange={e => setNiyetForm({ ...niyetForm, seyahatTarihi: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Dönüş Tarihi</label>
+                    <input
+                      type="date"
+                      value={niyetForm.donusTarihi}
+                      onChange={e => setNiyetForm({ ...niyetForm, donusTarihi: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    />
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Seyahat Tarihi *</label>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Hedef Ülke / Konsolosluk</label>
                   <input
-                    type="date"
-                    value={niyetForm.seyahatTarihi}
-                    onChange={e => setNiyetForm({ ...niyetForm, seyahatTarihi: e.target.value })}
+                    value={niyetForm.konsolosluk}
+                    onChange={e => setNiyetForm({ ...niyetForm, konsolosluk: e.target.value })}
+                    placeholder="Almanya Konsolosluğu"
                     style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
                   />
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Konaklama Adresi *</label>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Konaklama Adresi</label>
                   <input
                     value={niyetForm.konaklamaAdresi}
                     onChange={e => setNiyetForm({ ...niyetForm, konaklamaAdresi: e.target.value })}
@@ -712,8 +734,8 @@ export default function MusteriDetayPage() {
                   <button onClick={() => setShowNiyetModal(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
                   <button
                     onClick={niyetMektubuOlustur}
-                    disabled={niyetLoading || !niyetForm.seyahatTarihi || !niyetForm.konaklamaAdresi}
-                    style={{ flex: 2, padding: '10px', background: niyetLoading ? '#9b7ecb' : '#5b21b6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit', opacity: !niyetForm.seyahatTarihi || !niyetForm.konaklamaAdresi ? 0.5 : 1 }}
+                    disabled={niyetLoading}
+                    style={{ flex: 2, padding: '10px', background: niyetLoading ? '#9b7ecb' : '#5b21b6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     {niyetLoading ? '✨ Oluşturuluyor...' : '✨ Mektubu Oluştur'}
                   </button>

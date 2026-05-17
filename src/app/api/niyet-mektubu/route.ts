@@ -5,32 +5,43 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
   try {
-    const { clientName, country, visaType, travelDate, accommodation, inviter } = await req.json()
+    const { clientName, country, visaType, travelDate, returnDate, accommodation, consulate, inviter } = await req.json()
 
     const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+
+    const formatDate = (d: string) =>
+      d ? new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : '[Tarih]'
+
+    const travelDateStr = formatDate(travelDate)
+    const returnDateStr = formatDate(returnDate)
+    const accommodationStr = accommodation?.trim() || '[Konaklama adresi]'
+    const consulateStr = consulate?.trim() || `${country} Konsolosluğu`
 
     const prompt = `Sen profesyonel bir vize danışmanısın. Aşağıdaki bilgilere dayanarak Türkçe, resmi ve inandırıcı bir vize niyet mektubu yaz.
 
 Bilgiler:
 - Ad Soyad: ${clientName}
 - Başvuru: ${country} ${visaType} vizesi
-- Seyahat Tarihi: ${travelDate}
-- Konaklama Adresi: ${accommodation}
+- Gidilecek Konsolosluk: ${consulateStr}
+- Seyahat Tarihi: ${travelDateStr}
+- Dönüş Tarihi: ${returnDateStr}
+- Konaklama Adresi: ${accommodationStr}
 ${inviter ? `- Davet Eden: ${inviter}` : ''}
 - Yazım Tarihi: ${today}
 
 Mektup şu bölümleri sırasıyla içermeli:
 1. Sağ üstte tarih (${today})
-2. "Sayın İlgili Makama," veya "${country} Konsolosluğu'na," başlığı
+2. "${consulateStr}'na," başlığı
 3. Kısa giriş — kim olduğu ve neden yazıldığı
 4. Seyahatin amacı (${visaType} amacıyla, ${country}'a gidileceği)
-5. Seyahat tarihi ve tahmini konaklama süresi
-6. Konaklama adresi: ${accommodation}
+5. Gidiş tarihi (${travelDateStr}) ve dönüş tarihi (${returnDateStr})
+6. Konaklama adresi: ${accommodationStr}
 ${inviter ? `7. Davet eden: ${inviter} tarafından davet edildiği` : ''}
 8. Mali yeterliliği ve ülkeye kesinlikle döneceğini belirten paragraf
 9. Kapanış (Saygılarımla vb.)
 10. Alt kısımda: "${clientName}" ve tarih
 
+Köşeli parantezli placeholder'ları ([Tarih], [Konaklama adresi] vb.) olduğu gibi bırak, uydurma.
 Sadece mektup metnini yaz. Hiç açıklama, başlık veya not ekleme. Resmi, doğal ve inandırıcı bir Türkçe kullan.`
 
     const message = await anthropic.messages.create({
