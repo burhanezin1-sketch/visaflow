@@ -45,7 +45,7 @@ Köşeli parantezli placeholder'ları ([Tarih], [Konaklama adresi] vb.) olduğu 
 Sadece mektup metnini yaz. Hiç açıklama, başlık veya not ekleme. Resmi, doğal ve inandırıcı bir Türkçe kullan.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     })

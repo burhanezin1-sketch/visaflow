@@ -26,7 +26,8 @@ export default function PortalPage() {
 
   useEffect(() => {
     async function fetchClient() {
-      const { data } = await supabase.rpc('get_client_by_token', { token })
+      const tokenStr = Array.isArray(token) ? token[0] : String(token)
+      const { data } = await supabase.rpc('get_client_by_token', { token: tokenStr })
       if (data && data.length > 0) {
         const c = data[0]
         setClient(c)
@@ -116,15 +117,24 @@ export default function PortalPage() {
   async function handleEldenSec(idx: number, docName: string) {
     if (!client || !application) return
     setEldenSaving(prev => ({ ...prev, [idx]: true }))
-    await supabase.from('documents').delete().eq('application_id', application.id).eq('name', docName)
-    await supabase.from('documents').insert({
-      application_id: application.id,
-      name: docName,
-      file_url: null,
-      file_name: null,
-      status: 'physical',
-      delivery_type: 'physical',
-    })
+    const tokenStr = Array.isArray(token) ? token[0] : String(token)
+    try {
+      const res = await fetch('/api/portal-elden', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenStr, clientId: client.id, applicationId: application.id, docName }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error('[elden]', err.error)
+        setEldenSaving(prev => ({ ...prev, [idx]: false }))
+        return
+      }
+    } catch (err) {
+      console.error('[elden] fetch error', err)
+      setEldenSaving(prev => ({ ...prev, [idx]: false }))
+      return
+    }
     const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
     setUploadedDocs(uploaded || [])
     setEldenSaving(prev => ({ ...prev, [idx]: false }))
