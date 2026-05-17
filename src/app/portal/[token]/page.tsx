@@ -34,7 +34,8 @@ export default function PortalPage() {
         setEmail(c.email || '')
         setPhone(c.phone || '')
         if (c.consent_approved !== true) setShowConsent(true)
-        const { data: appData } = await supabase.from('applications').select('*').eq('client_id', c.id).maybeSingle()
+        const { data: appArr } = await supabase.from('applications').select('*').eq('client_id', c.id).order('created_at', { ascending: false })
+        const appData = appArr?.[0] ?? null
         setApplication(appData)
         if (appData?.country && appData?.visa_type) {
           const { data: visaDocs } = await supabase
@@ -66,7 +67,22 @@ export default function PortalPage() {
 
   async function saveBilgi() {
     if (!client) return
-    await supabase.from('clients').update({ email, phone }).eq('id', client.id)
+    const tokenStr = Array.isArray(token) ? token[0] : String(token)
+    try {
+      const res = await fetch('/api/portal-bilgi-kaydet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenStr, clientId: client.id, email, phone }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error('[bilgi-kaydet]', err.error)
+        return
+      }
+    } catch (err) {
+      console.error('[bilgi-kaydet] fetch error', err)
+      return
+    }
     setBilgiKaydedildi(true)
     setTimeout(() => setBilgiKaydedildi(false), 2000)
   }
