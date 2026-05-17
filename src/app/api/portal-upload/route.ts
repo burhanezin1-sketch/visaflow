@@ -36,6 +36,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // applicationId'nin bu müşteriye ait olduğunu doğrula (IDOR koruması)
+    const { data: appData } = await supabase
+      .from('applications')
+      .select('id')
+      .eq('id', applicationId)
+      .eq('client_id', clientId)
+      .maybeSingle()
+    if (!appData) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     // Dosyayı buffer'a al
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)

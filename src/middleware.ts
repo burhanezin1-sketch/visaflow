@@ -2,20 +2,34 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // ── Rate limiting (in-memory, Edge-uyumlu) ─────────────────────
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
+interface RLEntry { count: number; resetAt: number }
+const rateLimitStore = new Map<string, RLEntry>()
 const RL_WINDOW = 5 * 60 * 1000 // 5 dakika
-const RL_MAX = 10
-const RATE_LIMITED_PATHS = ['/login', '/superadmin/login']
 
-function isRateLimited(ip: string): boolean {
+// Farklı limitler farklı path grupları için
+const RL_RULES: Array<{ prefix: string; max: number }> = [
+  { prefix: '/login',              max: 10 },
+  { prefix: '/superadmin/login',   max: 10 },
+  { prefix: '/api/portal-data',    max: 60 },   // token brute-force koruması
+  { prefix: '/api/portal-upload',  max: 20 },
+  { prefix: '/api/portal-elden',   max: 30 },
+  { prefix: '/api/niyet-mektubu',  max: 15 },   // Anthropic maliyet koruması
+  { prefix: '/api/send-whatsapp',  max: 20 },   // Twilio maliyet koruması
+]
+
+function checkRateLimit(ip: string, pathname: string): boolean {
+  const rule = RL_RULES.find(r => pathname.startsWith(r.prefix))
+  if (!rule) return false
+
+  const key = `${ip}:${rule.prefix}`
   const now = Date.now()
-  const entry = rateLimitStore.get(ip)
+  const entry = rateLimitStore.get(key)
   if (!entry || now > entry.resetAt) {
-    rateLimitStore.set(ip, { count: 1, resetAt: now + RL_WINDOW })
+    rateLimitStore.set(key, { count: 1, resetAt: now + RL_WINDOW })
     return false
   }
   entry.count++
-  return entry.count > RL_MAX
+  return entry.count > rule.max
 }
 
 const RATE_LIMIT_HTML = `<!DOCTYPE html>
@@ -33,12 +47,12 @@ p{color:#5a6a7a;margin:0;font-size:14px;line-height:1.6}</style>
 </div></body></html>`
 
 // ── Public path helpers ─────────────────────────────────────────
-const PUBLIC_PATHS = ['/login', '/superadmin/login']
+const PUBLIC_EXACT = new Set(['/login', '/superadmin/login'])
 const PUBLIC_PREFIXES = ['/portal/', '/api/', '/_next/']
 const PUBLIC_EXT = /\.(svg|png|jpg|jpeg|gif|webp|ico)$/
 
 function isPublic(pathname: string): boolean {
-  if (PUBLIC_PATHS.includes(pathname)) return true
+  if (PUBLIC_EXACT.has(pathname)) return true
   if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) return true
   if (pathname === '/favicon.ico') return true
   if (PUBLIC_EXT.test(pathname)) return true
@@ -54,21 +68,22 @@ function makeAdminClient() {
   )
 }
 
+// UUID format check (v4)
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rate limiting: login sayfalarına IP bazlı sınırlama
-  if (RATE_LIMITED_PATHS.includes(pathname)) {
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      request.headers.get('x-real-ip') ??
-      'unknown'
-    if (isRateLimited(ip)) {
-      return new NextResponse(RATE_LIMIT_HTML, {
-        status: 429,
-        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '300' },
-      })
-    }
+  // ── Rate limiting (tüm path grupları) ─────────────────────────
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown'
+  if (checkRateLimit(ip, pathname)) {
+    return new NextResponse(RATE_LIMIT_HTML, {
+      status: 429,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '300' },
+    })
   }
 
   if (isPublic(pathname)) return NextResponse.next()
@@ -112,10 +127,7 @@ export async function middleware(request: NextRequest) {
     try {
       const admin = makeAdminClient()
       const { data: sa } = await admin
-        .from('superadmins')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle()
+        .from('superadmins').select('id').eq('id', user.id).maybeSingle()
       if (!sa) {
         const target = request.nextUrl.clone()
         target.pathname = '/superadmin/login'
@@ -133,10 +145,7 @@ export async function middleware(request: NextRequest) {
     try {
       const admin = makeAdminClient()
       const { data: userData } = await admin
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
+        .from('users').select('role').eq('id', user.id).maybeSingle()
       if (!userData || userData.role !== 'admin') {
         const target = request.nextUrl.clone()
         target.pathname = '/dashboard'
@@ -146,6 +155,35 @@ export async function middleware(request: NextRequest) {
       const target = request.nextUrl.clone()
       target.pathname = '/dashboard'
       return NextResponse.redirect(target)
+    }
+  }
+
+  // ── 4. IDOR: /dashboard/musteriler/[id] ───────────────────────
+  // Bir kullanıcının başka firmanın müşterisine ID yazarak erişimini engeller
+  const musteriMatch = pathname.match(/^\/dashboard\/musteriler\/([^/]+)$/)
+  if (musteriMatch) {
+    const clientId = musteriMatch[1]
+    if (UUID_RE.test(clientId)) {
+      try {
+        const admin = makeAdminClient()
+        const [{ data: userData }, { data: clientData }] = await Promise.all([
+          admin.from('users').select('company_id').eq('id', user.id).maybeSingle(),
+          admin.from('clients').select('company_id').eq('id', clientId).maybeSingle(),
+        ])
+        if (
+          !userData?.company_id ||
+          !clientData?.company_id ||
+          userData.company_id !== clientData.company_id
+        ) {
+          const target = request.nextUrl.clone()
+          target.pathname = '/dashboard/musteriler'
+          return NextResponse.redirect(target)
+        }
+      } catch {
+        const target = request.nextUrl.clone()
+        target.pathname = '/dashboard/musteriler'
+        return NextResponse.redirect(target)
+      }
     }
   }
 
