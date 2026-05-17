@@ -11,6 +11,8 @@ export default function PortalPage() {
   const [loading, setLoading] = useState(true)
   const [showConsent, setShowConsent] = useState(false)
   const [consentSaving, setConsentSaving] = useState(false)
+  const [consentChecked, setConsentChecked] = useState(false)
+  const [kvkkOpen, setKvkkOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('evrak')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -124,60 +126,79 @@ export default function PortalPage() {
 
   if (showConsent) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
-      <div style={{ background: 'white', borderRadius: '20px', width: '520px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '480px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+
+        {/* Başlık */}
         <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center' }}>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔒</div>
           <h2 style={{ color: 'white', fontSize: '17px', fontWeight: '600', margin: 0 }}>Kişisel Verilerin Korunması</h2>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '6px 0 0' }}>KVKK Aydınlatma Metni ve Açık Rıza</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '6px 0 0' }}>Devam etmek için onay gereklidir</p>
         </div>
 
-        <div style={{ padding: '1.5rem', maxHeight: '55vh', overflowY: 'auto', borderBottom: '1px solid #f0ede6' }}>
-          <p style={{ fontSize: '13px', color: '#0d1f35', fontWeight: '600', marginTop: 0 }}>Sayın {client.full_name},</p>
-          <p style={{ fontSize: '13px', color: '#5a6a7a', lineHeight: '1.7', marginTop: 0 }}>
-            6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında kişisel verilerinizin işlenmesine ilişkin bilgiler aşağıda sunulmaktadır.
-          </p>
+        <div style={{ padding: '1.5rem' }}>
 
-          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>1. Veri Sorumlusu</p>
-          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
-            Vize başvurunuzu yürüten danışmanlık firması, veri sorumlusu sıfatıyla kişisel verilerinizi işlemektedir.
-          </p>
+          {/* Accordion */}
+          <div style={{ border: '1px solid #e8e4da', borderRadius: '10px', marginBottom: '1.25rem', overflow: 'hidden' }}>
+            <button
+              onClick={() => setKvkkOpen(o => !o)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#faf8f3', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: '600', color: '#0d1f35' }}
+            >
+              <span>KVKK Aydınlatma Metni</span>
+              <span style={{ fontSize: '11px', color: '#5b21b6', fontWeight: '500' }}>
+                {kvkkOpen ? '▲ Kapat' : '▼ Metni Görüntüle'}
+              </span>
+            </button>
 
-          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>2. İşlenen Kişisel Veriler</p>
-          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
-            Ad-soyad, telefon numarası, e-posta adresi, pasaport bilgileri ve vize başvurusu kapsamında paylaştığınız belgeler işlenmektedir.
-          </p>
+            {kvkkOpen && (
+              <div style={{ padding: '14px 14px 16px', borderTop: '1px solid #e8e4da', maxHeight: '320px', overflowY: 'auto' }}>
+                <p style={{ fontSize: '12px', color: '#0d1f35', fontWeight: '600', marginTop: 0 }}>Sayın {client.full_name},</p>
+                <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.7', marginTop: 0 }}>
+                  6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında kişisel verilerinizin işlenmesine ilişkin bilgiler aşağıda sunulmaktadır.
+                </p>
+                {[
+                  ['1. Veri Sorumlusu', 'Vize başvurunuzu yürüten danışmanlık firması, veri sorumlusu sıfatıyla kişisel verilerinizi işlemektedir.'],
+                  ['2. İşlenen Kişisel Veriler', 'Ad-soyad, telefon numarası, e-posta adresi, pasaport bilgileri ve vize başvurusu kapsamında paylaştığınız belgeler işlenmektedir.'],
+                  ['3. İşleme Amaçları', 'Verileriniz; vize başvuru sürecinizin yürütülmesi, konsolosluk randevusunun alınması, evrak takibi ve tarafınızla iletişim kurulması amacıyla işlenmektedir.'],
+                  ['4. Aktarım', 'Verileriniz; ilgili konsolosluk, büyükelçilik ve yetkili kamu kurumlarıyla yasal zorunluluk çerçevesinde paylaşılabilir.'],
+                  ['5. Saklama Süresi', 'Kişisel verileriniz, başvuru sürecinizin tamamlanmasından itibaren yasal yükümlülükler kapsamında en fazla 5 yıl süreyle saklanacaktır.'],
+                  ['6. Haklarınız', 'KVKK\'nın 11. maddesi kapsamında; verilerinize erişim, düzeltme, silme, işlemeye itiraz ve taşınabilirlik haklarına sahipsiniz. Taleplerinizi danışmanınıza iletebilirsiniz.'],
+                ].map(([title, body]) => (
+                  <div key={title} style={{ marginBottom: '10px' }}>
+                    <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', margin: '0 0 3px' }}>{title}</p>
+                    <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', margin: 0 }}>{body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>3. İşleme Amaçları</p>
-          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
-            Verileriniz; vize başvuru sürecinizin yürütülmesi, konsolosluk randevusunun alınması, evrak takibi ve tarafınızla iletişim kurulması amacıyla işlenmektedir.
-          </p>
+          {/* Checkbox */}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '1.25rem' }}>
+            <input
+              type="checkbox"
+              checked={consentChecked}
+              onChange={e => setConsentChecked(e.target.checked)}
+              style={{ marginTop: '2px', width: '16px', height: '16px', accentColor: '#0d1f35', flexShrink: 0, cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '13px', color: '#0d1f35', lineHeight: '1.5' }}>
+              KVKK Aydınlatma Metni'ni okudum, kişisel verilerimin belirtilen amaçlar kapsamında işlenmesine onay veriyorum.
+            </span>
+          </label>
 
-          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>4. Aktarım</p>
-          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
-            Verileriniz; ilgili konsolosluk, büyükelçilik ve yetkili kamu kurumlarıyla yasal zorunluluk çerçevesinde paylaşılabilir.
-          </p>
-
-          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>5. Saklama Süresi</p>
-          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
-            Kişisel verileriniz, başvuru sürecinizin tamamlanmasından itibaren yasal yükümlülükler kapsamında en fazla 5 yıl süreyle saklanacaktır.
-          </p>
-
-          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>6. Haklarınız</p>
-          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
-            KVKK'nın 11. maddesi kapsamında; verilerinize erişim, düzeltme, silme, işlemeye itiraz ve taşınabilirlik haklarına sahipsiniz. Taleplerinizi danışmanınıza iletebilirsiniz.
-          </p>
-        </div>
-
-        <div style={{ padding: '1.25rem 1.5rem' }}>
-          <p style={{ fontSize: '12px', color: '#9aaabb', marginTop: 0, marginBottom: '1rem', lineHeight: '1.5' }}>
-            Yukarıdaki aydınlatma metnini okuduğumu, kişisel verilerimin belirtilen amaçlar kapsamında işlenmesine <strong>açık rıza</strong> verdiğimi onaylıyorum.
-          </p>
+          {/* Buton */}
           <button
             onClick={approveConsent}
-            disabled={consentSaving}
-            style={{ width: '100%', padding: '13px', background: consentSaving ? '#9aaabb' : '#0d1f35', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: consentSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+            disabled={!consentChecked || consentSaving}
+            style={{
+              width: '100%', padding: '13px',
+              background: !consentChecked ? '#e8e4da' : consentSaving ? '#9aaabb' : '#0d1f35',
+              color: !consentChecked ? '#9aaabb' : 'white',
+              border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600',
+              cursor: !consentChecked || consentSaving ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', transition: 'background 0.2s',
+            }}
           >
-            {consentSaving ? 'Kaydediliyor...' : '✓ Okudum ve onaylıyorum'}
+            {consentSaving ? 'Kaydediliyor...' : 'Devam Et →'}
           </button>
         </div>
       </div>
