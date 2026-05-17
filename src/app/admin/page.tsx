@@ -15,6 +15,10 @@ export default function AdminPage() {
   const [ulkeCiro, setUlkeCiro] = useState<{label: string, value: number}[]>([])
   const [tipData, setTipData] = useState<{label: string, value: number}[]>([])
   const [loading, setLoading] = useState(true)
+  const [monthlyCount, setMonthlyCount] = useState(0)
+  const [monthlyLimit, setMonthlyLimit] = useState(0)
+
+  const PLAN_MONTHLY_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
   const ciroRef = useRef<HTMLCanvasElement>(null)
   const ulkeRef = useRef<HTMLCanvasElement>(null)
   const tipRef = useRef<HTMLCanvasElement>(null)
@@ -31,6 +35,10 @@ export default function AdminPage() {
       const { data: clients } = await supabase.from('clients').select('*').eq('company_id', companyId)
       const { data: applications } = await supabase.from('applications').select('*').eq('company_id', companyId)
       const { data: payments } = await supabase.from('payments').select('*, applications(country, visa_type, created_at)').eq('company_id', companyId)
+      const { data: company } = await supabase.from('companies').select('plan').eq('id', companyId).single()
+      const { data: count } = await supabase.rpc('get_monthly_application_count', { p_company_id: companyId })
+      setMonthlyCount(count || 0)
+      setMonthlyLimit(PLAN_MONTHLY_LIMITS[company?.plan] || 0)
 
       const toplamOdeme = payments?.reduce((sum, p) => sum + p.total_amount, 0) || 0
       const tahsilEdilen = payments?.reduce((sum, p) => sum + p.paid_amount, 0) || 0
@@ -146,6 +154,18 @@ export default function AdminPage() {
             </div>
           ))}
         </div>
+
+        {monthlyLimit > 0 && (
+          <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#5a6a7a' }}>Bu Ayki Dosya Kullanımı</span>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: '#0d1f35' }}>{monthlyCount}/{monthlyLimit}</span>
+            </div>
+            <div style={{ height: '8px', background: '#f0ede6', borderRadius: '99px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.min((monthlyCount / monthlyLimit) * 100, 100)}%`, background: '#378ADD', borderRadius: '99px', transition: 'width 0.4s ease' }} />
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
