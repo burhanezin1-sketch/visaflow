@@ -1,4 +1,5 @@
 import Sidebar from '@/components/Sidebar'
+import SessionTimeout from '@/components/SessionTimeout'
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
     }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <SessionTimeout />
         {children}
       </div>
     </div>

@@ -9,6 +9,8 @@ export default function PortalPage() {
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [showConsent, setShowConsent] = useState(false)
+  const [consentSaving, setConsentSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('evrak')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -27,6 +29,7 @@ export default function PortalPage() {
         setClient(c)
         setEmail(c.email || '')
         setPhone(c.phone || '')
+        if (c.consent_approved !== true) setShowConsent(true)
         const { data: appData } = await supabase.from('applications').select('*').eq('client_id', c.id).maybeSingle()
         setApplication(appData)
         if (appData?.country && appData?.visa_type) {
@@ -48,6 +51,14 @@ export default function PortalPage() {
     }
     fetchClient()
   }, [token])
+
+  async function approveConsent() {
+    if (!client) return
+    setConsentSaving(true)
+    await supabase.from('clients').update({ consent_approved: true }).eq('id', client.id)
+    setConsentSaving(false)
+    setShowConsent(false)
+  }
 
   async function saveBilgi() {
     if (!client) return
@@ -107,6 +118,68 @@ export default function PortalPage() {
         <div style={{ fontSize: '32px', marginBottom: '1rem' }}>❌</div>
         <h2 style={{ fontSize: '16px', marginBottom: '8px' }}>Link geçersiz</h2>
         <p style={{ fontSize: '13px', color: '#888' }}>Bu portal linki bulunamadı.</p>
+      </div>
+    </div>
+  )
+
+  if (showConsent) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
+      <div style={{ background: 'white', borderRadius: '20px', width: '520px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔒</div>
+          <h2 style={{ color: 'white', fontSize: '17px', fontWeight: '600', margin: 0 }}>Kişisel Verilerin Korunması</h2>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '6px 0 0' }}>KVKK Aydınlatma Metni ve Açık Rıza</p>
+        </div>
+
+        <div style={{ padding: '1.5rem', maxHeight: '55vh', overflowY: 'auto', borderBottom: '1px solid #f0ede6' }}>
+          <p style={{ fontSize: '13px', color: '#0d1f35', fontWeight: '600', marginTop: 0 }}>Sayın {client.full_name},</p>
+          <p style={{ fontSize: '13px', color: '#5a6a7a', lineHeight: '1.7', marginTop: 0 }}>
+            6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında kişisel verilerinizin işlenmesine ilişkin bilgiler aşağıda sunulmaktadır.
+          </p>
+
+          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>1. Veri Sorumlusu</p>
+          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
+            Vize başvurunuzu yürüten danışmanlık firması, veri sorumlusu sıfatıyla kişisel verilerinizi işlemektedir.
+          </p>
+
+          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>2. İşlenen Kişisel Veriler</p>
+          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
+            Ad-soyad, telefon numarası, e-posta adresi, pasaport bilgileri ve vize başvurusu kapsamında paylaştığınız belgeler işlenmektedir.
+          </p>
+
+          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>3. İşleme Amaçları</p>
+          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
+            Verileriniz; vize başvuru sürecinizin yürütülmesi, konsolosluk randevusunun alınması, evrak takibi ve tarafınızla iletişim kurulması amacıyla işlenmektedir.
+          </p>
+
+          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>4. Aktarım</p>
+          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
+            Verileriniz; ilgili konsolosluk, büyükelçilik ve yetkili kamu kurumlarıyla yasal zorunluluk çerçevesinde paylaşılabilir.
+          </p>
+
+          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>5. Saklama Süresi</p>
+          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
+            Kişisel verileriniz, başvuru sürecinizin tamamlanmasından itibaren yasal yükümlülükler kapsamında en fazla 5 yıl süreyle saklanacaktır.
+          </p>
+
+          <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', marginBottom: '4px' }}>6. Haklarınız</p>
+          <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', marginTop: 0 }}>
+            KVKK'nın 11. maddesi kapsamında; verilerinize erişim, düzeltme, silme, işlemeye itiraz ve taşınabilirlik haklarına sahipsiniz. Taleplerinizi danışmanınıza iletebilirsiniz.
+          </p>
+        </div>
+
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ fontSize: '12px', color: '#9aaabb', marginTop: 0, marginBottom: '1rem', lineHeight: '1.5' }}>
+            Yukarıdaki aydınlatma metnini okuduğumu, kişisel verilerimin belirtilen amaçlar kapsamında işlenmesine <strong>açık rıza</strong> verdiğimi onaylıyorum.
+          </p>
+          <button
+            onClick={approveConsent}
+            disabled={consentSaving}
+            style={{ width: '100%', padding: '13px', background: consentSaving ? '#9aaabb' : '#0d1f35', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: consentSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+          >
+            {consentSaving ? 'Kaydediliyor...' : '✓ Okudum ve onaylıyorum'}
+          </button>
+        </div>
       </div>
     </div>
   )
