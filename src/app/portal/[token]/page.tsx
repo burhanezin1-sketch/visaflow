@@ -21,6 +21,7 @@ export default function PortalPage() {
   const [uploadedDocs, setUploadedDocs] = useState<any[]>([])
   const [uploading, setUploading] = useState<Record<number, boolean>>({})
   const [eldenSaving, setEldenSaving] = useState<Record<number, boolean>>({})
+  const [ocrStatus, setOcrStatus] = useState<Record<number, 'scanning' | 'done' | 'error'>>({})
   const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -89,6 +90,20 @@ export default function PortalPage() {
     const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
     setUploadedDocs(uploaded || [])
     setUploading(prev => ({ ...prev, [idx]: false }))
+
+    const isIdDoc = docName.toLowerCase().includes('pasaport') || docName.toLowerCase().includes('kimlik')
+    if (isIdDoc && file.type.startsWith('image/')) {
+      setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
+      fetch('/api/ocr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileUrl: urlData.publicUrl, clientId: client.id, token }),
+      }).then(res => {
+        setOcrStatus(prev => ({ ...prev, [idx]: res.ok ? 'done' : 'error' }))
+      }).catch(() => {
+        setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
+      })
+    }
   }
 
   async function handleEldenSec(idx: number, docName: string) {
@@ -309,7 +324,11 @@ export default function PortalPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
                           <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{vd.doc_name}</span>
-                          <span style={{ fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>Yüklendi ✓</span>
+                          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                            <span style={{ fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>Yüklendi ✓</span>
+                            {ocrStatus[idx] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6' }}>🔍 Taranıyor...</span>}
+                            {ocrStatus[idx] === 'done' && <span style={{ fontSize: '10px', color: '#1a7a45' }}>✓ Veriler okundu</span>}
+                          </span>
                         </div>
                       </div>
                     )
