@@ -74,37 +74,43 @@ export default function PortalPage() {
     const file = e.target.files?.[0]
     if (!file || !client || !application) return
     setUploading(prev => ({ ...prev, [idx]: true }))
-    const fileName = `${client.id}/${idx}_${Date.now()}_${file.name}`
-    const { error } = await supabase.storage.from('documents').upload(fileName, file, { upsert: true })
-    if (error) { setUploading(prev => ({ ...prev, [idx]: false })); return }
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
-    await supabase.from('documents').delete().eq('application_id', application.id).eq('name', docName)
-    await supabase.from('documents').insert({
-      application_id: application.id,
-      name: docName,
-      file_url: urlData.publicUrl,
-      file_name: file.name,
-      status: 'uploaded',
-      delivery_type: 'digital',
-    })
-    const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
-    setUploadedDocs(uploaded || [])
-    setUploading(prev => ({ ...prev, [idx]: false }))
 
+    const tokenStr = Array.isArray(token) ? token[0] : String(token)
     const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
     if (isIdDoc && file.type.startsWith('image/')) {
       setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
-      const tokenStr = Array.isArray(token) ? token[0] : token
-      fetch('/api/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storagePath: fileName, mimeType: file.type, clientId: client.id, token: tokenStr }),
-      }).then(res => {
-        setOcrStatus(prev => ({ ...prev, [idx]: res.ok ? 'done' : 'error' }))
-      }).catch(() => {
-        setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
-      })
     }
+
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('token', tokenStr)
+    fd.append('clientId', client.id)
+    fd.append('applicationId', application.id)
+    fd.append('docName', docName)
+    fd.append('idx', String(idx))
+
+    try {
+      const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        console.error('[upload]', data.error)
+        setUploading(prev => ({ ...prev, [idx]: false }))
+        if (isIdDoc) setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
+        return
+      }
+      if (isIdDoc && file.type.startsWith('image/')) {
+        setOcrStatus(prev => ({ ...prev, [idx]: data.ocrFields?.length > 0 ? 'done' : 'error' }))
+      }
+    } catch (err) {
+      console.error('[upload] fetch error', err)
+      setUploading(prev => ({ ...prev, [idx]: false }))
+      return
+    }
+
+    // Güncel evrak listesini yenile
+    const { data: uploaded } = await supabase.from('documents').select('*').eq('application_id', application.id)
+    setUploadedDocs(uploaded || [])
+    setUploading(prev => ({ ...prev, [idx]: false }))
   }
 
   async function handleEldenSec(idx: number, docName: string) {
