@@ -45,6 +45,15 @@ function isPublic(pathname: string): boolean {
   return false
 }
 
+// Service role client — cookie'siz, sadece DB sorguları için
+function makeAdminClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  )
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -57,10 +66,7 @@ export async function middleware(request: NextRequest) {
     if (isRateLimited(ip)) {
       return new NextResponse(RATE_LIMIT_HTML, {
         status: 429,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Retry-After': '300',
-        },
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '300' },
       })
     }
   }
@@ -69,14 +75,13 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request })
 
+  // ── 1. Auth kontrolü ───────────────────────────────────────────
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
@@ -102,9 +107,51 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(target)
   }
 
+  // ── 2. /superadmin rol kontrolü ────────────────────────────────
+  if (pathname.startsWith('/superadmin')) {
+    try {
+      const admin = makeAdminClient()
+      const { data: sa } = await admin
+        .from('superadmins')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (!sa) {
+        const target = request.nextUrl.clone()
+        target.pathname = '/superadmin/login'
+        return NextResponse.redirect(target)
+      }
+    } catch {
+      const target = request.nextUrl.clone()
+      target.pathname = '/superadmin/login'
+      return NextResponse.redirect(target)
+    }
+  }
+
+  // ── 3. /admin rol kontrolü ─────────────────────────────────────
+  if (pathname.startsWith('/admin')) {
+    try {
+      const admin = makeAdminClient()
+      const { data: userData } = await admin
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (!userData || userData.role !== 'admin') {
+        const target = request.nextUrl.clone()
+        target.pathname = '/dashboard'
+        return NextResponse.redirect(target)
+      }
+    } catch {
+      const target = request.nextUrl.clone()
+      target.pathname = '/dashboard'
+      return NextResponse.redirect(target)
+    }
+  }
+
   return response
 }
 
 export const config = {
-  matcher: ['/(.*)',],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
