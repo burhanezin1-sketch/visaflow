@@ -17,19 +17,13 @@ export default function MaliPage() {
         .select('*, applications(country, visa_type, company_id, client_id, clients(full_name, users(full_name)))')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false })
-      const seenPayments = new Set()
-      const seenClients = new Set()
-      const unique = (data || []).filter((p: any) => {
-        if (seenPayments.has(p.id)) return false
-        seenPayments.add(p.id)
-        const clientId = p.applications?.client_id
-        if (clientId) {
-          if (seenClients.has(clientId)) return false
-          seenClients.add(clientId)
-        }
-        return true
-      })
-      setPayments(unique)
+      const clientMap = new Map<string, any>()
+      for (const p of (data || [])) {
+        const clientId = p.applications?.client_id as string | undefined
+        const key = clientId ?? `no_client_${p.id}`
+        if (!clientMap.has(key)) clientMap.set(key, p)
+      }
+      setPayments(Array.from(clientMap.values()))
       setLoading(false)
     }
     fetchData()
