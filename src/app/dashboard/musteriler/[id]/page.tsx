@@ -259,6 +259,7 @@ export default function MusteriDetayPage() {
       .from('documents')
       .insert({
         application_id: application.id,
+        company_id: application.company_id,
         name: docName,
         file_url: null,
         file_name: null,
