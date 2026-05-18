@@ -15,6 +15,7 @@ const RL_RULES: Array<{ prefix: string; max: number }> = [
   { prefix: '/api/portal-elden',   max: 30 },
   { prefix: '/api/niyet-mektubu',  max: 15 },   // Anthropic maliyet koruması
   { prefix: '/api/send-whatsapp',  max: 20 },   // Twilio maliyet koruması
+  { prefix: '/api/webhook/',       max: 200 },  // n8n webhook
 ]
 
 function checkRateLimit(ip: string, pathname: string): boolean {

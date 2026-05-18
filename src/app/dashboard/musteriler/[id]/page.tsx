@@ -69,13 +69,16 @@ export default function MusteriDetayPage() {
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).single()
-    const { data: appData } = await supabase.from('applications').select('*').eq('client_id', id).maybeSingle()
-    const { data: paymentData } = await supabase.from('payments').select('*').eq('application_id', appData?.id ?? 'none').maybeSingle()
+    const { data: appArr } = await supabase.from('applications').select('*').eq('client_id', id).order('created_at', { ascending: false })
+    const appData = appArr?.[0] ?? null
+    const { data: paymentArr } = await supabase.from('payments').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
+    const paymentData = paymentArr?.[0] ?? null
     const { data: notesData } = await supabase.from('notes').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
     const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
     const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
     const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
-    const { data: transferData } = await supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').maybeSingle()
+    const { data: transferArr } = await supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').order('created_at', { ascending: false })
+    const transferData = transferArr?.[0] ?? null
     const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
 
     if (appData?.country && appData?.visa_type) {
@@ -138,7 +141,7 @@ export default function MusteriDetayPage() {
     const { data: { user } } = await supabase.auth.getUser()
     const { data } = await supabase
       .from('wa_messages')
-      .insert({ company_id: client.company_id, client_id: client.id, sender_id: user?.id, message: newMessage, direction: 'outbound' })
+      .insert({ company_id: client.company_id, client_id: client.id, sender_id: user?.id, message: newMessage, direction: 'outbound', sent_at: new Date().toISOString() })
       .select()
       .single()
     if (data) setWaMessages([data, ...waMessages])
@@ -202,13 +205,14 @@ export default function MusteriDetayPage() {
     await supabase.from('wa_messages').delete().eq('client_id', id)
     await supabase.from('payments').delete().eq('application_id', application?.id)
     await supabase.from('documents').delete().eq('application_id', application?.id)
+    await supabase.from('transfer_requests').delete().eq('client_id', id)
     await supabase.from('applications').delete().eq('client_id', id)
     await supabase.from('clients').delete().eq('id', id)
     router.push('/dashboard/musteriler')
   }
 
   async function randevuEkle() {
-    if (!randevuTarih || !randevuSaat) return
+    if (!randevuTarih || !randevuSaat || !application) return
     const dt = `${randevuTarih}T${randevuSaat}:00`
     await supabase.from('applications').update({
       appointment_date: dt, status: 'appointment', consulate: randevuKonsolosluk || null,
@@ -225,7 +229,7 @@ export default function MusteriDetayPage() {
   }
 
   async function durumDegistir(val: string) {
-    if (!val) return
+    if (!val || !application) return
     if (!confirm(`Durumu "${statusMap[val]?.label}" olarak değiştirmek istediğinizden emin misiniz?`)) return
     await supabase.from('applications').update({ status: val }).eq('id', application.id)
     setApplication({ ...application, status: val })
@@ -558,7 +562,13 @@ export default function MusteriDetayPage() {
                         </div>
                       </div>
                     ))}
-                    <button style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                    <button
+                      onClick={() => {
+                        setActiveTab('wp')
+                        setNewMessage(`Sayın ${client.full_name}, eksik evraklarınızı portal linkiniz üzerinden yüklemenizi rica ederiz.`)
+                      }}
+                      style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}
+                    >
                       📎 Evrak Hatırlatması Gönder
                     </button>
                   </>
@@ -621,7 +631,7 @@ export default function MusteriDetayPage() {
                   {waMessages.length === 0 && <p style={{ fontSize: '12px', color: '#9aaabb' }}>Henüz mesaj yok.</p>}
                   {waMessages.map(m => (
                     <div key={m.id} style={{ background: '#f5f5f7', border: '1px solid #e2e2e8', borderRadius: '8px', padding: '9px 12px', marginBottom: '8px' }}>
-                      <div style={{ fontSize: '10px', color: '#9aaabb', marginBottom: '4px' }}>📤 {new Date(m.sent_at).toLocaleDateString('tr-TR')}</div>
+                      <div style={{ fontSize: '10px', color: '#9aaabb', marginBottom: '4px' }}>📤 {new Date(m.sent_at ?? m.created_at).toLocaleDateString('tr-TR')}</div>
                       <div style={{ fontSize: '13px' }}>{m.message}</div>
                     </div>
                   ))}
