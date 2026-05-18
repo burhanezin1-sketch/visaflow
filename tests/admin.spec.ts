@@ -22,7 +22,7 @@ test('admin genel bakış — stat kartları yükleniyor', async ({ page }) => {
   }
 
   await page.waitForFunction(() => !document.body.innerText.includes('Yükleniyor'), { timeout: 15000 })
-  await expect(page.locator('text=Toplam Ciro')).toBeVisible({ timeout: 10000 })
+  await expect(page.locator('text=Toplam Ciro').first()).toBeVisible({ timeout: 10000 })
 })
 
 test('admin ekip — danışman listesi görünüyor', async ({ page }) => {

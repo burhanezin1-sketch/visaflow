@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test('leads sayfası açılıyor', async ({ page }) => {
   await page.goto('/dashboard/leads')
   await expect(page).not.toHaveURL(/\/login/)
-  await expect(page.locator('text=Leads')).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('text=Potansiyel Müşteriler')).toBeVisible({ timeout: 15000 })
 })
 
 test('leads — tablo ya da boş mesaj görünüyor', async ({ page }) => {

@@ -18,13 +18,15 @@ test('doğru şifre ile giriş — dashboard\'a yönlenir', async ({ page }) => 
 })
 
 test('yanlış şifre — hata mesajı görünür', async ({ page }) => {
+  test.setTimeout(45000)
   await page.goto('/login')
 
   await page.fill('input[type="email"]', 'yanlis@test.com')
   await page.fill('input[type="password"]', 'yanlis_sifre_123')
   await page.click('button[type="submit"]')
 
-  await expect(page.locator('.vp-error')).toBeVisible({ timeout: 10000 })
+  // Supabase auth yanıtı bekle — 15sn timeout
+  await expect(page.locator('.vp-error')).toBeVisible({ timeout: 15000 })
   await expect(page.locator('.vp-error')).toContainText('hatalı')
 })
 
