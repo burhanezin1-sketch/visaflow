@@ -14,7 +14,7 @@ export default function DashboardLayout({
       fontFamily: "'Outfit', 'system-ui', sans-serif",
     }}>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="dashboard-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <SessionTimeout />
         {children}
       </div>

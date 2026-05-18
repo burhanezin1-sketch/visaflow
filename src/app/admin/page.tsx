@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 export default function AdminPage() {
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [stats, setStats] = useState({
     toplamMusteri: 0, tamamlanan: 0, bekleyen: 0,
     toplamOdeme: 0, tahsilEdilen: 0, tahsilEdilmemis: 0,
@@ -140,7 +142,7 @@ export default function AdminPage() {
       </div>
 
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
           {[
             { label: 'Toplam Ciro', value: fmt(stats.toplamOdeme), color: '#1a7a45', sub: stats.toplamMusteri + ' müşteri' },
             { label: 'Tahsil Edilmemiş', value: fmt(stats.tahsilEdilmemis), color: '#c0392b', sub: null },
@@ -167,7 +169,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Aylık Ciro Trendi</h3>
             <canvas ref={ciroRef} height={160} />

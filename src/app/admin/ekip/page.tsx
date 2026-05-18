@@ -5,9 +5,11 @@ import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { checkUserLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 export default function EkipPage() {
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [stats, setStats] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -131,7 +133,7 @@ export default function EkipPage() {
       </div>
 
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
             <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Toplam Danışman</div>
             <div style={{ fontSize: '26px', fontWeight: '500', color: '#0d1f35' }}>{users.length}</div>
@@ -153,7 +155,8 @@ export default function EkipPage() {
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6' }}>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Danışman Listesi</h3>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
             <thead>
               <tr>
                 {['Ad Soyad', 'Email', 'Rol', 'Müşteri', 'Tamamlanan', 'Ciro', ''].map(h => (
@@ -184,6 +187,7 @@ export default function EkipPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>

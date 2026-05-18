@@ -211,7 +211,8 @@ export default function LeadsPage() {
               {leads.filter(l => l.status === 'waiting').length} bekliyor
             </span>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
             <thead>
               <tr>
                 {['Ad Soyad', 'Ne İstiyor?', 'Danışman', 'Durum', ''].map(h => (
@@ -276,6 +277,7 @@ export default function LeadsPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

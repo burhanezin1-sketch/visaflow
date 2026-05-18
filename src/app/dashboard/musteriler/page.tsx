@@ -191,7 +191,7 @@ export default function MusterilerPage() {
       <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
         <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
           {/* Sekmeler */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f4' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f4', flexWrap: 'wrap' }}>
             {([
               { key: 'tumu', label: 'Tüm Müşteriler', count: clients.length },
               { key: 'benimkiler', label: 'Müşterilerim', count: benimkilerCount },
@@ -235,7 +235,8 @@ export default function MusterilerPage() {
               </button>
             </div>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
             <thead>
               <tr>
                 {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Durum', 'Tarih'].map(h => (
@@ -273,6 +274,7 @@ export default function MusterilerPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

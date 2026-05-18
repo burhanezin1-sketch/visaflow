@@ -6,6 +6,7 @@ import Topbar from '@/components/Topbar'
 import { useRouter, useParams } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { logAction } from '@/lib/activityLog'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -19,6 +20,7 @@ export default function MusteriDetayPage() {
   const { id } = useParams()
   const router = useRouter()
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
   const [payment, setPayment] = useState<any>(null)
@@ -405,7 +407,7 @@ export default function MusteriDetayPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.25rem' }}>
           <div>
             <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.25rem' }}>
               <h4 style={{ margin: '0 0 1rem', fontSize: '10px', fontWeight: '600', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Pasaport Bilgileri</h4>
