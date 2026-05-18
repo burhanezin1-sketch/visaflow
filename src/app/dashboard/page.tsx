@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -16,6 +17,7 @@ const statusMap: any = {
 
 export default function DashboardPage() {
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [clients, setClients] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,90 +51,220 @@ export default function DashboardPage() {
     </div>
   )
 
+  const statCards = [
+    { label: 'Aktif Dosya', value: clients.length, color: '#0d1f35', sub: null, click: undefined },
+    { label: 'Yeni Lead', value: leads.length, color: '#92600a', sub: 'Aranmayı bekliyor', click: () => router.push('/dashboard/leads') },
+    { label: 'Bekleyen Evrak', value: bekleyenEvrak.length, color: '#c0392b', sub: 'Acil takip', click: () => router.push('/dashboard/musteriler') },
+    { label: 'Bu Hafta Randevu', value: randevular.length, color: '#1a3a5c', sub: 'Takvimi aç', click: () => router.push('/dashboard/takvim') },
+  ]
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Dashboard" />
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '500', color: '#0d1f35', margin: 0 }}>Günaydın, {userName} 👋</h2>
-          <p style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>
-            {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+      <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+
+        {/* Greeting */}
+        <div style={{ marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+          <h2 style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: '500', color: '#0d1f35', margin: 0 }}>
+            Günaydın, {userName} 👋
+          </h2>
+          <p style={{ fontSize: '12px', color: '#9aaabb', marginTop: '3px' }}>
+            {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
-          {[
-            { label: 'Aktif Dosya', value: clients.length, color: '#0d1f35', sub: '' },
-            { label: 'Yeni Lead', value: leads.length, color: '#92600a', sub: 'Aranmayı bekliyor →', click: () => router.push('/dashboard/leads') },
-            { label: 'Bekleyen Evrak', value: bekleyenEvrak.length, color: '#c0392b', sub: 'Acil takip →', click: () => router.push('/dashboard/musteriler') },
-            { label: 'Bu Hafta Randevu', value: randevular.length, color: '#1a3a5c', sub: 'Takvimi aç →', click: () => router.push('/dashboard/takvim') },
-          ].map((s, i) => (
-            <div key={i} onClick={s.click} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem', cursor: s.click ? 'pointer' : 'default' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
-              <div style={{ fontSize: '26px', fontWeight: '500', color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '6px' }}>{s.sub}</div>
+        {/* Stat cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
+          gap: isMobile ? '8px' : '12px',
+          marginBottom: isMobile ? '1rem' : '1.5rem',
+        }}>
+          {statCards.map((s, i) => (
+            <div
+              key={i}
+              onClick={s.click}
+              style={{
+                background: 'white',
+                border: '1px solid #e8e4da',
+                borderRadius: isMobile ? '10px' : '12px',
+                padding: isMobile ? '0.875rem' : '1.25rem',
+                cursor: s.click ? 'pointer' : 'default',
+              }}
+            >
+              <div style={{
+                fontSize: '9px', fontWeight: '700', color: '#9aaabb',
+                marginBottom: isMobile ? '6px' : '8px',
+                textTransform: 'uppercase', letterSpacing: '0.8px',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {s.label}
+              </div>
+              <div style={{ fontSize: isMobile ? '22px' : '26px', fontWeight: '600', color: s.color, lineHeight: 1 }}>
+                {s.value}
+              </div>
+              {s.sub && !isMobile && (
+                <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '6px' }}>{s.sub} →</div>
+              )}
             </div>
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        {/* Main sections */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: isMobile ? '8px' : '1.25rem',
+        }}>
+
+          {/* Evrak bekleyen */}
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>📋 Evrak Bekleyen Müşteriler</h3>
-              <span style={{ background: '#fef0ee', color: '#c0392b', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f5b8b0' }}>{bekleyenEvrak.length} kişi</span>
+            <div style={{
+              padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
+              borderBottom: '1px solid #f0ede6',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#0d1f35' }}>
+                📋 Evrak Bekleyen
+              </span>
+              <span style={{
+                background: '#fef0ee', color: '#c0392b',
+                fontSize: '11px', fontWeight: '600',
+                padding: '2px 8px', borderRadius: '20px',
+                border: '1px solid #f5b8b0',
+              }}>
+                {bekleyenEvrak.length}
+              </span>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {['Müşteri', 'Durum', ''].map(h => (
-                    <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '8px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {bekleyenEvrak.map(c => (
-                  <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)}>
-                    <td style={{ padding: '10px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{c.full_name}</td>
-                    <td style={{ padding: '10px 1.25rem', fontSize: '11px', color: '#c0392b', borderBottom: '1px solid #f0ede6' }}>Evrak Eksik</td>
-                    <td style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
-                      <button style={{ padding: '3px 8px', fontSize: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Profil</button>
-                    </td>
-                  </tr>
+
+            {bekleyenEvrak.length === 0 ? (
+              <div style={{ padding: '1.25rem', textAlign: 'center', fontSize: '12px', color: '#9aaabb' }}>
+                Bekleyen evrak yok
+              </div>
+            ) : (
+              <div>
+                {bekleyenEvrak.slice(0, isMobile ? 4 : 6).map((c, idx) => (
+                  <div
+                    key={c.id}
+                    onClick={() => router.push(`/dashboard/musteriler/${c.id}`)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: isMobile ? '10px 1rem' : '10px 1.25rem',
+                      borderBottom: idx < bekleyenEvrak.length - 1 ? '1px solid #f0ede6' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        background: '#fef0ee', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '11px', fontWeight: '700', color: '#c0392b',
+                      }}>
+                        {c.full_name.charAt(0).toUpperCase()}
+                      </div>
+                      <span style={{
+                        fontSize: '13px', fontWeight: '500', color: '#0d1f35',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {c.full_name}
+                      </span>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, color: '#9aaabb' }}>
+                      <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+                {bekleyenEvrak.length > (isMobile ? 4 : 6) && (
+                  <div
+                    onClick={() => router.push('/dashboard/musteriler')}
+                    style={{ padding: isMobile ? '8px 1rem' : '8px 1.25rem', fontSize: '12px', color: '#378ADD', cursor: 'pointer', textAlign: 'center', borderTop: '1px solid #f0ede6' }}
+                  >
+                    +{bekleyenEvrak.length - (isMobile ? 4 : 6)} daha
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
+          {/* Son işlemler */}
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>🕐 Son İşlemler</h3>
-              <button onClick={() => router.push('/dashboard/musteriler')} style={{ padding: '5px 12px', fontSize: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Tüm Müşteriler</button>
+            <div style={{
+              padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem',
+              borderBottom: '1px solid #f0ede6',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#0d1f35' }}>
+                🕐 Son İşlemler
+              </span>
+              <button
+                onClick={() => router.push('/dashboard/musteriler')}
+                style={{
+                  padding: '4px 10px', fontSize: '11px', fontWeight: '500',
+                  background: 'transparent', color: '#378ADD',
+                  border: '1px solid rgba(55,138,221,0.3)',
+                  borderRadius: '6px', cursor: 'pointer',
+                }}
+              >
+                Tümü
+              </button>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  {['Müşteri', 'Durum', 'Vize'].map(h => (
-                    <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '8px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {clients.slice(0, 5).map(c => {
+
+            {clients.length === 0 ? (
+              <div style={{ padding: '1.25rem', textAlign: 'center', fontSize: '12px', color: '#9aaabb' }}>
+                Henüz müşteri yok
+              </div>
+            ) : (
+              <div>
+                {clients.slice(0, isMobile ? 4 : 5).map((c, idx, arr) => {
                   const app = c.applications?.[0]
                   const s = statusMap[app?.status] || statusMap.missing
                   return (
-                    <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)}>
-                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>{c.full_name}</td>
-                      <td style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
-                        <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px' }}>{s.label}</span>
-                      </td>
-                      <td style={{ padding: '10px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>{app?.country} {app?.visa_type}</td>
-                    </tr>
+                    <div
+                      key={c.id}
+                      onClick={() => router.push(`/dashboard/musteriler/${c.id}`)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: isMobile ? '10px 1rem' : '10px 1.25rem',
+                        borderBottom: idx < arr.length - 1 ? '1px solid #f0ede6' : 'none',
+                        cursor: 'pointer', gap: '8px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                        <div style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          background: '#eef4fb', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '11px', fontWeight: '700', color: '#1a5fa5',
+                        }}>
+                          {c.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.full_name}
+                          </div>
+                          {app?.country && (
+                            <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '1px' }}>
+                              {app.country} · {app.visa_type}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span style={{
+                        background: s.bg, color: s.color,
+                        fontSize: '10px', fontWeight: '600',
+                        padding: '2px 7px', borderRadius: '20px',
+                        whiteSpace: 'nowrap', flexShrink: 0,
+                      }}>
+                        {s.label}
+                      </span>
+                    </div>
                   )
                 })}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
+
         </div>
       </div>
     </div>

@@ -141,18 +141,18 @@ export default function AdminPage() {
         <h2 style={{ fontSize: '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Genel Bakış</h2>
       </div>
 
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
+      <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
           {[
             { label: 'Toplam Ciro', value: fmt(stats.toplamOdeme), color: '#1a7a45', sub: stats.toplamMusteri + ' müşteri' },
             { label: 'Tahsil Edilmemiş', value: fmt(stats.tahsilEdilmemis), color: '#c0392b', sub: null },
             { label: 'Aktif Dosya', value: stats.toplamMusteri, color: '#0d1f35', sub: null },
             { label: 'Tamamlanan', value: stats.tamamlanan, color: '#1a5fa5', sub: null },
           ].map((s, i) => (
-            <div key={i} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{s.label}</div>
-              <div style={{ fontSize: '22px', fontWeight: '600', color: s.color }}>{s.value}</div>
-              {s.sub && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>{s.sub}</div>}
+            <div key={i} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: isMobile ? '10px' : '12px', padding: isMobile ? '0.875rem' : '1.25rem' }}>
+              <div style={{ fontSize: '9px', fontWeight: '700', color: '#9aaabb', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</div>
+              <div style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: '600', color: s.color }}>{s.value}</div>
+              {s.sub && !isMobile && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>{s.sub}</div>}
             </div>
           ))}
         </div>
@@ -192,7 +192,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '8px' : '1.25rem' }}>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Ülke Bazlı Ciro</h3>
             <canvas ref={ulkeRef} height={180} />

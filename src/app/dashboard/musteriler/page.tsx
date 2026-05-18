@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { checkApplicationLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 function formatPrice(price: number, currency: string = 'TRY') {
   const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -25,6 +26,7 @@ const statusMap: any = {
 
 export default function MusterilerPage() {
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [clients, setClients] = useState<any[]>([])
   const [filtered, setFiltered] = useState<any[]>([])
   const [search, setSearch] = useState('')
@@ -188,7 +190,7 @@ export default function MusterilerPage() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Müşteriler" />
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
         <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
           {/* Sekmeler */}
           <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f4', flexWrap: 'wrap' }}>
@@ -200,12 +202,13 @@ export default function MusterilerPage() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  padding: '11px 18px', fontSize: '13px', fontWeight: '500',
+                  padding: isMobile ? '9px 12px' : '11px 18px',
+                  fontSize: isMobile ? '12px' : '13px', fontWeight: '500',
                   border: 'none', background: 'transparent', cursor: 'pointer',
                   color: activeTab === tab.key ? '#0d1f35' : '#9aaabb',
                   borderBottom: activeTab === tab.key ? '2px solid #1a5fa5' : '2px solid transparent',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  fontFamily: 'inherit', whiteSpace: 'nowrap',
                 }}
               >
                 {tab.label}
@@ -220,18 +223,22 @@ export default function MusterilerPage() {
               </button>
             ))}
             {/* Sağ taraf: arama + filtreler + buton */}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center', padding: '8px 1rem', flexWrap: 'wrap' }}>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '7px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', outline: 'none', width: '150px' }} />
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '7px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', background: '#f5f5f7', outline: 'none' }}>
-                <option value="">Tüm Durumlar</option>
-                <option value="missing">Evrak Eksik</option>
-                <option value="appointment_waiting">Randevu Bekleniyor</option>
-                <option value="appointment">Randevu Alındı</option>
-                <option value="approved">Onaylandı</option>
-                <option value="rejected">Reddedildi</option>
-              </select>
-              <button onClick={() => setShowModal(true)} style={{ padding: '7px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                + Yeni Müşteri
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center', padding: '6px 0.75rem', flexWrap: 'wrap' }}>
+              {!isMobile && (
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '6px 10px', border: '1.5px solid #e2e2e8', borderRadius: '7px', fontSize: '12px', outline: 'none', width: '130px' }} />
+              )}
+              {!isMobile && (
+                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '6px 8px', border: '1.5px solid #e2e2e8', borderRadius: '7px', fontSize: '12px', background: '#f5f5f7', outline: 'none' }}>
+                  <option value="">Tüm Durumlar</option>
+                  <option value="missing">Evrak Eksik</option>
+                  <option value="appointment_waiting">Randevu Bekleniyor</option>
+                  <option value="appointment">Randevu Alındı</option>
+                  <option value="approved">Onaylandı</option>
+                  <option value="rejected">Reddedildi</option>
+                </select>
+              )}
+              <button onClick={() => setShowModal(true)} style={{ padding: '6px 12px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                + Yeni
               </button>
             </div>
           </div>
