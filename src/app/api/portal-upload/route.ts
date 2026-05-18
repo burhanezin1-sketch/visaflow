@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { encrypt } from '@/lib/encryption'
+import { rateLimit } from '@/lib/rateLimit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -14,6 +15,9 @@ function getAdmin() {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'portal-upload', 20)
+  if (limited) return limited
+
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
@@ -47,12 +51,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Dosyayı buffer'a al
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const fileName = `${clientId}/${idx}_${Date.now()}_${file.name}`
 
-    // Storage'a yükle (service role → RLS bypass)
     const { error: uploadError } = await supabase.storage
       .from('documents')
       .upload(fileName, buffer, { contentType: file.type, upsert: true })
@@ -63,7 +65,6 @@ export async function POST(req: NextRequest) {
 
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
 
-    // Eski kaydı sil, yenisini ekle (service role → company_id olmadan da çalışır)
     await supabase.from('documents').delete().eq('application_id', applicationId).eq('name', docName)
     await supabase.from('documents').insert({
       application_id: applicationId,

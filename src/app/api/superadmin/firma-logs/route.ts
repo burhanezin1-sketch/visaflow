@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 async function verifySuperadmin() {
   const cookieStore = await cookies()
@@ -16,11 +17,14 @@ async function verifySuperadmin() {
   return !!sa
 }
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, 'superadmin-firma-logs', 30)
+  if (limited) return limited
+
   const ok = await verifySuperadmin()
   if (!ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { searchParams } = new URL(request.url)
+  const { searchParams } = new URL(req.url)
   const companyId = searchParams.get('company_id')
   if (!companyId) return NextResponse.json({ error: 'company_id required' }, { status: 400 })
 

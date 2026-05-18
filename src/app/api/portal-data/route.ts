@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 function getAdmin() {
   return createClient(
@@ -10,6 +11,9 @@ function getAdmin() {
 }
 
 export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, 'portal-data', 30)
+  if (limited) return limited
+
   try {
     const { searchParams } = new URL(req.url)
     const token = searchParams.get('token')
@@ -20,6 +24,9 @@ export async function GET(req: NextRequest) {
     const { data: clients } = await supabase.rpc('get_client_by_token', { token })
     const client = clients?.[0] ?? null
     if (!client) return NextResponse.json({ error: 'Invalid token' }, { status: 404 })
+
+    // Strip sensitive fields before returning to portal
+    const { passport_no: _pn, ...safeClient } = client
 
     const { data: appArr } = await supabase
       .from('applications')
@@ -47,7 +54,7 @@ export async function GET(req: NextRequest) {
       uploadedDocs = ud || []
     }
 
-    return NextResponse.json({ client, application, visaDocuments, uploadedDocs })
+    return NextResponse.json({ client: safeClient, application, visaDocuments, uploadedDocs })
   } catch (err: any) {
     console.error('[portal-data]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 function getAdmin() {
   return createClient(
@@ -13,6 +14,9 @@ function getAdmin() {
 // Header: x-api-key: <WEBHOOK_SECRET>
 // Body: { phone, full_name?, user_message?, company_id }
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'webhook-lead', 60)
+  if (limited) return limited
+
   const apiKey = req.headers.get('x-api-key')
   if (!process.env.WEBHOOK_SECRET || apiKey !== process.env.WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

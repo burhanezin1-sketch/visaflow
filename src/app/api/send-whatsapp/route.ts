@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/serverAuth'
+import { rateLimit } from '@/lib/rateLimit'
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -10,11 +11,21 @@ function normalizePhone(phone: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'send-whatsapp', 10)
+  if (limited) return limited
+
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     const { to, message } = await req.json()
+
+    if (typeof to !== 'string' || !to.trim()) {
+      return NextResponse.json({ error: 'Geçersiz telefon numarası.' }, { status: 400 })
+    }
+    if (typeof message !== 'string' || !message.trim() || message.length > 1600) {
+      return NextResponse.json({ error: 'Geçersiz mesaj (max 1600 karakter).' }, { status: 400 })
+    }
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID
     const authToken = process.env.TWILIO_AUTH_TOKEN

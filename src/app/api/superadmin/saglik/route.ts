@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 async function verifySuperadmin() {
   const cookieStore = await cookies()
@@ -16,7 +17,10 @@ async function verifySuperadmin() {
   return !!sa
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, 'superadmin-saglik', 30)
+  if (limited) return limited
+
   const ok = await verifySuperadmin()
   if (!ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

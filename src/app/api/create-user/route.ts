@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 async function getCallerInfo() {
   const cookieStore = await cookies()
@@ -25,13 +26,16 @@ async function getCallerInfo() {
   return { isSuperadmin: false, companyId: u?.company_id ?? null, role: u?.role ?? null }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'create-user', 10)
+  if (limited) return limited
+
   const caller = await getCallerInfo()
   if (!caller) {
     return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
   }
 
-  const { full_name, email, password, role, company_id } = await request.json()
+  const { full_name, email, password, role, company_id } = await req.json()
 
   if (!caller.isSuperadmin) {
     if (caller.role !== 'admin' || caller.companyId !== company_id) {
@@ -66,13 +70,16 @@ export async function POST(request: Request) {
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(req: NextRequest) {
+  const limited = rateLimit(req, 'delete-user', 10)
+  if (limited) return limited
+
   const caller = await getCallerInfo()
   if (!caller) {
     return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })
   }
 
-  const { userId } = await request.json()
+  const { userId } = await req.json()
 
   if (!userId) {
     return NextResponse.json({ error: 'userId gerekli' }, { status: 400 })

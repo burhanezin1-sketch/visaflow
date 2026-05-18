@@ -2,10 +2,14 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { encrypt } from '@/lib/encryption'
+import { rateLimit } from '@/lib/rateLimit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'ocr', 10)
+  if (limited) return limited
+
   try {
     const { storagePath, mimeType, clientId, token } = await req.json()
     if (!storagePath || !mimeType || !clientId || !token) {
@@ -25,7 +29,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Dosyayı admin client ile doğrudan indir (bucket private olsa bile çalışır)
+    // Path traversal koruması: storagePath sadece bu müşteriye ait olabilir
+    if (!storagePath.startsWith(clientId + '/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { data: blob, error: dlError } = await supabaseAdmin.storage
       .from('documents')
       .download(storagePath)
@@ -59,7 +67,7 @@ Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY
 
     const raw = message.content[0].type === 'text' ? message.content[0].text : ''
     const match = raw.match(/\{[\s\S]*?\}/)
-    if (!match) return NextResponse.json({ error: 'OCR parse failed', raw }, { status: 500 })
+    if (!match) return NextResponse.json({ error: 'OCR parse failed' }, { status: 500 })
 
     const extracted = JSON.parse(match[0])
 
@@ -68,7 +76,7 @@ Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY
       try {
         updateData.passport_no = encrypt(String(extracted.passport_no))
       } catch {
-        updateData.passport_no = String(extracted.passport_no) // ENCRYPTION_KEY yoksa plaintext kaydet
+        updateData.passport_no = String(extracted.passport_no)
       }
     }
     if (extracted.birth_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.birth_date)) {
@@ -78,14 +86,12 @@ Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY
       updateData.passport_expiry = extracted.passport_expiry
     }
 
-    console.log('[ocr] extracted:', extracted, 'updateData keys:', Object.keys(updateData))
-
     if (Object.keys(updateData).length > 0) {
       const { error: updateErr } = await supabaseAdmin.from('clients').update(updateData).eq('id', clientId)
       if (updateErr) console.error('[ocr] update error:', updateErr.message)
     }
 
-    return NextResponse.json({ success: true, fields: Object.keys(updateData), extracted })
+    return NextResponse.json({ success: true, fields: Object.keys(updateData) })
   } catch (err: any) {
     console.error('[ocr]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

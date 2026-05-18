@@ -3,9 +3,12 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { decrypt } from '@/lib/encryption'
 import { getAdminClient } from '@/lib/serverAuth'
+import { rateLimit } from '@/lib/rateLimit'
 
 export async function POST(req: NextRequest) {
-  // Session kontrolü
+  const limited = rateLimit(req, 'decrypt-field', 20)
+  if (limited) return limited
+
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +28,6 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
-  // Kullanıcının company_id'sini al
   const { data: userData } = await admin
     .from('users')
     .select('company_id')

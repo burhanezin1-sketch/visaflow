@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 function getAdmin() {
   return createClient(
@@ -10,6 +11,9 @@ function getAdmin() {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'portal-bilgi-kaydet', 20)
+  if (limited) return limited
+
   try {
     const { token, clientId, email, phone, consentApproved } = await req.json()
 

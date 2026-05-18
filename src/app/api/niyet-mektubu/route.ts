@@ -1,15 +1,34 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/serverAuth'
+import { rateLimit } from '@/lib/rateLimit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+const MAX_LEN = (s: unknown, n: number) => typeof s === 'string' && s.length > 0 && s.length <= n
+
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'niyet-mektubu', 5)
+  if (limited) return limited
+
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { clientName, country, visaType, travelDate, returnDate, accommodation, consulate, inviter } = await req.json()
+    const body = await req.json()
+    const { clientName, country, visaType, travelDate, returnDate, accommodation, consulate, inviter } = body
+
+    // Input length validation — prevents prompt injection and cost inflation
+    if (
+      !MAX_LEN(clientName, 120) ||
+      !MAX_LEN(country, 80) ||
+      !MAX_LEN(visaType, 80) ||
+      (accommodation && !MAX_LEN(accommodation, 300)) ||
+      (consulate && !MAX_LEN(consulate, 120)) ||
+      (inviter && !MAX_LEN(inviter, 120))
+    ) {
+      return NextResponse.json({ error: 'Geçersiz giriş uzunluğu.' }, { status: 400 })
+    }
 
     const today = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
 
