@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { useEffect, useState } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { useSidebar } from '@/lib/SidebarContext'
 
 const navItems = [
   { label: 'Genel Bakış', href: '/admin' },
@@ -20,10 +21,10 @@ export default function AdminSidebarWrapper() {
   const pathname = usePathname()
   const { companyId } = useCompany()
   const isMobile = useIsMobile()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const { isOpen, close } = useSidebar()
   const [companyName, setCompanyName] = useState('')
 
-  useEffect(() => { setDrawerOpen(false) }, [pathname])
+  useEffect(() => { close() }, [pathname])
 
   useEffect(() => {
     if (!companyId) return
@@ -39,7 +40,7 @@ export default function AdminSidebarWrapper() {
 
   function navigate(href: string) {
     router.push(href)
-    setDrawerOpen(false)
+    close()
   }
 
   const innerContent = (
@@ -92,27 +93,18 @@ export default function AdminSidebarWrapper() {
   if (isMobile) {
     return (
       <>
-        {/* Fixed mobile top bar */}
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '52px', background: '#1c1c24', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{companyName || '...'}</span>
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginLeft: '8px' }}>Admin</span>
-          </div>
-          <button onClick={() => setDrawerOpen(v => !v)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center' }} aria-label="Menü">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              {drawerOpen
-                ? <path d="M3 3l16 16M19 3L3 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                : <><line x1="3" y1="6" x2="19" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="11" x2="19" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="16" x2="19" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>
-              }
-            </svg>
-          </button>
-        </div>
-
-        {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
+        {isOpen && (
+          <div onClick={close} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
         )}
-
-        <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px', background: '#1c1c24', zIndex: 300, transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.25s ease', display: 'flex', flexDirection: 'column', padding: '1.25rem 0', overflowY: 'auto' }}>
+        <div style={{
+          position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px',
+          background: '#1c1c24', zIndex: 300,
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.25s ease',
+          display: 'flex', flexDirection: 'column',
+          padding: '1.25rem 0',
+          overflowY: 'auto',
+        }}>
           {innerContent}
         </div>
       </>

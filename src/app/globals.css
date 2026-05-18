@@ -25,8 +25,3 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-@media (max-width: 767px) {
-  .dashboard-content {
-    padding-top: 52px;
-  }
-}

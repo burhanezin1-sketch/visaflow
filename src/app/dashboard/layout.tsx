@@ -1,5 +1,6 @@
 import Sidebar from '@/components/Sidebar'
 import SessionTimeout from '@/components/SessionTimeout'
+import { SidebarProvider } from '@/lib/SidebarContext'
 
 export default function DashboardLayout({
   children,
@@ -7,17 +8,19 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div style={{
-      display: 'flex',
-      minHeight: '100vh',
-      background: '#f5f5f7',
-      fontFamily: "'Outfit', 'system-ui', sans-serif",
-    }}>
-      <Sidebar />
-      <div className="dashboard-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SessionTimeout />
-        {children}
+    <SidebarProvider>
+      <div style={{
+        display: 'flex',
+        minHeight: '100vh',
+        background: '#f5f5f7',
+        fontFamily: "'Outfit', 'system-ui', sans-serif",
+      }}>
+        <Sidebar />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+          <SessionTimeout />
+          {children}
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

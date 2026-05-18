@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { useSidebar } from '@/lib/SidebarContext'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -21,7 +22,7 @@ export default function Sidebar() {
   const router = useRouter()
   const { companyId } = useCompany()
   const isMobile = useIsMobile()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const { isOpen, close } = useSidebar()
   const [companyName, setCompanyName] = useState('')
   const [leadCount, setLeadCount] = useState(0)
   const [transferCount, setTransferCount] = useState(0)
@@ -31,7 +32,8 @@ export default function Sidebar() {
   const [transfers, setTransfers] = useState<any[]>([])
   const [processingId, setProcessingId] = useState<string | null>(null)
 
-  useEffect(() => { setDrawerOpen(false) }, [pathname])
+  // Close drawer on navigation
+  useEffect(() => { close() }, [pathname])
 
   useEffect(() => {
     async function fetchUser() {
@@ -127,7 +129,7 @@ export default function Sidebar() {
 
   function navigate(href: string) {
     router.push(href)
-    setDrawerOpen(false)
+    close()
   }
 
   const innerContent = (
@@ -218,30 +220,23 @@ export default function Sidebar() {
   if (isMobile) {
     return (
       <>
-        {/* Fixed mobile top bar */}
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '52px', background: '#1c1c24', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <span style={{ fontSize: '14px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{companyName || '...'}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {leadCount > 0 && <span style={{ background: '#a32d2d', color: 'white', fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px' }}>{leadCount}</span>}
-            {transferCount > 0 && <span style={{ background: '#378ADD', color: 'white', fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px' }}>{transferCount}</span>}
-            <button onClick={() => setDrawerOpen(v => !v)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center' }} aria-label="Menü">
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                {drawerOpen
-                  ? <path d="M3 3l16 16M19 3L3 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  : <><line x1="3" y1="6" x2="19" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="11" x2="19" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="16" x2="19" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>
-                }
-              </svg>
-            </button>
-          </div>
-        </div>
-
         {/* Backdrop */}
-        {drawerOpen && (
-          <div onClick={() => setDrawerOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
+        {isOpen && (
+          <div
+            onClick={close}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }}
+          />
         )}
-
         {/* Slide-in drawer */}
-        <div style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px', background: '#1c1c24', zIndex: 300, transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.25s ease', display: 'flex', flexDirection: 'column', padding: '1.25rem 0', overflowY: 'auto' }}>
+        <div style={{
+          position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px',
+          background: '#1c1c24', zIndex: 300,
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.25s ease',
+          display: 'flex', flexDirection: 'column',
+          padding: '1.25rem 0',
+          overflowY: 'auto',
+        }}>
           {innerContent}
         </div>
       </>
