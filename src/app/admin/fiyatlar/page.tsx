@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const CURRENCY_SYMBOL: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
 
@@ -14,6 +15,7 @@ function formatPrice(price: number, currency: string = 'TRY') {
 
 export default function FiyatlarPage() {
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [prices, setPrices] = useState<any[]>([])
   const [visaOptions, setVisaOptions] = useState<{ country: string; visa_type: string }[]>([])
   const [loading, setLoading] = useState(true)
@@ -106,55 +108,57 @@ export default function FiyatlarPage() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid #e8e4da', padding: '0.875rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <h2 style={{ fontSize: '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Hizmet Fiyatları</h2>
-        <button onClick={openAdd} style={{ padding: '7px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+      <div style={{ background: 'white', borderBottom: '1px solid #e8e4da', padding: isMobile ? '0.75rem 1rem' : '0.875rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <h2 style={{ fontSize: isMobile ? '15px' : '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Hizmet Fiyatları</h2>
+        <button onClick={openAdd} style={{ padding: isMobile ? '6px 10px' : '7px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
           + Fiyat Ekle
         </button>
       </div>
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
         <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Ülke', 'Vize Tipi', 'Fiyat', 'Para Birimi', ''].map(h => (
-                  <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {prices.length === 0 && (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '400px' }}>
+              <thead>
                 <tr>
-                  <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
-                    Henüz fiyat eklenmemiş. "+ Fiyat Ekle" ile başlayın.
-                  </td>
+                  {['Ülke', 'Vize Tipi', 'Fiyat', 'Para Birimi', ''].map(h => (
+                    <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
+                  ))}
                 </tr>
-              )}
-              {prices.map(p => (
-                <tr key={p.id}>
-                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{p.country}</td>
-                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{p.visa_type}</td>
-                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0f0f4', color: '#1a7a45' }}>{formatPrice(p.price, p.currency)}</td>
-                  <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#9aaabb' }}>
-                    <span style={{ background: '#f0f0f4', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>{p.currency || 'TRY'}</span>
-                  </td>
-                  <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => openEdit(p)} style={{ padding: '4px 10px', fontSize: '11px', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '6px', cursor: 'pointer' }}>Düzenle</button>
-                      <button onClick={() => deleteFiyat(p.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5b8b0', borderRadius: '6px', cursor: 'pointer' }}>Sil</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {prices.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
+                      Henüz fiyat eklenmemiş. "+ Fiyat Ekle" ile başlayın.
+                    </td>
+                  </tr>
+                )}
+                {prices.map(p => (
+                  <tr key={p.id}>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{p.country}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{p.visa_type}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0f0f4', color: '#1a7a45' }}>{formatPrice(p.price, p.currency)}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#9aaabb' }}>
+                      <span style={{ background: '#f0f0f4', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>{p.currency || 'TRY'}</span>
+                    </td>
+                    <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => openEdit(p)} style={{ padding: '4px 10px', fontSize: '11px', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '6px', cursor: 'pointer' }}>Düzenle</button>
+                        <button onClick={() => deleteFiyat(p.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5b8b0', borderRadius: '6px', cursor: 'pointer' }}>Sil</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '380px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
-            <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '1.5rem', color: '#0d1f35' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px', padding: isMobile ? '1.25rem' : '2rem', width: isMobile ? '100%' : '380px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
+            <h3 style={{ fontSize: isMobile ? '15px' : '17px', fontWeight: '600', marginBottom: '1.25rem', color: '#0d1f35' }}>
               {editItem ? 'Fiyat Düzenle' : 'Yeni Fiyat Ekle'}
             </h3>
 
@@ -184,7 +188,7 @@ export default function FiyatlarPage() {
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', marginBottom: '1.5rem', alignItems: 'end' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', marginBottom: '1.25rem', alignItems: 'end' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Fiyat</label>
                 <input

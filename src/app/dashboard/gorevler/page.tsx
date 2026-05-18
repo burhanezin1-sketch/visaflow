@@ -5,14 +5,11 @@ import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const typeIcon: Record<string, string> = {
-  evrak: '📎',
-  randevu: '📅',
-  odeme: '💰',
-  pasaport: '🛂',
+  evrak: '📎', randevu: '📅', odeme: '💰', pasaport: '🛂',
 }
-
 const typeBg: Record<string, { color: string; border: string }> = {
   evrak: { color: '#c0392b', border: '#f5b8b0' },
   randevu: { color: '#1a5fa5', border: '#b8d4f0' },
@@ -20,28 +17,33 @@ const typeBg: Record<string, { color: string; border: string }> = {
   pasaport: { color: '#5a6a7a', border: '#e8e4da' },
 }
 
-function GorevItem({ gorev, onToggle, onNavigate }: { gorev: any; onToggle: (id: string) => void; onNavigate: (clientId: string) => void }) {
+function GorevItem({ gorev, onToggle, onNavigate, compact }: { gorev: any; onToggle: (id: string) => void; onNavigate: (clientId: string) => void; compact?: boolean }) {
   const style = typeBg[gorev.type] || typeBg.pasaport
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '12px', borderRadius: '10px',
+      display: 'flex', alignItems: compact ? 'flex-start' : 'center', gap: '8px',
+      padding: compact ? '10px' : '12px',
+      borderRadius: '10px',
       border: `1px solid ${style.border}`,
-      marginBottom: '8px', background: 'white',
+      marginBottom: '6px', background: 'white',
       borderLeft: `3px solid ${style.color}`,
     }}>
-      <span style={{ fontSize: '18px', flexShrink: 0 }}>{typeIcon[gorev.type]}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35' }}>{gorev.title}</div>
-        <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
+      <span style={{ fontSize: compact ? '15px' : '18px', flexShrink: 0, marginTop: compact ? '1px' : 0 }}>
+        {typeIcon[gorev.type]}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: compact ? '12px' : '13px', fontWeight: '500', color: '#0d1f35' }}>{gorev.title}</div>
+        <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: compact ? 'nowrap' : 'normal' }}>
           <strong>{gorev.client_name}</strong> — {gorev.aciklama}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '6px' }}>
-        <button onClick={() => onNavigate(gorev.client_id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-          Profil
+      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+        <button onClick={() => onNavigate(gorev.client_id)}
+          style={{ padding: compact ? '4px 8px' : '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+          →
         </button>
-        <button onClick={() => onToggle(gorev.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+        <button onClick={() => onToggle(gorev.id)}
+          style={{ padding: compact ? '4px 8px' : '4px 10px', fontSize: '11px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
           ✓
         </button>
       </div>
@@ -51,6 +53,7 @@ function GorevItem({ gorev, onToggle, onNavigate }: { gorev: any; onToggle: (id:
 
 export default function GorevlerPage() {
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [gorevler, setGorevler] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [tamamlanan, setTamamlanan] = useState<Set<string>>(new Set())
@@ -68,88 +71,30 @@ export default function GorevlerPage() {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
     fetchGorevler()
-
-    const channel = supabase
-      .channel('gorevler-realtime')
+    const channel = supabase.channel('gorevler-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => fetchGorevler())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => fetchGorevler())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => fetchGorevler())
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [companyId, companyLoading])
 
   async function fetchGorevler() {
-    const { data: clients } = await supabase
-      .from('clients')
-      .select('*, applications(*)')
-      .eq('company_id', companyId)
-
-    const { data: payments } = await supabase
-      .from('payments')
-      .select('*, applications(client_id)')
-      .eq('company_id', companyId)
-
+    const { data: clients } = await supabase.from('clients').select('*, applications(*)').eq('company_id', companyId)
+    const { data: payments } = await supabase.from('payments').select('*, applications(client_id)').eq('company_id', companyId)
     const liste: any[] = []
-
     clients?.forEach(c => {
       const app = c.applications?.[0]
       const payment = payments?.find(p => p.applications?.client_id === c.id)
-
-      if (app?.status === 'missing') {
-        liste.push({
-          id: `evrak-${c.id}`,
-          client_id: c.id,
-          client_name: c.full_name,
-          title: 'Eksik evrak hatırlatması gönder',
-          type: 'evrak',
-          priority: 'urgent',
-          aciklama: `${app.country} ${app.visa_type} başvurusu için evraklar eksik`,
-        })
-      }
-
-      if (app?.status === 'appointment_waiting') {
-        liste.push({
-          id: `randevu-${c.id}`,
-          client_id: c.id,
-          client_name: c.full_name,
-          title: 'Randevu ayarla',
-          type: 'randevu',
-          priority: 'urgent',
-          aciklama: `${app.country} ${app.visa_type} için konsolosluk randevusu bekleniyor`,
-        })
-      }
-
-      if (payment && payment.total_amount - payment.paid_amount > 0) {
-        liste.push({
-          id: `odeme-${c.id}`,
-          client_id: c.id,
-          client_name: c.full_name,
-          title: 'Ödeme takibi yap',
-          type: 'odeme',
-          priority: 'normal',
-          aciklama: `Kalan: ${(payment.total_amount - payment.paid_amount).toLocaleString('tr-TR')}₺`,
-        })
-      }
-
+      if (app?.status === 'missing') liste.push({ id: `evrak-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Eksik evrak hatırlatması gönder', type: 'evrak', priority: 'urgent', aciklama: `${app.country} ${app.visa_type} başvurusu için evraklar eksik` })
+      if (app?.status === 'appointment_waiting') liste.push({ id: `randevu-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Randevu ayarla', type: 'randevu', priority: 'urgent', aciklama: `${app.country} ${app.visa_type} için konsolosluk randevusu bekleniyor` })
+      if (payment && payment.total_amount - payment.paid_amount > 0) liste.push({ id: `odeme-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Ödeme takibi yap', type: 'odeme', priority: 'normal', aciklama: `Kalan: ${(payment.total_amount - payment.paid_amount).toLocaleString('tr-TR')}₺` })
       if (c.passport_expiry) {
         const expiry = new Date(c.passport_expiry)
-        const ucAySonra = new Date()
-        ucAySonra.setMonth(ucAySonra.getMonth() + 3)
-        if (expiry < ucAySonra) {
-          liste.push({
-            id: `pasaport-${c.id}`,
-            client_id: c.id,
-            client_name: c.full_name,
-            title: 'Pasaport yenileme uyarısı',
-            type: 'pasaport',
-            priority: 'normal',
-            aciklama: `Pasaport ${expiry.toLocaleDateString('tr-TR')} tarihinde sona eriyor`,
-          })
-        }
+        const ucAySonra = new Date(); ucAySonra.setMonth(ucAySonra.getMonth() + 3)
+        if (expiry < ucAySonra) liste.push({ id: `pasaport-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Pasaport yenileme uyarısı', type: 'pasaport', priority: 'normal', aciklama: `Pasaport ${expiry.toLocaleDateString('tr-TR')} tarihinde sona eriyor` })
       }
     })
-
     setGorevler(liste)
     setLoading(false)
   }
@@ -157,13 +102,8 @@ export default function GorevlerPage() {
   function toggleTamamla(id: string) {
     setTamamlanan(prev => {
       const yeni = new Set(prev)
-      if (yeni.has(id)) yeni.delete(id)
-      else yeni.add(id)
-      if (companyId) {
-        try {
-          localStorage.setItem(`gorevler-done-${companyId}`, JSON.stringify([...yeni]))
-        } catch {}
-      }
+      if (yeni.has(id)) yeni.delete(id); else yeni.add(id)
+      if (companyId) { try { localStorage.setItem(`gorevler-done-${companyId}`, JSON.stringify([...yeni])) } catch {} }
       return yeni
     })
   }
@@ -178,43 +118,43 @@ export default function GorevlerPage() {
     </div>
   )
 
+  const nav = (clientId: string) => router.push(`/dashboard/musteriler/${clientId}`)
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Görev Listesi" />
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
         {aktif.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: '#9aaabb', fontSize: '13px' }}>
             🎉 Tüm görevler tamamlandı!
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '8px' : '1.25rem' }}>
             <div>
               <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #fef0ee, #fff5f4)' }}>
-                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#c0392b' }}>⚡ Acil Görevler</h3>
-                  <span style={{ background: '#fef0ee', color: '#c0392b', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f5b8b0' }}>{acil.length}</span>
+                <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #fef0ee, #fff5f4)' }}>
+                  <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#c0392b' }}>⚡ Acil</span>
+                  <span style={{ background: '#fef0ee', color: '#c0392b', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #f5b8b0' }}>{acil.length}</span>
                 </div>
-                <div style={{ padding: '0.75rem' }}>
-                  {acil.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Acil görev yok</div>
-                  ) : (
-                    acil.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={clientId => router.push(`/dashboard/musteriler/${clientId}`)} />)
-                  )}
+                <div style={{ padding: isMobile ? '0.5rem' : '0.75rem' }}>
+                  {acil.length === 0
+                    ? <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Acil görev yok</div>
+                    : acil.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={nav} compact={isMobile} />)
+                  }
                 </div>
               </div>
             </div>
             <div>
               <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #fff8ec, #fffbf0)' }}>
-                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#92600a' }}>📋 Normal Görevler</h3>
-                  <span style={{ background: '#fff8ec', color: '#92600a', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f0d896' }}>{normal.length}</span>
+                <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #fff8ec, #fffbf0)' }}>
+                  <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#92600a' }}>📋 Normal</span>
+                  <span style={{ background: '#fff8ec', color: '#92600a', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #f0d896' }}>{normal.length}</span>
                 </div>
-                <div style={{ padding: '0.75rem' }}>
-                  {normal.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Normal görev yok</div>
-                  ) : (
-                    normal.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={clientId => router.push(`/dashboard/musteriler/${clientId}`)} />)
-                  )}
+                <div style={{ padding: isMobile ? '0.5rem' : '0.75rem' }}>
+                  {normal.length === 0
+                    ? <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Normal görev yok</div>
+                    : normal.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={nav} compact={isMobile} />)
+                  }
                 </div>
               </div>
             </div>

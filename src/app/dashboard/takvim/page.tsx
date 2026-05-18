@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -16,6 +17,7 @@ const statusMap: any = {
 
 export default function TakvimPage() {
   const { companyId, loading: companyLoading } = useCompany()
+  const isMobile = useIsMobile()
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -40,42 +42,70 @@ export default function TakvimPage() {
   const yaklasan = appointments.filter(a => new Date(a.appointment_date) >= now)
   const gecmis = appointments.filter(a => new Date(a.appointment_date) < now)
 
-  function AppointmentTable({ items, dimmed }: { items: any[]; dimmed?: boolean }) {
-    return (
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            {['Tarih', 'Saat', 'Müşteri', 'Konsolosluk', 'Vize', 'Durum'].map(h => (
-              <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(app => {
+  function AppointmentList({ items, dimmed }: { items: any[]; dimmed?: boolean }) {
+    if (isMobile) {
+      return (
+        <div>
+          {items.map((app, idx) => {
             const date = new Date(app.appointment_date)
             const s = statusMap[app.status] || statusMap.appointment_waiting
             return (
-              <tr key={app.id} onClick={() => router.push(`/dashboard/musteriler/${app.client_id}`)}
-                style={{ cursor: 'pointer', opacity: dimmed ? 0.45 : 1 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#faf8f3'}
-                onMouseLeave={e => e.currentTarget.style.background = 'white'}>
-                <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>
-                  {date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </td>
-                <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6', color: '#1a5fa5', fontWeight: '500' }}>
-                  {date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                </td>
-                <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>{app.clients?.full_name}</td>
-                <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>{app.consulate || '-'}</td>
-                <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{app.country} {app.visa_type}</td>
-                <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
-                  <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px' }}>{s.label}</span>
-                </td>
-              </tr>
+              <div key={app.id} onClick={() => router.push(`/dashboard/musteriler/${app.client_id}`)}
+                style={{ padding: '10px 0.875rem', borderBottom: idx < items.length - 1 ? '1px solid #f0ede6' : 'none', cursor: 'pointer', opacity: dimmed ? 0.45 : 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {app.clients?.full_name}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>
+                      {date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} · {date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · {app.country} {app.visa_type}
+                    </div>
+                  </div>
+                  <span style={{ background: s.bg, color: s.color, fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>{s.label}</span>
+                </div>
+              </div>
             )
           })}
-        </tbody>
-      </table>
+        </div>
+      )
+    }
+    return (
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '580px' }}>
+          <thead>
+            <tr>
+              {['Tarih', 'Saat', 'Müşteri', 'Konsolosluk', 'Vize', 'Durum'].map(h => (
+                <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map(app => {
+              const date = new Date(app.appointment_date)
+              const s = statusMap[app.status] || statusMap.appointment_waiting
+              return (
+                <tr key={app.id} onClick={() => router.push(`/dashboard/musteriler/${app.client_id}`)}
+                  style={{ cursor: 'pointer', opacity: dimmed ? 0.45 : 1 }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#faf8f3'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'white'}>
+                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>
+                    {date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </td>
+                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6', color: '#1a5fa5', fontWeight: '500' }}>
+                    {date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>{app.clients?.full_name}</td>
+                  <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>{app.consulate || '-'}</td>
+                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{app.country} {app.visa_type}</td>
+                  <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
+                    <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px' }}>{s.label}</span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     )
   }
 
@@ -88,27 +118,27 @@ export default function TakvimPage() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Takvim" />
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
 
-        <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.25rem' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #eef4fb, #f5f9ff)' }}>
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#1a5fa5' }}>📅 Yaklaşan Randevular</h3>
-            <span style={{ background: '#eef4fb', color: '#1a5fa5', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #b8d4f0' }}>{yaklasan.length}</span>
+        <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: isMobile ? '0.75rem' : '1.25rem' }}>
+          <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #eef4fb, #f5f9ff)' }}>
+            <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '500', color: '#1a5fa5' }}>📅 Yaklaşan Randevular</h3>
+            <span style={{ background: '#eef4fb', color: '#1a5fa5', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #b8d4f0' }}>{yaklasan.length}</span>
           </div>
           {yaklasan.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#9aaabb', fontSize: '13px' }}>Yaklaşan randevu yok.</div>
+            <div style={{ padding: isMobile ? '1.25rem' : '2rem', textAlign: 'center', color: '#9aaabb', fontSize: '13px' }}>Yaklaşan randevu yok.</div>
           ) : (
-            <AppointmentTable items={yaklasan} />
+            <AppointmentList items={yaklasan} />
           )}
         </div>
 
         {gecmis.length > 0 && (
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#9aaabb' }}>Geçmiş Randevular</h3>
-              <span style={{ background: '#f5f5f7', color: '#9aaabb', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e2e8' }}>{gecmis.length}</span>
+            <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '500', color: '#9aaabb' }}>Geçmiş Randevular</h3>
+              <span style={{ background: '#f5f5f7', color: '#9aaabb', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #e2e2e8' }}>{gecmis.length}</span>
             </div>
-            <AppointmentTable items={gecmis} dimmed />
+            <AppointmentList items={gecmis} dimmed />
           </div>
         )}
 
