@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 
+const CURRENCY_SYMBOL: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
+
+function formatPrice(price: number, currency: string = 'TRY') {
+  const sym = CURRENCY_SYMBOL[currency] || currency
+  if (currency === 'TRY') return `${price.toLocaleString('tr-TR')}${sym}`
+  return `${sym}${price.toLocaleString('en-US')}`
+}
+
 export default function FiyatlarPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const [prices, setPrices] = useState<any[]>([])
@@ -11,7 +19,7 @@ export default function FiyatlarPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
-  const [form, setForm] = useState({ country: '', visa_type: '', price: '' })
+  const [form, setForm] = useState({ country: '', visa_type: '', price: '', currency: 'TRY' })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -52,6 +60,7 @@ export default function FiyatlarPage() {
         country: form.country,
         visa_type: form.visa_type,
         price: parseFloat(form.price),
+        currency: form.currency,
       }).eq('id', editItem.id)
     } else {
       await supabase.from('service_prices').insert({
@@ -59,12 +68,13 @@ export default function FiyatlarPage() {
         country: form.country,
         visa_type: form.visa_type,
         price: parseFloat(form.price),
+        currency: form.currency,
       })
     }
     setSaving(false)
     setShowModal(false)
     setEditItem(null)
-    setForm({ country: '', visa_type: '', price: '' })
+    setForm({ country: '', visa_type: '', price: '', currency: 'TRY' })
     fetchData()
   }
 
@@ -78,13 +88,13 @@ export default function FiyatlarPage() {
     setEditItem(null)
     const firstCountry = countries[0] || ''
     const firstVisa = visaOptions.find(v => v.country === firstCountry)?.visa_type || ''
-    setForm({ country: firstCountry, visa_type: firstVisa, price: '' })
+    setForm({ country: firstCountry, visa_type: firstVisa, price: '', currency: 'TRY' })
     setShowModal(true)
   }
 
   function openEdit(p: any) {
     setEditItem(p)
-    setForm({ country: p.country, visa_type: p.visa_type, price: p.price.toString() })
+    setForm({ country: p.country, visa_type: p.visa_type, price: p.price.toString(), currency: p.currency || 'TRY' })
     setShowModal(true)
   }
 
@@ -107,7 +117,7 @@ export default function FiyatlarPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Ülke', 'Vize Tipi', 'Fiyat', ''].map(h => (
+                {['Ülke', 'Vize Tipi', 'Fiyat', 'Para Birimi', ''].map(h => (
                   <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
                 ))}
               </tr>
@@ -115,7 +125,7 @@ export default function FiyatlarPage() {
             <tbody>
               {prices.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
+                  <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
                     Henüz fiyat eklenmemiş. "+ Fiyat Ekle" ile başlayın.
                   </td>
                 </tr>
@@ -124,7 +134,10 @@ export default function FiyatlarPage() {
                 <tr key={p.id}>
                   <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{p.country}</td>
                   <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{p.visa_type}</td>
-                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0f0f4', color: '#1a7a45' }}>{p.price.toLocaleString('tr-TR')}₺</td>
+                  <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0f0f4', color: '#1a7a45' }}>{formatPrice(p.price, p.currency)}</td>
+                  <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#9aaabb' }}>
+                    <span style={{ background: '#f0f0f4', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>{p.currency || 'TRY'}</span>
+                  </td>
                   <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button onClick={() => openEdit(p)} style={{ padding: '4px 10px', fontSize: '11px', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '6px', cursor: 'pointer' }}>Düzenle</button>
@@ -171,15 +184,29 @@ export default function FiyatlarPage() {
               </select>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Fiyat (₺)</label>
-              <input
-                type="number"
-                value={form.price}
-                onChange={e => setForm({ ...form, price: e.target.value })}
-                placeholder="8500"
-                style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', marginBottom: '1.5rem', alignItems: 'end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Fiyat</label>
+                <input
+                  type="number"
+                  value={form.price}
+                  onChange={e => setForm({ ...form, price: e.target.value })}
+                  placeholder="8500"
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Birim</label>
+                <select
+                  value={form.currency}
+                  onChange={e => setForm({ ...form, currency: e.target.value })}
+                  style={{ padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit', fontWeight: '600' }}
+                >
+                  <option value="TRY">₺ TRY</option>
+                  <option value="USD">$ USD</option>
+                  <option value="EUR">€ EUR</option>
+                </select>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>

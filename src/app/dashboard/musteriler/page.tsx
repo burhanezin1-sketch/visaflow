@@ -8,6 +8,13 @@ import { useCompany } from '@/lib/useCompany'
 import { checkApplicationLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
 
+function formatPrice(price: number, currency: string = 'TRY') {
+  const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
+  return currency === 'TRY'
+    ? `${price.toLocaleString('tr-TR')}${sym.TRY}`
+    : `${sym[currency] || currency}${price.toLocaleString('en-US')}`
+}
+
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
   appointment_waiting: { label: 'Randevu Bekleniyor', bg: '#fff8ec', color: '#92600a' },
@@ -27,7 +34,7 @@ export default function MusterilerPage() {
   const [prices, setPrices] = useState<any[]>([])
   const [visaOptions, setVisaOptions] = useState<{ country: string; visa_type: string }[]>([])
   const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: 'Schengen', visa_type: 'Turist' })
-  const [autoPrice, setAutoPrice] = useState<number | null>(null)
+  const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'tumu' | 'benimkiler'>('tumu')
@@ -87,7 +94,7 @@ export default function MusterilerPage() {
 
   useEffect(() => {
     const p = prices.find(p => p.country === form.country && p.visa_type === form.visa_type)
-    setAutoPrice(p ? p.price : null)
+    setAutoPrice(p ? { price: p.price, currency: p.currency || 'TRY' } : null)
   }, [form.country, form.visa_type, prices])
 
   async function saveClient() {
@@ -147,7 +154,7 @@ export default function MusterilerPage() {
         await supabase.from('payments').insert({
           company_id: companyId,
           application_id: newApp.id,
-          total_amount: autoPrice,
+          total_amount: autoPrice.price,
           paid_amount: 0,
         })
       }
@@ -312,7 +319,7 @@ export default function MusterilerPage() {
             {autoPrice ? (
               <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>Hizmet Bedeli</span>
-                <strong>{autoPrice.toLocaleString('tr-TR')}₺</strong>
+                <strong>{formatPrice(autoPrice.price, autoPrice.currency)}</strong>
               </div>
             ) : (
               <div style={{ background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#92600a' }}>

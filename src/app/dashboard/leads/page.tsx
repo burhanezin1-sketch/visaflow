@@ -6,6 +6,13 @@ import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 
+function formatPrice(price: number, currency: string = 'TRY') {
+  const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
+  return currency === 'TRY'
+    ? `${price.toLocaleString('tr-TR')}${sym.TRY}`
+    : `${sym[currency] || currency}${price.toLocaleString('en-US')}`
+}
+
 export default function LeadsPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const [leads, setLeads] = useState<any[]>([])
@@ -320,6 +327,19 @@ export default function LeadsPage() {
                     </select>
                   </div>
                 </div>
+                {(() => {
+                  const p = prices.find(p => p.country === form.country && p.visa_type === form.visa_type)
+                  return p ? (
+                    <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Hizmet Bedeli</span>
+                      <strong>{formatPrice(p.price, p.currency)}</strong>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#92600a' }}>
+                      Bu vize tipi için fiyat tanımlanmamış.
+                    </div>
+                  )
+                })()}
                 {musteriYapError && (
                   <div style={{ background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#c0392b' }}>
                     {musteriYapError}
