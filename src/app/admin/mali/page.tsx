@@ -4,27 +4,46 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { fetchFxRates, amountToTRY, fmtRateNote, CUR_SYM, CUR_ORDER, type FxRates } from '@/lib/fxRates'
+
+type CurrencyBucket = { total: number; collected: number }
 
 export default function MaliPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
   const [payments, setPayments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [fxRates, setFxRates] = useState<FxRates | null>(null)
+  const [currencyBreakdown, setCurrencyBreakdown] = useState<Record<string, CurrencyBucket>>({})
 
   useEffect(() => {
     if (!companyId) return
     async function fetchData() {
-      const { data } = await supabase
-        .from('payments')
-        .select('*, applications(country, visa_type, company_id, client_id, clients(full_name, users(full_name)))')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false })
+      const [{ data }, rates] = await Promise.all([
+        supabase
+          .from('payments')
+          .select('*, applications(country, visa_type, company_id, client_id, clients(full_name, users(full_name)))')
+          .eq('company_id', companyId)
+          .order('created_at', { ascending: false }),
+        fetchFxRates(),
+      ])
+      setFxRates(rates)
+
       const clientMap = new Map<string, any>()
+      const breakdown: Record<string, CurrencyBucket> = {}
+
       for (const p of (data || [])) {
         const clientId = p.applications?.client_id as string | undefined
         const key = clientId ?? `no_client_${p.id}`
         if (!clientMap.has(key)) clientMap.set(key, p)
+
+        const cur = (p.currency as string | undefined) || 'TRY'
+        if (!breakdown[cur]) breakdown[cur] = { total: 0, collected: 0 }
+        breakdown[cur].total += p.total_amount
+        breakdown[cur].collected += p.paid_amount
       }
+
+      setCurrencyBreakdown(breakdown)
       setPayments(Array.from(clientMap.values()))
       setLoading(false)
     }
@@ -37,11 +56,24 @@ export default function MaliPage() {
     </div>
   )
 
-  const toplamCiro = payments.reduce((sum, p) => sum + p.total_amount, 0)
-  const tahsilEdilen = payments.reduce((sum, p) => sum + p.paid_amount, 0)
-  const tahsilEdilmemis = toplamCiro - tahsilEdilen
+  const hasForeign = Object.keys(currencyBreakdown).some(c => c !== 'TRY')
+  const rates = fxRates || { EUR_TRY: 0, USD_TRY: 0 }
+
+  const toplamCiroTRY = Object.entries(currencyBreakdown).reduce((sum, [cur, b]) => sum + amountToTRY(b.total, cur, rates), 0)
+  const tahsilEdilenTRY = Object.entries(currencyBreakdown).reduce((sum, [cur, b]) => sum + amountToTRY(b.collected, cur, rates), 0)
+  const tahsilEdilmemisTRY = toplamCiroTRY - tahsilEdilenTRY
+
   const bekleyenler = payments.filter(p => p.total_amount - p.paid_amount > 0)
-  const fmt = (n: number) => n.toLocaleString('tr-TR') + '₺'
+  const fmtTRY = (n: number) => `~${n.toLocaleString('tr-TR')} ₺`
+  const rateNote = fmtRateNote(rates)
+
+  const multiLine = (key: 'total' | 'collected') => {
+    if (!hasForeign) {
+      const b = currencyBreakdown['TRY'] || { total: 0, collected: 0 }
+      return `${b[key].toLocaleString('tr-TR')} ₺`
+    }
+    return CUR_ORDER.filter(c => currencyBreakdown[c]).map(c => `${CUR_SYM[c]}${currencyBreakdown[c][key].toLocaleString('tr-TR')}`).join(' / ')
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -50,18 +82,25 @@ export default function MaliPage() {
       </div>
 
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3,1fr)' : 'repeat(3,1fr)', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '0.75rem' : '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: isMobile ? '8px' : '12px', marginBottom: hasForeign ? '0.5rem' : isMobile ? '0.75rem' : '1.5rem' }}>
           {[
-            { label: 'Toplam Ciro', value: fmt(toplamCiro), color: '#0d1f35' },
-            { label: 'Tahsil Edilen', value: fmt(tahsilEdilen), color: '#1a7a45' },
-            { label: 'Tahsil Edilmemiş', value: fmt(tahsilEdilmemis), color: '#c0392b' },
+            { label: 'Toplam Ciro', value: multiLine('total'), tryVal: hasForeign ? fmtTRY(toplamCiroTRY) : null, color: '#0d1f35' },
+            { label: 'Tahsil Edilen', value: multiLine('collected'), tryVal: hasForeign ? fmtTRY(tahsilEdilenTRY) : null, color: '#1a7a45' },
+            { label: 'Tahsil Edilmemiş', value: hasForeign ? fmtTRY(tahsilEdilmemisTRY) : `${tahsilEdilmemisTRY.toLocaleString('tr-TR')} ₺`, tryVal: null, color: '#c0392b' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: isMobile ? '10px' : '12px', padding: isMobile ? '0.75rem' : '1.25rem' }}>
               <div style={{ fontSize: '9px', fontWeight: '700', color: '#9aaabb', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.7px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</div>
-              <div style={{ fontSize: isMobile ? '14px' : '22px', fontWeight: '600', color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: hasForeign ? (isMobile ? '11px' : '13px') : (isMobile ? '14px' : '22px'), fontWeight: '600', color: s.color, lineHeight: '1.4' }}>{s.value}</div>
+              {s.tryVal && <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#9aaabb', marginTop: '3px' }}>{s.tryVal}</div>}
             </div>
           ))}
         </div>
+
+        {rateNote && (
+          <div style={{ marginBottom: isMobile ? '0.75rem' : '1.5rem', fontSize: '11px', color: '#9aaabb', textAlign: 'right' }}>
+            {rateNote}
+          </div>
+        )}
 
         <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: isMobile ? '0.75rem' : '1.25rem' }}>
           <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -81,14 +120,16 @@ export default function MaliPage() {
                 {bekleyenler.map(p => {
                   const kalan = p.total_amount - p.paid_amount
                   const musteri = p.applications?.clients
+                  const cur = (p.currency as string | undefined) || 'TRY'
+                  const sym = CUR_SYM[cur] || '₺'
                   return (
                     <tr key={p.id}>
                       <td style={{ padding: '10px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>{musteri?.full_name || '-'}</td>
                       <td style={{ padding: '10px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>{musteri?.users?.full_name || '-'}</td>
                       <td style={{ padding: '10px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0ede6' }}>{p.applications?.country} {p.applications?.visa_type}</td>
-                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{p.total_amount.toLocaleString('tr-TR')}₺</td>
-                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', color: '#1a7a45', borderBottom: '1px solid #f0ede6' }}>{p.paid_amount.toLocaleString('tr-TR')}₺</td>
-                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', color: '#c0392b', fontWeight: '600', borderBottom: '1px solid #f0ede6' }}>{kalan.toLocaleString('tr-TR')}₺</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{p.total_amount.toLocaleString('tr-TR')}{sym}</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', color: '#1a7a45', borderBottom: '1px solid #f0ede6' }}>{p.paid_amount.toLocaleString('tr-TR')}{sym}</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', color: '#c0392b', fontWeight: '600', borderBottom: '1px solid #f0ede6' }}>{kalan.toLocaleString('tr-TR')}{sym}</td>
                       <td style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
                         <span style={{ background: p.paid_amount > 0 ? '#fff8ec' : '#fef0ee', color: p.paid_amount > 0 ? '#92600a' : '#c0392b', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px' }}>
                           {p.paid_amount > 0 ? 'Kısmi Ödeme' : 'Ödeme Bekleniyor'}
@@ -122,12 +163,14 @@ export default function MaliPage() {
                 {payments.map(p => {
                   const kalan = p.total_amount - p.paid_amount
                   const musteri = p.applications?.clients
+                  const cur = (p.currency as string | undefined) || 'TRY'
+                  const sym = CUR_SYM[cur] || '₺'
                   return (
                     <tr key={p.id}>
                       <td style={{ padding: '10px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>{musteri?.full_name || '-'}</td>
                       <td style={{ padding: '10px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0ede6' }}>{p.applications?.country} {p.applications?.visa_type}</td>
-                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{p.total_amount.toLocaleString('tr-TR')}₺</td>
-                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', color: '#1a7a45', borderBottom: '1px solid #f0ede6' }}>{p.paid_amount.toLocaleString('tr-TR')}₺</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{p.total_amount.toLocaleString('tr-TR')}{sym}</td>
+                      <td style={{ padding: '10px 1.25rem', fontSize: '13px', color: '#1a7a45', borderBottom: '1px solid #f0ede6' }}>{p.paid_amount.toLocaleString('tr-TR')}{sym}</td>
                       <td style={{ padding: '10px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
                         <span style={{ background: kalan <= 0 ? '#edfaf3' : p.paid_amount > 0 ? '#fff8ec' : '#fef0ee', color: kalan <= 0 ? '#1a7a45' : p.paid_amount > 0 ? '#92600a' : '#c0392b', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px' }}>
                           {kalan <= 0 ? 'Tahsil Edildi' : p.paid_amount > 0 ? 'Kısmi Ödeme' : 'Ödeme Bekleniyor'}

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
+import { fetchFxRates, amountToTRY, fmtRateNote, CUR_SYM, CUR_ORDER, type FxRates } from '@/lib/fxRates'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
@@ -47,6 +48,7 @@ export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'genel' | 'gelir' | 'saglik' | 'destek' | 'firmalar' | 'evraklar'>('genel')
 
+  const [fxRates, setFxRates] = useState<FxRates | null>(null)
   const [saglik, setSaglik] = useState<{ leads: number; monthlyApps: number; activeUsers7d: number; logs: any[] }>({ leads: 0, monthlyApps: 0, activeUsers7d: 0, logs: [] })
 
   const [destekFirmaId, setDestekFirmaId] = useState('')
@@ -76,7 +78,8 @@ export default function SuperAdminDashboard() {
     if (!user) { router.push('/superadmin/login'); return }
     const { data: sa } = await supabase.from('superadmins').select('id').eq('id', user.id).single()
     if (!sa) { router.push('/superadmin/login'); return }
-    await Promise.all([fetchCompanies(), fetchVisaDocs(), fetchVisaOptions(), fetchActivities(), fetchSaglik()])
+    const [rates] = await Promise.all([fetchFxRates(), fetchCompanies(), fetchVisaDocs(), fetchVisaOptions(), fetchActivities(), fetchSaglik()])
+    setFxRates(rates)
     setLoading(false)
   }
 
@@ -187,6 +190,20 @@ export default function SuperAdminDashboard() {
   const thisMonthFirms = companies.filter(c => new Date(c.created_at) >= thisMonthStart)
   const activeFirms = companies.filter(c => !c.trial_ends_at || new Date(c.trial_ends_at) > now)
   const avgRevenue = companies.length > 0 ? Math.round(monthlyRevenue / companies.length) : 0
+
+  const rates = fxRates || { EUR_TRY: 0, USD_TRY: 0 }
+  const mrrByCurrency: Record<string, number> = {}
+  for (const c of companies) {
+    const cur = (c.plan_currency as string | undefined) || 'TRY'
+    const price = PLAN_PRICES[c.plan] || 0
+    mrrByCurrency[cur] = (mrrByCurrency[cur] || 0) + price
+  }
+  const monthlyRevenueTRY = Object.entries(mrrByCurrency).reduce((sum, [cur, amt]) => sum + amountToTRY(amt, cur, rates), 0)
+  const hasMrrForeign = Object.keys(mrrByCurrency).some(c => c !== 'TRY')
+  const mrrDisplay = hasMrrForeign
+    ? CUR_ORDER.filter(c => mrrByCurrency[c]).map(c => `${CUR_SYM[c]}${mrrByCurrency[c].toLocaleString('tr-TR')}`).join(' / ')
+    : `₺${monthlyRevenue.toLocaleString('tr-TR')}`
+  const mrrRateNote = fmtRateNote(rates)
 
   const mrrChartData = {
     labels: last12Months.map(m => m.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' })),
@@ -322,7 +339,7 @@ export default function SuperAdminDashboard() {
                   { label: 'Toplam Firma', value: companies.length },
                   { label: 'Basic Plan', value: basicFirms.length },
                   { label: 'Pro Plan', value: proFirms.length },
-                  { label: 'Aylık Gelir', value: `₺${monthlyRevenue.toLocaleString('tr-TR')}` },
+                  { label: 'Aylık Gelir', value: mrrDisplay },
                 ].map((s, i) => (
                   <div key={i} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: '10px', padding: '1.1rem' }}>
                     <div style={{ fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{s.label}</div>
@@ -379,13 +396,16 @@ export default function SuperAdminDashboard() {
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: '10px', padding: '1.25rem', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: 'white' }}>Aylık MRR Tahmini (Son 12 Ay)</span>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>₺{monthlyRevenue.toLocaleString('tr-TR')}</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: hasMrrForeign ? '14px' : '18px', fontWeight: '700', color: 'white' }}>{mrrDisplay}</div>
+                    {hasMrrForeign && <div style={{ fontSize: '12px', color: S.muted }}>~₺{monthlyRevenueTRY.toLocaleString('tr-TR')}</div>}
+                  </div>
                 </div>
                 <div style={{ height: '260px' }}>
                   <Bar data={mrrChartData} options={mrrChartOptions} />
                 </div>
                 <div style={{ marginTop: '0.75rem', fontSize: '11px', color: S.faint, textAlign: 'right' }}>
-                  * Mevcut plan bazında hesaplanmıştır.
+                  {mrrRateNote ? `${mrrRateNote} · ` : ''}* Mevcut plan bazında hesaplanmıştır.
                 </div>
               </div>
 
@@ -413,7 +433,10 @@ export default function SuperAdminDashboard() {
                       <td style={{ ...tdS, fontWeight: '600' }}>Toplam</td>
                       <td style={{ ...tdS, fontWeight: '700' }}>{companies.length}</td>
                       <td style={tdS} />
-                      <td style={{ ...tdS, fontWeight: '700' }}>₺{monthlyRevenue.toLocaleString('tr-TR')}</td>
+                      <td style={{ ...tdS, fontWeight: '700' }}>
+                        <div>{mrrDisplay}</div>
+                        {hasMrrForeign && <div style={{ fontSize: '11px', color: S.muted }}>~₺{monthlyRevenueTRY.toLocaleString('tr-TR')}</div>}
+                      </td>
                     </tr>
                   </tbody>
                 </table>

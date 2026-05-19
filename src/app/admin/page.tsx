@@ -4,6 +4,9 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { fetchFxRates, amountToTRY, fmtRateNote, CUR_SYM, CUR_ORDER, type FxRates } from '@/lib/fxRates'
+
+type CurrencyBucket = { total: number; collected: number }
 
 export default function AdminPage() {
   const { companyId, loading: companyLoading } = useCompany()
@@ -19,6 +22,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [monthlyCount, setMonthlyCount] = useState(0)
   const [monthlyLimit, setMonthlyLimit] = useState(0)
+  const [fxRates, setFxRates] = useState<FxRates | null>(null)
+  const [currencyBreakdown, setCurrencyBreakdown] = useState<Record<string, CurrencyBucket>>({})
 
   const PLAN_MONTHLY_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
   const ciroRef = useRef<HTMLCanvasElement>(null)
@@ -34,16 +39,30 @@ export default function AdminPage() {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
     async function fetchData() {
-      const { data: clients } = await supabase.from('clients').select('*').eq('company_id', companyId)
-      const { data: applications } = await supabase.from('applications').select('*').eq('company_id', companyId)
-      const { data: payments } = await supabase.from('payments').select('*, applications(country, visa_type, created_at)').eq('company_id', companyId)
-      const { data: company } = await supabase.from('companies').select('plan').eq('id', companyId).single()
-      const { data: count } = await supabase.rpc('get_monthly_application_count', { p_company_id: companyId })
+      const [{ data: clients }, { data: applications }, { data: payments }, { data: company }, { data: count }, rates] = await Promise.all([
+        supabase.from('clients').select('*').eq('company_id', companyId),
+        supabase.from('applications').select('*').eq('company_id', companyId),
+        supabase.from('payments').select('*, applications(country, visa_type, created_at)').eq('company_id', companyId),
+        supabase.from('companies').select('plan').eq('id', companyId).single(),
+        supabase.rpc('get_monthly_application_count', { p_company_id: companyId }),
+        fetchFxRates(),
+      ])
+      setFxRates(rates)
       setMonthlyCount(count || 0)
       setMonthlyLimit(PLAN_MONTHLY_LIMITS[company?.plan] || 0)
 
-      const toplamOdeme = payments?.reduce((sum, p) => sum + p.total_amount, 0) || 0
-      const tahsilEdilen = payments?.reduce((sum, p) => sum + p.paid_amount, 0) || 0
+      // Group by currency
+      const breakdown: Record<string, CurrencyBucket> = {}
+      payments?.forEach(p => {
+        const cur = (p.currency as string | undefined) || 'TRY'
+        if (!breakdown[cur]) breakdown[cur] = { total: 0, collected: 0 }
+        breakdown[cur].total += p.total_amount
+        breakdown[cur].collected += p.paid_amount
+      })
+      setCurrencyBreakdown(breakdown)
+
+      const toplamOdeme = Object.entries(breakdown).reduce((s, [c, v]) => s + amountToTRY(v.total, c, rates), 0)
+      const tahsilEdilen = Object.entries(breakdown).reduce((s, [c, v]) => s + amountToTRY(v.collected, c, rates), 0)
 
       setStats({
         toplamMusteri: clients?.length || 0,
@@ -61,7 +80,10 @@ export default function AdminPage() {
         const ayOdeme = payments?.filter(p => {
           const pd = new Date(p.created_at)
           return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth()
-        }).reduce((sum, p) => sum + p.paid_amount, 0) || 0
+        }).reduce((sum, p) => {
+          const cur = (p.currency as string | undefined) || 'TRY'
+          return sum + amountToTRY(p.paid_amount, cur, rates)
+        }, 0) || 0
         ciroArr.push(ayOdeme)
       }
       setAyLabels(labels)
@@ -70,7 +92,8 @@ export default function AdminPage() {
       const ulkeMap: Record<string, number> = {}
       payments?.forEach(p => {
         const ulke = p.applications?.country || 'Diğer'
-        ulkeMap[ulke] = (ulkeMap[ulke] || 0) + p.paid_amount
+        const cur = (p.currency as string | undefined) || 'TRY'
+        ulkeMap[ulke] = (ulkeMap[ulke] || 0) + amountToTRY(p.paid_amount, cur, rates)
       })
       setUlkeCiro(Object.entries(ulkeMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value))
 
@@ -133,7 +156,26 @@ export default function AdminPage() {
     </div>
   )
 
-  const fmt = (n: number) => n.toLocaleString('tr-TR') + '₺'
+  const fmt = (n: number) => Math.round(n).toLocaleString('tr-TR') + '₺'
+  const hasForeign = Object.keys(currencyBreakdown).some(c => c !== 'TRY')
+  const rateNote = fxRates ? fmtRateNote(fxRates) : null
+
+  function multiLine(key: 'total' | 'collected'): string {
+    return CUR_ORDER
+      .filter(c => (currencyBreakdown[c]?.[key] ?? 0) > 0)
+      .map(c => `${CUR_SYM[c]} ${currencyBreakdown[c][key].toLocaleString('tr-TR')}`)
+      .join(' / ') || '₺ 0'
+  }
+
+  function multiLineRemaining(): string {
+    return CUR_ORDER
+      .filter(c => ((currencyBreakdown[c]?.total ?? 0) - (currencyBreakdown[c]?.collected ?? 0)) > 0)
+      .map(c => {
+        const rem = (currencyBreakdown[c]?.total ?? 0) - (currencyBreakdown[c]?.collected ?? 0)
+        return `${CUR_SYM[c]} ${rem.toLocaleString('tr-TR')}`
+      })
+      .join(' / ') || '₺ 0'
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -142,20 +184,36 @@ export default function AdminPage() {
       </div>
 
       <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: isMobile ? '8px' : '12px', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: isMobile ? '8px' : '12px', marginBottom: '0.75rem' }}>
           {[
-            { label: 'Toplam Ciro', value: fmt(stats.toplamOdeme), color: '#1a7a45', sub: stats.toplamMusteri + ' müşteri' },
-            { label: 'Tahsil Edilmemiş', value: fmt(stats.tahsilEdilmemis), color: '#c0392b', sub: null },
+            {
+              label: 'Toplam Ciro',
+              value: hasForeign ? multiLine('total') : fmt(stats.toplamOdeme),
+              sub: hasForeign ? '~' + fmt(stats.toplamOdeme) + ' toplam' : stats.toplamMusteri + ' müşteri',
+              color: '#1a7a45',
+            },
+            {
+              label: 'Tahsil Edilmemiş',
+              value: hasForeign ? multiLineRemaining() : fmt(stats.tahsilEdilmemis),
+              sub: hasForeign ? '~' + fmt(stats.tahsilEdilmemis) + ' toplam' : null,
+              color: '#c0392b',
+            },
             { label: 'Aktif Dosya', value: stats.toplamMusteri, color: '#0d1f35', sub: null },
             { label: 'Tamamlanan', value: stats.tamamlanan, color: '#1a5fa5', sub: null },
           ].map((s, i) => (
             <div key={i} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: isMobile ? '10px' : '12px', padding: isMobile ? '0.875rem' : '1.25rem' }}>
               <div style={{ fontSize: '9px', fontWeight: '700', color: '#9aaabb', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</div>
-              <div style={{ fontSize: isMobile ? '18px' : '22px', fontWeight: '600', color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: (hasForeign && i < 2) ? (isMobile ? '13px' : '15px') : (isMobile ? '18px' : '22px'), fontWeight: '600', color: s.color, wordBreak: 'break-word' }}>{s.value}</div>
               {s.sub && !isMobile && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>{s.sub}</div>}
             </div>
           ))}
         </div>
+
+        {rateNote && (
+          <div style={{ fontSize: '11px', color: '#9aaabb', marginBottom: isMobile ? '0.75rem' : '1rem', paddingLeft: '2px' }}>
+            {rateNote}
+          </div>
+        )}
 
         {monthlyLimit > 0 && (
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
@@ -171,30 +229,54 @@ export default function AdminPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Aylık Ciro Trendi</h3>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Aylık Ciro Trendi {hasForeign ? '(₺ karşılığı)' : ''}</h3>
             <canvas ref={ciroRef} height={160} />
           </div>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Hızlı Özet</h3>
-            {[
-              ['Toplam ciro', fmt(stats.toplamOdeme), '#0d1f35'],
-              ['Tahsil edilen', fmt(stats.tahsilEdilen), '#1a7a45'],
-              ['Tahsil edilmemiş', fmt(stats.tahsilEdilmemis), '#c0392b'],
-              ['Toplam müşteri', stats.toplamMusteri.toString(), '#0d1f35'],
-              ['Tamamlanan dosya', stats.tamamlanan.toString(), '#1a7a45'],
-              ['Devam eden', stats.bekleyen.toString(), '#1a5fa5'],
-            ].map(([label, value, color]) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f0ede6', fontSize: '13px' }}>
-                <span style={{ color: '#5a6a7a' }}>{label}</span>
-                <span style={{ fontWeight: '600', color }}>{value}</span>
-              </div>
-            ))}
+            {hasForeign ? (
+              <>
+                {[
+                  ['Toplam ciro', multiLine('total'), '#0d1f35'],
+                  ['Toplam ciro (₺)', fmt(stats.toplamOdeme), '#0d1f35'],
+                  ['Tahsil edilen', multiLine('collected'), '#1a7a45'],
+                  ['Tahsil edilen (₺)', fmt(stats.tahsilEdilen), '#1a7a45'],
+                  ['Tahsil edilmemiş', multiLineRemaining(), '#c0392b'],
+                  ['Tahsil edilmemiş (₺)', fmt(stats.tahsilEdilmemis), '#c0392b'],
+                  ['Toplam müşteri', stats.toplamMusteri.toString(), '#0d1f35'],
+                  ['Tamamlanan dosya', stats.tamamlanan.toString(), '#1a7a45'],
+                  ['Devam eden', stats.bekleyen.toString(), '#1a5fa5'],
+                ].map(([label, value, color]) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f0ede6', fontSize: '13px' }}>
+                    <span style={{ color: '#5a6a7a' }}>{label}</span>
+                    <span style={{ fontWeight: '600', color }}>{value}</span>
+                  </div>
+                ))}
+                {rateNote && <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '8px', lineHeight: '1.5' }}>{rateNote}</div>}
+              </>
+            ) : (
+              <>
+                {[
+                  ['Toplam ciro', fmt(stats.toplamOdeme), '#0d1f35'],
+                  ['Tahsil edilen', fmt(stats.tahsilEdilen), '#1a7a45'],
+                  ['Tahsil edilmemiş', fmt(stats.tahsilEdilmemis), '#c0392b'],
+                  ['Toplam müşteri', stats.toplamMusteri.toString(), '#0d1f35'],
+                  ['Tamamlanan dosya', stats.tamamlanan.toString(), '#1a7a45'],
+                  ['Devam eden', stats.bekleyen.toString(), '#1a5fa5'],
+                ].map(([label, value, color]) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f0ede6', fontSize: '13px' }}>
+                    <span style={{ color: '#5a6a7a' }}>{label}</span>
+                    <span style={{ fontWeight: '600', color }}>{value}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '8px' : '1.25rem' }}>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Ülke Bazlı Ciro</h3>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Ülke Bazlı Ciro {hasForeign ? '(₺ karşılığı)' : ''}</h3>
             <canvas ref={ulkeRef} height={180} />
           </div>
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
