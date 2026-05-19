@@ -70,7 +70,7 @@ export default function MusteriDetayPage() {
     if (!companyId) { setLoading(false); return }
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
-    const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).single()
+    const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).maybeSingle()
     const { data: appArr } = await supabase.from('applications').select('*').eq('client_id', id).order('created_at', { ascending: false })
     const appData = appArr?.[0] ?? null
     const { data: paymentArr } = await supabase.from('payments').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
@@ -551,7 +551,7 @@ export default function MusteriDetayPage() {
                               {evrak.delivery_type === 'company' && (
                                 <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>Firma</span>
                               )}
-                              {isStaff && evrak.delivery_type !== 'company' && (
+                              {isStaff && evrak.delivery_type !== 'company' && !evrak.yuklendi && (
                                 <button
                                   onClick={() => eldenVerildiIsaretle(evrak.doc_name)}
                                   disabled={!!eldenVerildiSaving[evrak.doc_name]}
