@@ -18,11 +18,11 @@ test('müşteriler — tablo ya da boş mesaj görünüyor', async ({ page }) =>
   expect(hasList || hasEmpty).toBe(true)
 })
 
-test('+ Yeni Müşteri butonu — modal açılıyor', async ({ page }) => {
+test('+ Yeni butonu — modal açılıyor', async ({ page }) => {
   await page.goto('/dashboard/musteriler')
   await page.waitForFunction(() => !document.body.innerText.includes('Yükleniyor'), { timeout: 15000 })
 
-  await page.click('text=+ Yeni Müşteri')
+  await page.click('text=+ Yeni')
   await expect(page.locator('text=Yeni Müşteri Ekle')).toBeVisible({ timeout: 5000 })
 })
 
@@ -30,7 +30,7 @@ test('yeni müşteri modal — İptal butonu kapatıyor', async ({ page }) => {
   await page.goto('/dashboard/musteriler')
   await page.waitForFunction(() => !document.body.innerText.includes('Yükleniyor'), { timeout: 15000 })
 
-  await page.click('text=+ Yeni Müşteri')
+  await page.click('text=+ Yeni')
   await expect(page.locator('text=Yeni Müşteri Ekle')).toBeVisible()
 
   await page.click('text=İptal')
