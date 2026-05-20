@@ -27,7 +27,7 @@ test('leads — bekleyen lead varsa Sahiplen butonu görünüyor', async ({ page
     await sahiplenBtn.click()
     // Sayfa çökmemeli, hala leads sayfasında olmalı
     await expect(page).not.toHaveURL(/\/login/)
-    await expect(page.locator('text=Leads')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('text=Lead Listesi')).toBeVisible({ timeout: 10000 })
   } else {
     // Bekleyen lead yok — test geçer
     test.skip()
