@@ -46,6 +46,9 @@ export default function MusteriDetayPage() {
   const [randevuKonsolosluk, setRandevuKonsolosluk] = useState('')
   const [paidAmount, setPaidAmount] = useState('')
   const [showOdemeEdit, setShowOdemeEdit] = useState(false)
+  const [showOdemeEkleModal, setShowOdemeEkleModal] = useState(false)
+  const [odemeEkleForm, setOdemeEkleForm] = useState({ total_amount: '', currency: 'TRY', paid_amount: '', notes: '' })
+  const [odemeEkleSaving, setOdemeEkleSaving] = useState(false)
   const [linkKopyalandi, setLinkKopyalandi] = useState(false)
   const [documents, setDocuments] = useState<any[]>([])
   const [visaDocuments, setVisaDocuments] = useState<any[]>([])
@@ -225,9 +228,30 @@ export default function MusteriDetayPage() {
 
   async function odemeGuncelle() {
     if (!paidAmount || !payment) return
-    await supabase.from('payments').update({ paid_amount: parseFloat(paidAmount) }).eq('id', payment.id)
+    const updates: any = { paid_amount: parseFloat(paidAmount) }
+    await supabase.from('payments').update(updates).eq('id', payment.id)
     setPayment({ ...payment, paid_amount: parseFloat(paidAmount) })
     setShowOdemeEdit(false)
+  }
+
+  async function odemeEkle() {
+    if (!odemeEkleForm.total_amount || !application || !companyId) return
+    setOdemeEkleSaving(true)
+    const { data } = await supabase.from('payments').insert({
+      company_id: companyId,
+      application_id: application.id,
+      total_amount: parseFloat(odemeEkleForm.total_amount),
+      paid_amount: odemeEkleForm.paid_amount ? parseFloat(odemeEkleForm.paid_amount) : 0,
+      currency: odemeEkleForm.currency,
+      notes: odemeEkleForm.notes || null,
+    }).select().single()
+    if (data) {
+      setPayment(data)
+      setPaidAmount(data.paid_amount.toString())
+    }
+    setOdemeEkleSaving(false)
+    setShowOdemeEkleModal(false)
+    setOdemeEkleForm({ total_amount: '', currency: 'TRY', paid_amount: '', notes: '' })
   }
 
   async function durumDegistir(val: string) {
@@ -584,15 +608,21 @@ export default function MusteriDetayPage() {
                 {payment ? (
                   <>
                     {[
-                      ['Hizmet Bedeli', payment.total_amount.toLocaleString('tr-TR') + '₺', '#0d1f35'],
-                      ['Ödenen', payment.paid_amount.toLocaleString('tr-TR') + '₺', '#1a7a45'],
-                      ['Kalan', kalan.toLocaleString('tr-TR') + '₺', kalan > 0 ? '#c0392b' : '#1a7a45'],
+                      ['Hizmet Bedeli', payment.total_amount.toLocaleString('tr-TR') + (payment.currency === 'EUR' ? '€' : payment.currency === 'USD' ? '$' : '₺'), '#0d1f35'],
+                      ['Ödenen', payment.paid_amount.toLocaleString('tr-TR') + (payment.currency === 'EUR' ? '€' : payment.currency === 'USD' ? '$' : '₺'), '#1a7a45'],
+                      ['Kalan', kalan.toLocaleString('tr-TR') + (payment.currency === 'EUR' ? '€' : payment.currency === 'USD' ? '$' : '₺'), kalan > 0 ? '#c0392b' : '#1a7a45'],
                     ].map(([label, value, color]) => (
                       <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4', fontSize: '13px' }}>
                         <span style={{ color: '#5a6a7a' }}>{label}</span>
                         <span style={{ fontWeight: '600', color }}>{value}</span>
                       </div>
                     ))}
+                    {payment.notes && (
+                      <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f4', fontSize: '13px' }}>
+                        <span style={{ color: '#5a6a7a' }}>Not: </span>
+                        <span style={{ color: '#0d1f35' }}>{payment.notes}</span>
+                      </div>
+                    )}
                     <div style={{ padding: '8px 0', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#5a6a7a' }}>Durum</span>
                       <span style={{ background: kalan <= 0 ? '#edfaf3' : kalan < payment.total_amount ? '#fff8ec' : '#fef0ee', color: kalan <= 0 ? '#1a7a45' : kalan < payment.total_amount ? '#92600a' : '#c0392b', fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>
@@ -600,20 +630,38 @@ export default function MusteriDetayPage() {
                       </span>
                     </div>
                     {showOdemeEdit ? (
-                      <div style={{ marginTop: '12px' }}>
-                        <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ödenen Tutar (₺)</label>
+                      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Hizmet Bedeli</label>
+                          <input type="number" defaultValue={payment.total_amount} id="edit-total" style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ödenen Tutar</label>
+                          <input type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                        </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <input type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} style={{ flex: 1, padding: '8px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }} />
-                          <button onClick={odemeGuncelle} style={{ padding: '8px 14px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>Kaydet</button>
+                          <button onClick={async () => {
+                            const totalEl = document.getElementById('edit-total') as HTMLInputElement
+                            const newTotal = totalEl ? parseFloat(totalEl.value) : payment.total_amount
+                            const newPaid = parseFloat(paidAmount)
+                            await supabase.from('payments').update({ total_amount: newTotal, paid_amount: newPaid }).eq('id', payment.id)
+                            setPayment({ ...payment, total_amount: newTotal, paid_amount: newPaid })
+                            setShowOdemeEdit(false)
+                          }} style={{ flex: 1, padding: '8px 14px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>Kaydet</button>
                           <button onClick={() => setShowOdemeEdit(false)} style={{ padding: '8px 10px', background: '#f5f5f7', color: '#888', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>İptal</button>
                         </div>
                       </div>
                     ) : (
-                      <button onClick={() => setShowOdemeEdit(true)} style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>💰 Ödeme Güncelle</button>
+                      <button onClick={() => setShowOdemeEdit(true)} style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>💰 Ödeme Düzenle</button>
                     )}
                   </>
                 ) : (
-                  <p style={{ fontSize: '12px', color: '#9aaabb' }}>Ödeme kaydı bulunamadı.</p>
+                  <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                    <p style={{ fontSize: '13px', color: '#9aaabb', marginBottom: '1rem' }}>Ödeme kaydı bulunamadı.</p>
+                    {application && (
+                      <button onClick={() => setShowOdemeEkleModal(true)} style={{ padding: '10px 20px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>+ Ödeme Ekle</button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -811,6 +859,63 @@ export default function MusteriDetayPage() {
                 <p style={{ fontSize: '11px', color: '#9aaabb', marginTop: '8px' }}>Metni düzenleyebilirsiniz. PDF indir butonuna basınca yazdırma ekranı açılır.</p>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {showOdemeEkleModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '400px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
+            <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '1.5rem', color: '#0d1f35' }}>💳 Ödeme Ekle</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Toplam Tutar *</label>
+                <input
+                  type="number"
+                  value={odemeEkleForm.total_amount}
+                  onChange={e => setOdemeEkleForm({ ...odemeEkleForm, total_amount: e.target.value })}
+                  placeholder="0"
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Para Birimi</label>
+                <select
+                  value={odemeEkleForm.currency}
+                  onChange={e => setOdemeEkleForm({ ...odemeEkleForm, currency: e.target.value })}
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}
+                >
+                  <option value="TRY">₺ TRY</option>
+                  <option value="EUR">€ EUR</option>
+                  <option value="USD">$ USD</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ödenen Miktar</label>
+                <input
+                  type="number"
+                  value={odemeEkleForm.paid_amount}
+                  onChange={e => setOdemeEkleForm({ ...odemeEkleForm, paid_amount: e.target.value })}
+                  placeholder="0"
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Notlar (opsiyonel)</label>
+                <input
+                  value={odemeEkleForm.notes}
+                  onChange={e => setOdemeEkleForm({ ...odemeEkleForm, notes: e.target.value })}
+                  placeholder="Ödeme notu..."
+                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button onClick={() => { setShowOdemeEkleModal(false); setOdemeEkleForm({ total_amount: '', currency: 'TRY', paid_amount: '', notes: '' }) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={odemeEkle} disabled={!odemeEkleForm.total_amount || odemeEkleSaving} style={{ flex: 2, padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit', opacity: !odemeEkleForm.total_amount ? 0.5 : 1 }}>
+                {odemeEkleSaving ? 'Kaydediliyor...' : '💳 Ödeme Kaydet'}
+              </button>
+            </div>
           </div>
         </div>
       )}
