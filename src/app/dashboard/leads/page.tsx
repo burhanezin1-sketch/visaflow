@@ -243,7 +243,9 @@ export default function LeadsPage() {
                     </td>
                     <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6', maxWidth: '320px' }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
-                        {lead.user_message || '—'}
+                        {lead.ai_summary
+                          ? <span style={{ color: '#1a3a5c', fontWeight: '500' }}>{lead.ai_summary}</span>
+                          : lead.user_message || '—'}
                       </div>
                     </td>
                     <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>
@@ -293,9 +295,11 @@ export default function LeadsPage() {
                 {selectedLead.full_name || '—'}
               </div>
               <div style={{ fontSize: '12px', color: '#5a6a7a', marginBottom: '4px' }}>📱 {selectedLead.phone}</div>
-              {selectedLead.user_message && (
-                <div style={{ fontSize: '12px', color: '#1a3a5c', fontStyle: 'italic' }}>
-                  "{selectedLead.user_message}"
+              {(selectedLead.ai_summary || selectedLead.user_message) && (
+                <div style={{ fontSize: '12px', color: '#1a3a5c', fontStyle: selectedLead.ai_summary ? 'normal' : 'italic' }}>
+                  {selectedLead.ai_summary
+                    ? `📝 ${selectedLead.ai_summary}`
+                    : `"${selectedLead.user_message}"`}
                 </div>
               )}
             </div>
