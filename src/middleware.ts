@@ -74,6 +74,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const pathLower = pathname.toLowerCase()
 
   // ── Rate limiting (tüm path grupları) ─────────────────────────
   const ip =
@@ -124,7 +125,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 2. /superadmin rol kontrolü ────────────────────────────────
-  if (pathname.startsWith('/superadmin')) {
+  if (pathLower.startsWith('/superadmin')) {
     try {
       const admin = makeAdminClient()
       const { data: sa } = await admin
@@ -142,7 +143,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 3. /admin rol kontrolü ─────────────────────────────────────
-  if (pathname.startsWith('/admin')) {
+  if (pathLower.startsWith('/admin')) {
     try {
       const admin = makeAdminClient()
       const { data: userData } = await admin

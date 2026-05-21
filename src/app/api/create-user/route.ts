@@ -37,6 +37,11 @@ export async function POST(req: NextRequest) {
 
   const { full_name, email, password, role, company_id } = await req.json()
 
+  const ALLOWED_ROLES = ['admin', 'consultant']
+  if (!ALLOWED_ROLES.includes(role)) {
+    return NextResponse.json({ error: 'Geçersiz rol' }, { status: 400 })
+  }
+
   if (!caller.isSuperadmin) {
     if (caller.role !== 'admin' || caller.companyId !== company_id) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 })

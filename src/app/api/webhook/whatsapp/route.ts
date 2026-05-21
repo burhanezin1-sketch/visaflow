@@ -44,7 +44,12 @@ function validateTwilioSignature(req: NextRequest, params: Record<string, string
   const strToSign = url + sortedKeys.map(k => k + params[k]).join('')
   const computed = crypto.createHmac('sha1', authToken).update(strToSign, 'utf8').digest('base64')
 
-  return computed === signature
+  // Timing-safe comparison — string === would leak timing info
+  try {
+    return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(signature))
+  } catch {
+    return false
+  }
 }
 
 export async function POST(req: NextRequest) {
