@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { clientName, country, visaType, travelDate, returnDate, accommodation, consulate, inviter } = body
+    const { clientName, country, visaType, travelDate, returnDate, accommodation, consulate, inviter, konaklamaAmaci } = body
 
     // Input length validation — prevents prompt injection and cost inflation
     if (
@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
       !MAX_LEN(visaType, 80) ||
       (accommodation && !MAX_LEN(accommodation, 300)) ||
       (consulate && !MAX_LEN(consulate, 120)) ||
-      (inviter && !MAX_LEN(inviter, 120))
+      (inviter && !MAX_LEN(inviter, 120)) ||
+      (konaklamaAmaci && !MAX_LEN(konaklamaAmaci, 200))
     ) {
       return NextResponse.json({ error: 'Geçersiz giriş uzunluğu.' }, { status: 400 })
     }
@@ -39,6 +40,19 @@ export async function POST(req: NextRequest) {
     const returnDateStr = formatDate(returnDate)
     const accommodationStr = accommodation?.trim() || '[Konaklama adresi]'
     const consulateStr = consulate?.trim() || `${country} Konsolosluğu`
+
+    const amacParagrafi: Record<string, string> = {
+      turistik: `Seyahatin amacını açıklarken ${country}'ın tarihi ve kültürel zenginliklerini keşfetmek, turistik mekânları ziyaret etmek istediğini vurgula. Tatil planı kapsamında gidildiğini belirt.`,
+      is: `Seyahatin amacını açıklarken iş görüşmeleri ve/veya konferans katılımı için gidildiğini vurgula. Profesyonel bir toplantı programı çerçevesinde seyahat edildiğini belirt.`,
+      ogrenci: `Seyahatin amacını açıklarken eğitim ve akademik amaçlarla gidildiğini vurgula. Dil kursu, üniversite programı veya eğitim ziyareti gibi spesifik bir eğitim hedefi olduğunu belirt.`,
+      aile: `Seyahatin amacını açıklarken ${country}'da ikamet eden aile üyeleri veya yakın arkadaşları ziyaret etmek amacıyla gidildiğini vurgula. Ziyaretin sosyal ve aile bağları çerçevesinde gerçekleştiğini belirt.`,
+    }
+
+    const amacYonergesi = konaklamaAmaci && amacParagrafi[konaklamaAmaci]
+      ? amacParagrafi[konaklamaAmaci]
+      : konaklamaAmaci
+        ? `Seyahatin amacını açıklarken şunu vurgula: ${konaklamaAmaci}`
+        : `Seyahatin amacını ${visaType} vizesi kapsamında genel olarak açıkla.`
 
     const prompt = `Sen profesyonel bir vize danışmanısın. Aşağıdaki bilgilere dayanarak Türkçe, resmi ve inandırıcı bir vize niyet mektubu yaz.
 
@@ -56,7 +70,7 @@ Mektup şu bölümleri sırasıyla içermeli:
 1. Sağ üstte tarih (${today})
 2. "${consulateStr}'na," başlığı
 3. Kısa giriş — kim olduğu ve neden yazıldığı
-4. Seyahatin amacı (${visaType} amacıyla, ${country}'a gidileceği)
+4. Seyahatin amacı: ${amacYonergesi}
 5. Gidiş tarihi (${travelDateStr}) ve dönüş tarihi (${returnDateStr})
 6. Konaklama adresi: ${accommodationStr}
 ${inviter ? `7. Davet eden: ${inviter} tarafından davet edildiği` : ''}

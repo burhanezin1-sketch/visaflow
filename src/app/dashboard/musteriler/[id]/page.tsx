@@ -58,7 +58,7 @@ export default function MusteriDetayPage() {
   const [companyPlan, setCompanyPlan] = useState('')
   const [showNiyetModal, setShowNiyetModal] = useState(false)
   const [niyetStep, setNiyetStep] = useState<'form' | 'result'>('form')
-  const [niyetForm, setNiyetForm] = useState({ seyahatTarihi: '', donusTarihi: '', konaklamaAdresi: '', konsolosluk: '', davetEden: '' })
+  const [niyetForm, setNiyetForm] = useState({ seyahatTarihi: '', donusTarihi: '', konaklamaAdresi: '', konsolosluk: '', davetEden: '', konaklamaAmaci: '', konaklamaAmaciDiger: '' })
   const [niyetMektubu, setNiyetMektubu] = useState('')
   const [niyetLoading, setNiyetLoading] = useState(false)
   const [niyetHata, setNiyetHata] = useState<string | null>(null)
@@ -318,6 +318,7 @@ export default function MusteriDetayPage() {
           accommodation: niyetForm.konaklamaAdresi,
           consulate: niyetForm.konsolosluk,
           inviter: niyetForm.davetEden,
+          konaklamaAmaci: niyetForm.konaklamaAmaci === 'diger' ? niyetForm.konaklamaAmaciDiger : niyetForm.konaklamaAmaci,
         }),
       })
       const data = await res.json()
@@ -804,6 +805,30 @@ export default function MusteriDetayPage() {
                     placeholder="Almanya Konsolosluğu"
                     style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
                   />
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Konaklama Amacı</label>
+                  <select
+                    value={niyetForm.konaklamaAmaci}
+                    onChange={e => setNiyetForm({ ...niyetForm, konaklamaAmaci: e.target.value, konaklamaAmaciDiger: '' })}
+                    style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', background: 'white', color: niyetForm.konaklamaAmaci ? '#0d1f35' : '#9aaabb' }}
+                  >
+                    <option value="">Seçiniz...</option>
+                    <option value="turistik">Turistik Gezi</option>
+                    <option value="is">İş Görüşmesi / Konferans</option>
+                    <option value="ogrenci">Öğrenci / Eğitim</option>
+                    <option value="aile">Aile / Arkadaş Ziyareti</option>
+                    <option value="diger">Diğer</option>
+                  </select>
+                  {niyetForm.konaklamaAmaci === 'diger' && (
+                    <input
+                      value={niyetForm.konaklamaAmaciDiger}
+                      onChange={e => setNiyetForm({ ...niyetForm, konaklamaAmaciDiger: e.target.value })}
+                      placeholder="Ziyaret amacını belirtin..."
+                      style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginTop: '8px' }}
+                    />
+                  )}
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
