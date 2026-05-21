@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Vectropus',
+  icons: { icon: '/favicon.png', shortcut: '/favicon.ico' },
 }
 
 export default function RootLayout({
