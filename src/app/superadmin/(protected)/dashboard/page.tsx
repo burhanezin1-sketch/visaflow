@@ -129,15 +129,23 @@ export default function SuperAdminDashboard() {
   }
 
   async function fetchVisaDocs() {
-    const { data } = await supabase.from('visa_documents').select('*').order('country').order('visa_type').order('order_num')
+    const { data } = await supabase.from('visa_documents').select('*').order('country').order('visa_type').order('order_num').limit(5000)
     setVisaDocs(data || [])
   }
 
-  async function fetchVisaOptions() {
-    const { data } = await supabase.from('visa_documents').select('country, visa_type').order('country')
-    const unique = Array.from(new Map(data?.map((d: any) => [`${d.country}__${d.visa_type}`, d])).values()) as { country: string; visa_type: string }[]
-    setVisaOptions(unique)
-    if (unique.length > 0) { setSelectedCountry(unique[0].country); setSelectedVisa(unique[0].visa_type) }
+  function fetchVisaOptions() {
+    const ALL_COUNTRIES = [
+      'Almanya', 'Amerika Birleşik Devletleri', 'Avusturya', 'Belçika', 'Bulgaristan',
+      'Danimarka', 'Estonya', 'Finlandiya', 'Fransa', 'Güney Kore',
+      'Hırvatistan', 'Hollanda', 'İngiltere', 'İrlanda', 'İspanya', 'İsveç', 'İtalya',
+      'Japonya', 'Kanada', 'Letonya', 'Litvanya', 'Lüksemburg',
+      'Macaristan', 'Malta', 'Polonya', 'Portekiz', 'Romanya',
+      'Slovakya', 'Slovenya', 'Yunanistan', 'Çekya',
+    ]
+    const VISA_TYPES = ['Aile/Arkadaş Ziyareti', 'Çalışma/İş Vizesi', 'Eğitim/Öğrenci', 'Ticari/İş', 'Turistik']
+    const options = ALL_COUNTRIES.flatMap(country => VISA_TYPES.map(visa_type => ({ country, visa_type })))
+    setVisaOptions(options)
+    if (options.length > 0) { setSelectedCountry(options[0].country); setSelectedVisa(options[0].visa_type) }
   }
 
   async function logout() { await supabase.auth.signOut(); router.push('/superadmin/login') }

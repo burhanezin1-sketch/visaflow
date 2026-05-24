@@ -39,6 +39,10 @@ export default function MusterilerPage() {
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
+  const [countryOpen, setCountryOpen] = useState(false)
+  const [visaOpen, setVisaOpen] = useState(false)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
+  const [visaDropPos, setVisaDropPos] = useState({ top: 0, left: 0, width: 0 })
   const [activeTab, setActiveTab] = useState<'tumu' | 'benimkiler'>('tumu')
   const [currentUserId, setCurrentUserId] = useState('')
   const router = useRouter()
@@ -76,15 +80,17 @@ export default function MusterilerPage() {
     setPrices(data || [])
   }
 
-  async function fetchVisaOptions() {
-    const { data } = await supabase
-      .from('visa_documents')
-      .select('country, visa_type')
-      .order('country', { ascending: true })
-    const unique = Array.from(
-      new Map(data?.map((d: any) => [`${d.country}__${d.visa_type}`, d])).values()
-    )
-    setVisaOptions(unique as { country: string; visa_type: string }[])
+  function fetchVisaOptions() {
+    const ALL_COUNTRIES = [
+      'Almanya', 'Amerika Birleşik Devletleri', 'Avusturya', 'Belçika', 'Bulgaristan',
+      'Danimarka', 'Estonya', 'Finlandiya', 'Fransa', 'Güney Kore',
+      'Hırvatistan', 'Hollanda', 'İngiltere', 'İrlanda', 'İspanya', 'İsveç', 'İtalya',
+      'Japonya', 'Kanada', 'Letonya', 'Litvanya', 'Lüksemburg',
+      'Macaristan', 'Malta', 'Polonya', 'Portekiz', 'Romanya',
+      'Slovakya', 'Slovenya', 'Yunanistan', 'Çekya',
+    ]
+    const VISA_TYPES = ['Aile/Arkadaş Ziyareti', 'Çalışma/İş Vizesi', 'Eğitim/Öğrenci', 'Ticari/İş', 'Turistik']
+    setVisaOptions(ALL_COUNTRIES.flatMap(country => VISA_TYPES.map(visa_type => ({ country, visa_type }))))
   }
 
   useEffect(() => {
@@ -310,19 +316,21 @@ export default function MusterilerPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ülke</label>
-                <select value={form.country} onChange={e => {
-                  const newCountry = e.target.value
-                  const firstVisaType = visaOptions.find(v => v.country === newCountry)?.visa_type || 'Turist'
-                  setForm({...form, country: newCountry, visa_type: firstVisaType})
-                }} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}>
-                  {countries.map(c => <option key={c}>{c}</option>)}
-                </select>
+                <div style={{ position: 'relative' }}>
+                  <div onClick={(e) => { const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); setDropPos({ top: r.bottom + 4, left: r.left, width: r.width }); setCountryOpen(!countryOpen); setVisaOpen(false) }} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{form.country || 'Seçiniz'}</span>
+                    <span style={{ color: '#9aaabb', fontSize: '10px', flexShrink: 0, marginLeft: '4px' }}>▾</span>
+                  </div>
+                </div>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Tipi</label>
-                <select value={form.visa_type} onChange={e => setForm({...form, visa_type: e.target.value})} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit' }}>
-                  {visaTypes.map(v => <option key={v}>{v}</option>)}
-                </select>
+                <div style={{ position: 'relative' }}>
+                  <div onClick={(e) => { const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); setVisaDropPos({ top: r.bottom + 4, left: r.left, width: r.width }); setVisaOpen(!visaOpen); setCountryOpen(false) }} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{form.visa_type || 'Seçiniz'}</span>
+                    <span style={{ color: '#9aaabb', fontSize: '10px', flexShrink: 0, marginLeft: '4px' }}>▾</span>
+                  </div>
+                </div>
               </div>
             </div>
             {autoPrice ? (
@@ -348,6 +356,31 @@ export default function MusterilerPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {countryOpen && (
+        <>
+          <div onClick={() => setCountryOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
+          <div style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, maxHeight: '220px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+            {countries.map(c => (
+              <div key={c} onClick={() => { const firstVisaType = visaOptions.find(v => v.country === c)?.visa_type || 'Turist'; setForm({...form, country: c, visa_type: firstVisaType}); setCountryOpen(false) }} style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', background: form.country === c ? '#eef4fb' : 'white', color: form.country === c ? '#1a5fa5' : '#0d1f35' }}>
+                {c}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {visaOpen && (
+        <>
+          <div onClick={() => setVisaOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
+          <div style={{ position: 'fixed', top: visaDropPos.top, left: visaDropPos.left, width: visaDropPos.width, maxHeight: '180px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+            {visaTypes.map(v => (
+              <div key={v} onClick={() => { setForm({...form, visa_type: v}); setVisaOpen(false) }} style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', background: form.visa_type === v ? '#eef4fb' : 'white', color: form.visa_type === v ? '#1a5fa5' : '#0d1f35' }}>
+                {v}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
