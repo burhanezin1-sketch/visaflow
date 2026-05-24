@@ -82,7 +82,7 @@ export default function AdminPage() {
           return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth()
         }).reduce((sum, p) => {
           const cur = (p.currency as string | undefined) || 'TRY'
-          return sum + amountToTRY(p.paid_amount, cur, rates)
+          return sum + amountToTRY(p.total_amount, cur, rates)
         }, 0) || 0
         ciroArr.push(ayOdeme)
       }
@@ -93,7 +93,7 @@ export default function AdminPage() {
       payments?.forEach(p => {
         const ulke = p.applications?.country || 'Diğer'
         const cur = (p.currency as string | undefined) || 'TRY'
-        ulkeMap[ulke] = (ulkeMap[ulke] || 0) + amountToTRY(p.paid_amount, cur, rates)
+        ulkeMap[ulke] = (ulkeMap[ulke] || 0) + amountToTRY(p.total_amount, cur, rates)
       })
       setUlkeCiro(Object.entries(ulkeMap).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value))
 
@@ -122,7 +122,7 @@ export default function AdminPage() {
         ciroChart.current = new Chart(ciroRef.current, {
           type: 'bar',
           data: { labels: ayLabels, datasets: [{ data: aylikCiro, backgroundColor: navy, borderRadius: 4, borderSkipped: false }] },
-          options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#f0ede6' }, ticks: { font: { size: 10 }, color: '#9aaabb', callback: (v: any) => v >= 1000 ? (v/1000)+'K₺' : v }, border: { display: false } }, x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#9aaabb' }, border: { display: false } } } }
+          options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx: any) => ' ' + Math.round(ctx.raw).toLocaleString('tr-TR') + '₺' } } }, scales: { y: { grid: { color: '#f0ede6' }, ticks: { font: { size: 10 }, color: '#9aaabb', callback: (v: any) => v >= 1000 ? (v/1000)+'K₺' : v+'₺' }, border: { display: false } }, x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#9aaabb' }, border: { display: false } } } }
         })
       }
       if (ulkeRef.current && ulkeCiro.length) {
