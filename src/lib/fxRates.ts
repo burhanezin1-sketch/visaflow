@@ -2,13 +2,10 @@ export type FxRates = { EUR_TRY: number; USD_TRY: number }
 
 export async function fetchFxRates(): Promise<FxRates> {
   try {
-    const [r1, r2] = await Promise.all([
-      fetch('https://api.frankfurter.app/latest?from=EUR&to=TRY').then(r => r.json()),
-      fetch('https://api.frankfurter.app/latest?from=USD&to=TRY').then(r => r.json()),
-    ])
+    const data = await fetch('/api/fx-rates').then(r => r.json())
     return {
-      EUR_TRY: r1?.rates?.TRY ?? 0,
-      USD_TRY: r2?.rates?.TRY ?? 0,
+      EUR_TRY: data.EUR_TRY ?? 0,
+      USD_TRY: data.USD_TRY ?? 0,
     }
   } catch {
     return { EUR_TRY: 0, USD_TRY: 0 }
