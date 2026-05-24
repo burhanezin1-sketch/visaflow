@@ -164,6 +164,7 @@ export default function MusterilerPage() {
           application_id: newApp.id,
           total_amount: autoPrice.price,
           paid_amount: 0,
+          currency: autoPrice.currency || 'TRY',
         })
       }
 

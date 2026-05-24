@@ -157,6 +157,7 @@ export default function LeadsPage() {
         application_id: app.id,
         total_amount: price.price,
         paid_amount: 0,
+        currency: price.currency || 'TRY',
       })
     }
 
