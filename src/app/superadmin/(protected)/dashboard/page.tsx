@@ -58,7 +58,6 @@ export default function SuperAdminDashboard() {
   const [sendingDestek, setSendingDestek] = useState(false)
 
   const [visaDocs, setVisaDocs] = useState<any[]>([])
-  const [visaOptions, setVisaOptions] = useState<{ country: string; visa_type: string }[]>([])
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedVisa, setSelectedVisa] = useState('')
   const [showEvrakModal, setShowEvrakModal] = useState(false)
@@ -78,7 +77,7 @@ export default function SuperAdminDashboard() {
     if (!user) { router.push('/superadmin/login'); return }
     const { data: sa } = await supabase.from('superadmins').select('id').eq('id', user.id).single()
     if (!sa) { router.push('/superadmin/login'); return }
-    const [rates] = await Promise.all([fetchFxRates(), fetchCompanies(), fetchVisaDocs(), fetchVisaOptions(), fetchActivities(), fetchSaglik()])
+    const [rates] = await Promise.all([fetchFxRates(), fetchCompanies(), fetchVisaDocs(), fetchActivities(), fetchSaglik()])
     setFxRates(rates)
     setLoading(false)
   }
@@ -130,22 +129,12 @@ export default function SuperAdminDashboard() {
 
   async function fetchVisaDocs() {
     const { data } = await supabase.from('visa_documents').select('*').order('country').order('visa_type').order('order_num').limit(5000)
-    setVisaDocs(data || [])
-  }
-
-  function fetchVisaOptions() {
-    const ALL_COUNTRIES = [
-      'Almanya', 'Amerika Birleşik Devletleri', 'Avusturya', 'Belçika', 'Bulgaristan',
-      'Danimarka', 'Estonya', 'Finlandiya', 'Fransa', 'Güney Kore',
-      'Hırvatistan', 'Hollanda', 'İngiltere', 'İrlanda', 'İspanya', 'İsveç', 'İtalya',
-      'Japonya', 'Kanada', 'Letonya', 'Litvanya', 'Lüksemburg',
-      'Macaristan', 'Malta', 'Polonya', 'Portekiz', 'Romanya',
-      'Slovakya', 'Slovenya', 'Yunanistan', 'Çekya',
-    ]
-    const VISA_TYPES = ['Aile/Arkadaş Ziyareti', 'Çalışma/İş Vizesi', 'Eğitim/Öğrenci', 'Ticari/İş', 'Turistik']
-    const options = ALL_COUNTRIES.flatMap(country => VISA_TYPES.map(visa_type => ({ country, visa_type })))
-    setVisaOptions(options)
-    if (options.length > 0) { setSelectedCountry(options[0].country); setSelectedVisa(options[0].visa_type) }
+    const docs = data || []
+    setVisaDocs(docs)
+    if (docs.length > 0 && !selectedCountry) {
+      setSelectedCountry(docs[0].country)
+      setSelectedVisa(docs[0].visa_type)
+    }
   }
 
   async function logout() { await supabase.auth.signOut(); router.push('/superadmin/login') }
@@ -160,7 +149,7 @@ export default function SuperAdminDashboard() {
     }
     setSavingEvrak(false); setShowEvrakModal(false); setEditEvrak(null)
     setEvrakForm({ country: '', visa_type: '', doc_name: '', delivery_type: 'digital', order_num: 1 })
-    await fetchVisaDocs(); await fetchVisaOptions()
+    await fetchVisaDocs()
   }
 
   async function deleteEvrak(id: string) {
@@ -184,8 +173,8 @@ export default function SuperAdminDashboard() {
     setTimeout(() => setDestekSent(false), 3000)
   }
 
-  const countries = [...new Set(visaOptions.map(v => v.country))].sort()
-  const visaTypesForCountry = [...new Set(visaOptions.filter(v => v.country === selectedCountry).map(v => v.visa_type))].sort()
+  const countries = [...new Set(visaDocs.map(d => d.country))].sort((a, b) => a.localeCompare(b, 'tr'))
+  const visaTypesForCountry = [...new Set(visaDocs.filter(d => d.country === selectedCountry).map(d => d.visa_type))].sort((a, b) => a.localeCompare(b, 'tr'))
   const filteredDocs = visaDocs.filter(d => d.country === selectedCountry && d.visa_type === selectedVisa)
 
   const basicFirms = companies.filter(c => c.plan === 'basic')
@@ -597,7 +586,7 @@ export default function SuperAdminDashboard() {
 
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: '10px', padding: '0.875rem 1rem', marginBottom: '1rem', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                 {[
-                  { label: 'Ülke', value: selectedCountry, options: countries, onChange: (v: string) => { const f = visaOptions.find(o => o.country === v)?.visa_type || ''; setSelectedCountry(v); setSelectedVisa(f) } },
+                  { label: 'Ülke', value: selectedCountry, options: countries, onChange: (v: string) => { const f = visaDocs.find(d => d.country === v)?.visa_type || ''; setSelectedCountry(v); setSelectedVisa(f) } },
                   { label: 'Vize Tipi', value: selectedVisa, options: visaTypesForCountry, onChange: setSelectedVisa },
                 ].map(f => (
                   <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

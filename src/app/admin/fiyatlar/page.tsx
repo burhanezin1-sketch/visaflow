@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { useVisaOptions } from '@/lib/useVisaOptions'
 
 const CURRENCY_SYMBOL: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
 
@@ -17,7 +18,6 @@ export default function FiyatlarPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
   const [prices, setPrices] = useState<any[]>([])
-  const [visaOptions, setVisaOptions] = useState<{ country: string; visa_type: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
@@ -27,11 +27,11 @@ export default function FiyatlarPage() {
   const [visaOpen, setVisaOpen] = useState(false)
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
   const [visaDropPos, setVisaDropPos] = useState({ top: 0, left: 0, width: 0 })
+  const { countries, visaTypesFor } = useVisaOptions()
 
   useEffect(() => {
     if (!companyId) return
     fetchData()
-    fetchVisaOptions()
   }, [companyId])
 
   async function fetchData() {
@@ -44,21 +44,7 @@ export default function FiyatlarPage() {
     setLoading(false)
   }
 
-  function fetchVisaOptions() {
-    const ALL_COUNTRIES = [
-      'Almanya', 'Amerika Birleşik Devletleri', 'Avusturya', 'Belçika', 'Bulgaristan',
-      'Danimarka', 'Estonya', 'Finlandiya', 'Fransa', 'Güney Kore',
-      'Hırvatistan', 'Hollanda', 'İngiltere', 'İrlanda', 'İspanya', 'İsveç', 'İtalya',
-      'Japonya', 'Kanada', 'Letonya', 'Litvanya', 'Lüksemburg',
-      'Macaristan', 'Malta', 'Polonya', 'Portekiz', 'Romanya',
-      'Slovakya', 'Slovenya', 'Yunanistan', 'Çekya',
-    ]
-    const VISA_TYPES = ['Aile/Arkadaş Ziyareti', 'Çalışma/İş Vizesi', 'Eğitim/Öğrenci', 'Ticari/İş', 'Turistik']
-    setVisaOptions(ALL_COUNTRIES.flatMap(country => VISA_TYPES.map(visa_type => ({ country, visa_type }))))
-  }
-
-  const countries = [...new Set(visaOptions.map(v => v.country))].sort()
-  const visaTypes = [...new Set(visaOptions.filter(v => v.country === form.country).map(v => v.visa_type))].sort()
+  const visaTypes = visaTypesFor(form.country)
 
   async function save() {
     if (!form.country || !form.visa_type || !form.price || !companyId) return
@@ -95,7 +81,7 @@ export default function FiyatlarPage() {
   function openAdd() {
     setEditItem(null)
     const firstCountry = countries[0] || ''
-    const firstVisa = visaOptions.find(v => v.country === firstCountry)?.visa_type || ''
+    const firstVisa = visaTypesFor(firstCountry)[0] || ''
     setForm({ country: firstCountry, visa_type: firstVisa, price: '', currency: 'TRY' })
     setShowModal(true)
   }
@@ -228,7 +214,7 @@ export default function FiyatlarPage() {
           <div onClick={() => setCountryOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
           <div style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, maxHeight: '220px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
             {countries.map(c => (
-              <div key={c} onClick={() => { const firstVisa = visaOptions.find(v => v.country === c)?.visa_type || ''; setForm({ ...form, country: c, visa_type: firstVisa }); setCountryOpen(false) }} style={{ padding: '9px 12px', fontSize: '13px', cursor: 'pointer', background: form.country === c ? '#eef4fb' : 'white', color: form.country === c ? '#1a5fa5' : '#0d1f35' }}>
+              <div key={c} onClick={() => { const firstVisa = visaTypesFor(c)[0] || ''; setForm({ ...form, country: c, visa_type: firstVisa }); setCountryOpen(false) }} style={{ padding: '9px 12px', fontSize: '13px', cursor: 'pointer', background: form.country === c ? '#eef4fb' : 'white', color: form.country === c ? '#1a5fa5' : '#0d1f35' }}>
                 {c}
               </div>
             ))}

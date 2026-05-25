@@ -8,6 +8,7 @@ import { useCompany } from '@/lib/useCompany'
 import { checkApplicationLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { useVisaOptions } from '@/lib/useVisaOptions'
 
 function formatPrice(price: number, currency: string = 'TRY') {
   const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -34,8 +35,8 @@ export default function MusterilerPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [prices, setPrices] = useState<any[]>([])
-  const [visaOptions, setVisaOptions] = useState<{ country: string; visa_type: string }[]>([])
-  const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: 'Schengen', visa_type: 'Turist' })
+  const { countries, visaTypesFor } = useVisaOptions()
+  const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '' })
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
@@ -58,7 +59,6 @@ export default function MusterilerPage() {
     if (!companyId) { setLoading(false); return }
     fetchData()
     fetchPrices()
-    fetchVisaOptions()
   }, [companyId, companyLoading])
 
   async function fetchData() {
@@ -80,18 +80,6 @@ export default function MusterilerPage() {
     setPrices(data || [])
   }
 
-  function fetchVisaOptions() {
-    const ALL_COUNTRIES = [
-      'Almanya', 'Amerika Birleşik Devletleri', 'Avusturya', 'Belçika', 'Bulgaristan',
-      'Danimarka', 'Estonya', 'Finlandiya', 'Fransa', 'Güney Kore',
-      'Hırvatistan', 'Hollanda', 'İngiltere', 'İrlanda', 'İspanya', 'İsveç', 'İtalya',
-      'Japonya', 'Kanada', 'Letonya', 'Litvanya', 'Lüksemburg',
-      'Macaristan', 'Malta', 'Polonya', 'Portekiz', 'Romanya',
-      'Slovakya', 'Slovenya', 'Yunanistan', 'Çekya',
-    ]
-    const VISA_TYPES = ['Aile/Arkadaş Ziyareti', 'Çalışma/İş Vizesi', 'Eğitim/Öğrenci', 'Ticari/İş', 'Turistik']
-    setVisaOptions(ALL_COUNTRIES.flatMap(country => VISA_TYPES.map(visa_type => ({ country, visa_type }))))
-  }
 
   useEffect(() => {
     let result = clients
@@ -173,7 +161,7 @@ export default function MusterilerPage() {
 
       await fetchData()
       setShowModal(false)
-      setForm({ ad: '', soyad: '', phone: '', email: '', country: 'Schengen', visa_type: 'Turist' })
+      setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '' })
       router.push(`/dashboard/musteriler/${newClient.id}`)
     }
     setSaving(false)
@@ -185,8 +173,7 @@ export default function MusterilerPage() {
     </div>
   )
 
-  const countries = [...new Set(visaOptions.map(v => v.country))].sort()
-  const visaTypes = [...new Set(visaOptions.filter(v => v.country === form.country).map(v => v.visa_type))].sort()
+  const visaTypes = visaTypesFor(form.country)
 
   const displayed = activeTab === 'benimkiler'
     ? filtered.filter(c => c.danisan_id === currentUserId)
@@ -364,7 +351,7 @@ export default function MusterilerPage() {
           <div onClick={() => setCountryOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
           <div style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, maxHeight: '220px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
             {countries.map(c => (
-              <div key={c} onClick={() => { const firstVisaType = visaOptions.find(v => v.country === c)?.visa_type || 'Turist'; setForm({...form, country: c, visa_type: firstVisaType}); setCountryOpen(false) }} style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', background: form.country === c ? '#eef4fb' : 'white', color: form.country === c ? '#1a5fa5' : '#0d1f35' }}>
+              <div key={c} onClick={() => { const firstVisaType = visaTypesFor(c)[0] || ''; setForm({...form, country: c, visa_type: firstVisaType}); setCountryOpen(false) }} style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', background: form.country === c ? '#eef4fb' : 'white', color: form.country === c ? '#1a5fa5' : '#0d1f35' }}>
                 {c}
               </div>
             ))}
