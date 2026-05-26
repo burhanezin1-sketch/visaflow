@@ -808,7 +808,7 @@ export default function MusteriDetayPage() {
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Konaklama Amacı</label>
+                  <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Seyahat Amacı</label>
                   <select
                     value={niyetForm.konaklamaAmaci}
                     onChange={e => setNiyetForm({ ...niyetForm, konaklamaAmaci: e.target.value, konaklamaAmaciDiger: '' })}
