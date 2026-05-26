@@ -1,0 +1,303 @@
+{
+  "name": "Evrak Hatırlatıcı",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1a2b3c4d-1111-1111-1111-111111111111",
+      "name": "Her Gün 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://yhmcpfxakmxryqnwpiaa.supabase.co/rest/v1/applications",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,client_id,status,country,visa_type,clients(id,full_name,phone,portal_token)"
+            },
+            {
+              "name": "status",
+              "value": "not.in.(approved,rejected)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2a2b3c4d-2222-2222-2222-222222222222",
+      "name": "Aktif Başvuruları Çek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "3a2b3c4d-3333-3333-3333-333333333333",
+      "name": "Başvuruları Döngüle",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://yhmcpfxakmxryqnwpiaa.supabase.co/rest/v1/documents?select=id,name,file_url,application_id&application_id=eq.' + $json.id + '&file_url=is.null&delivery_type=eq.digital' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4a2b3c4d-4444-4444-4444-444444444444",
+      "name": "Eksik Evrakları Çek",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-evrak-001",
+              "leftValue": "={{ Array.isArray($json) ? $json.length : ($json && typeof $json === 'object' ? Object.keys($json).length : 0) }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true
+      },
+      "id": "5a2b3c4d-5555-5555-5555-555555555555",
+      "name": "Eksik Evrak Var Mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Döngüdeki mevcut başvuru verisini al\nconst app = $('Başvuruları Döngüle').item.json;\n\nconst phone = app.clients?.phone;\nconst portalToken = app.clients?.portal_token;\nconst clientName = app.clients?.full_name || 'Müşteri';\n\n// Telefon numarası yoksa bu öğeyi atla\nif (!phone) return [];\n\n// Portal linki (whatsapp mesajına eklenecek)\nconst portalLink = `https://app.vectropus.com/portal/${portalToken}`;\n\nconst message = `Efendim, başvurunuz için eksik belgeler bulunmaktadır. Lütfen portal üzerinden yükleyiniz: ${portalLink}`;\n\nreturn [\n  {\n    json: {\n      to: `whatsapp:${phone}`,\n      from: 'whatsapp:+14155238886',\n      body: message,\n      clientName: clientName,\n      applicationId: app.id\n    }\n  }\n];"
+      },
+      "id": "6a2b3c4d-6666-6666-6666-666666666666",
+      "name": "WhatsApp Mesajını Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Basic {{ Buffer.from($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN).toString('base64') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "To",
+              "value": "={{ $json.to }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.body }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7a2b3c4d-7777-7777-7777-777777777777",
+      "name": "WhatsApp Gönder (Twilio)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 180]
+    }
+  ],
+  "connections": {
+    "Her Gün 09:00": {
+      "main": [
+        [
+          {
+            "node": "Aktif Başvuruları Çek",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aktif Başvuruları Çek": {
+      "main": [
+        [
+          {
+            "node": "Başvuruları Döngüle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Başvuruları Döngüle": {
+      "main": [
+        [
+          {
+            "node": "Eksik Evrakları Çek",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Eksik Evrakları Çek": {
+      "main": [
+        [
+          {
+            "node": "Eksik Evrak Var Mı?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eksik Evrak Var Mı?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Mesajını Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Başvuruları Döngüle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Mesajını Hazırla": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Gönder (Twilio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Gönder (Twilio)": {
+      "main": [
+        [
+          {
+            "node": "Başvuruları Döngüle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "evrak-hatirlatici-v1-0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "visaflow-evrak"
+  },
+  "id": "evrak-hatirlatici-001",
+  "tags": [
+    {
+      "id": "tag-visaflow",
+      "name": "visaflow"
+    }
+  ],
+  "_readme": {
+    "description": "Evrak hatırlatıcı workflow. Her gün 09:00'da çalışır. Eksik evrakları olan aktif başvuru sahiplerine WhatsApp mesajı gönderir.",
+    "env_vars_required": [
+      "SUPABASE_SERVICE_ROLE_KEY — Supabase service role key (RLS bypass için)",
+      "TWILIO_ACCOUNT_SID — Twilio hesap SID",
+      "TWILIO_AUTH_TOKEN — Twilio auth token"
+    ],
+    "supabase_url": "https://yhmcpfxakmxryqnwpiaa.supabase.co",
+    "twilio_whatsapp_from": "whatsapp:+14155238886",
+    "portal_base_url": "https://app.vectropus.com"
+  }
+}
