@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test'
 test.use({ storageState: { cookies: [], origins: [] } })
 
 test('doğru şifre ile giriş — dashboard\'a yönlenir', async ({ page }) => {
-  const email = process.env.TEST_EMAIL!
-  const password = process.env.TEST_PASSWORD!
+  const email = process.env.TEST_EMAIL
+  const password = process.env.TEST_PASSWORD
+  if (!email || !password) { test.skip(); return }
 
   await page.goto('/login')
   await expect(page.locator('input[type="email"]')).toBeVisible()

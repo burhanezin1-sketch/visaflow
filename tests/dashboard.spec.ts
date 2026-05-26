@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 
+test.beforeEach(async () => {
+  if (!process.env.TEST_EMAIL) test.skip()
+})
+
 test('dashboard sayfası açılıyor', async ({ page }) => {
   await page.goto('/dashboard')
   await expect(page).not.toHaveURL(/\/login/)

@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 
+test.beforeEach(async () => {
+  if (!process.env.TEST_EMAIL) test.skip()
+})
+
 test('admin ekip sayfası açılıyor', async ({ page }) => {
   const res = await page.goto('/admin/ekip')
 
