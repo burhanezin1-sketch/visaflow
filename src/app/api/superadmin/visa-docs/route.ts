@@ -26,14 +26,24 @@ export async function GET(req: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const { data, error } = await admin
-    .from('visa_documents')
-    .select('*')
-    .order('country')
-    .order('visa_type')
-    .order('order_num')
-    .limit(10000)
+  const allDocs: any[] = []
+  let from = 0
+  const pageSize = 1000
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ docs: data || [] })
+  while (true) {
+    const { data, error } = await admin
+      .from('visa_documents')
+      .select('*')
+      .order('country')
+      .order('visa_type')
+      .order('order_num')
+      .range(from, from + pageSize - 1)
+
+    if (error || !data?.length) break
+    allDocs.push(...data)
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+
+  return NextResponse.json({ docs: allDocs })
 }
