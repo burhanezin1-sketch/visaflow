@@ -128,8 +128,9 @@ export default function SuperAdminDashboard() {
   }
 
   async function fetchVisaDocs() {
-    const { data } = await supabase.from('visa_documents').select('*').order('country').order('visa_type').order('order_num').limit(5000)
-    const docs = data || []
+    const res = await fetch('/api/superadmin/visa-docs')
+    const json = res.ok ? await res.json() : { docs: [] }
+    const docs: any[] = json.docs || []
     setVisaDocs(docs)
     if (docs.length > 0 && !selectedCountry) {
       setSelectedCountry(docs[0].country)
