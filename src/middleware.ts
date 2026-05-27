@@ -93,6 +93,12 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   // ── 1. Auth kontrolü ───────────────────────────────────────────
+  // pendingCookies: Supabase'in token yenileme veya silme sırasında
+  // set etmek istediği cookie'leri toplar. Redirect durumunda da
+  // uygulanması gerekir; aksi hâlde süresi dolmuş cookie tarayıcıda
+  // kalır ve sonraki isteğe tekrar eklenir.
+  const pendingCookies: Array<{ name: string; value: string; options: any }> = []
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -100,6 +106,7 @@ export async function middleware(request: NextRequest) {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
+          pendingCookies.push(...cookiesToSet)
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
@@ -110,18 +117,25 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Redirect oluştururken bekleyen cookie değişikliklerini de uygula
+  function makeRedirect(targetPathname: string) {
+    const target = request.nextUrl.clone()
+    target.pathname = targetPathname
+    const res = NextResponse.redirect(target)
+    pendingCookies.forEach(({ name, value, options }) => res.cookies.set(name, value, options))
+    return res
+  }
+
   let user = null
   try {
     const { data } = await supabase.auth.getUser()
     user = data.user
   } catch {
-    // ağ hatasında unauthenticated say
+    // Supabase'e ulaşılamazsa güvenli taraf: login'e yönlendir
   }
 
   if (!user) {
-    const target = request.nextUrl.clone()
-    target.pathname = pathname.startsWith('/superadmin') ? '/superadmin/login' : '/login'
-    return NextResponse.redirect(target)
+    return makeRedirect(pathname.startsWith('/superadmin') ? '/superadmin/login' : '/login')
   }
 
   // ── 2. /superadmin rol kontrolü ────────────────────────────────
@@ -130,15 +144,9 @@ export async function middleware(request: NextRequest) {
       const admin = makeAdminClient()
       const { data: sa } = await admin
         .from('superadmins').select('id').eq('id', user.id).maybeSingle()
-      if (!sa) {
-        const target = request.nextUrl.clone()
-        target.pathname = '/superadmin/login'
-        return NextResponse.redirect(target)
-      }
+      if (!sa) return makeRedirect('/superadmin/login')
     } catch {
-      const target = request.nextUrl.clone()
-      target.pathname = '/superadmin/login'
-      return NextResponse.redirect(target)
+      return makeRedirect('/superadmin/login')
     }
   }
 
@@ -148,15 +156,9 @@ export async function middleware(request: NextRequest) {
       const admin = makeAdminClient()
       const { data: userData } = await admin
         .from('users').select('role').eq('id', user.id).maybeSingle()
-      if (!userData || userData.role !== 'admin') {
-        const target = request.nextUrl.clone()
-        target.pathname = '/dashboard'
-        return NextResponse.redirect(target)
-      }
+      if (!userData || userData.role !== 'admin') return makeRedirect('/dashboard')
     } catch {
-      const target = request.nextUrl.clone()
-      target.pathname = '/dashboard'
-      return NextResponse.redirect(target)
+      return makeRedirect('/dashboard')
     }
   }
 
@@ -177,14 +179,10 @@ export async function middleware(request: NextRequest) {
           !clientData?.company_id ||
           userData.company_id !== clientData.company_id
         ) {
-          const target = request.nextUrl.clone()
-          target.pathname = '/dashboard/musteriler'
-          return NextResponse.redirect(target)
+          return makeRedirect('/dashboard/musteriler')
         }
       } catch {
-        const target = request.nextUrl.clone()
-        target.pathname = '/dashboard/musteriler'
-        return NextResponse.redirect(target)
+        return makeRedirect('/dashboard/musteriler')
       }
     }
   }

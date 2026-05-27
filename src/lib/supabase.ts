@@ -6,9 +6,32 @@ export const supabase = createBrowserClient(
 )
 
 if (typeof window !== 'undefined') {
+  // Supabase auth state değişikliklerini dinle
   supabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT' && !window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/superadmin/login')) {
+    const path = window.location.pathname
+    const isAuthPage =
+      path.startsWith('/login') ||
+      path.startsWith('/superadmin/login') ||
+      path.startsWith('/portal/')
+
+    if (event === 'SIGNED_OUT' && !isAuthPage) {
       window.location.href = '/login'
     }
   })
+
+  // Her 10 dakikada bir session geçerliliğini kontrol et
+  setInterval(async () => {
+    const path = window.location.pathname
+    const isAuthPage =
+      path.startsWith('/login') ||
+      path.startsWith('/superadmin/login') ||
+      path.startsWith('/portal/')
+    if (isAuthPage) return
+
+    const { data: { session }, error } = await supabase.auth.getSession()
+    if (error || !session) {
+      await supabase.auth.signOut()
+      window.location.href = '/login'
+    }
+  }, 10 * 60 * 1000)
 }
