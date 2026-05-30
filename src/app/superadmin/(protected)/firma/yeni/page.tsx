@@ -4,19 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
-const DEFAULT_PRICES = [
-  { country: 'Schengen', visa_type: 'Turist', price: 8500 },
-  { country: 'Schengen', visa_type: 'İş', price: 10000 },
-  { country: 'Schengen', visa_type: 'Öğrenci', price: 9000 },
-  { country: 'ABD', visa_type: 'Turist/İş (B1/B2)', price: 12000 },
-  { country: 'ABD', visa_type: 'Öğrenci (F1)', price: 14000 },
-  { country: 'UK', visa_type: 'Turist', price: 10000 },
-  { country: 'UK', visa_type: 'Öğrenci (Tier 4)', price: 12000 },
-  { country: 'Kanada', visa_type: 'Turist', price: 10000 },
-  { country: 'Avustralya', visa_type: 'Turist', price: 11000 },
-  { country: 'Japonya', visa_type: 'Turist', price: 8000 },
-]
-
 export default function YeniFirmaPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -29,7 +16,6 @@ export default function YeniFirmaPage() {
   const [adminForm, setAdminForm] = useState({
     full_name: '', email: '', password: ''
   })
-  const [prices, setPrices] = useState(DEFAULT_PRICES)
 
   useEffect(() => {
     checkAuth()
@@ -89,11 +75,6 @@ export default function YeniFirmaPage() {
       return
     }
 
-    // 3. Hizmet fiyatlarını ekle
-    await supabase.from('service_prices').insert(
-      prices.map(p => ({ ...p, company_id: company.id }))
-    )
-
     setSaving(false)
     router.push('/superadmin/dashboard')
   }
@@ -109,7 +90,7 @@ export default function YeniFirmaPage() {
 
         {/* Steps */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '2rem' }}>
-          {[['1', 'Firma Bilgileri'], ['2', 'Admin Kullanıcı'], ['3', 'Hizmet Fiyatları']].map(([num, label]) => (
+          {[['1', 'Firma Bilgileri'], ['2', 'Admin Kullanıcı']].map(([num, label]) => (
             <div key={num} style={{ flex: 1, padding: '10px', background: step >= parseInt(num) ? '#0d1f35' : 'white', border: '1px solid #e8e4da', borderRadius: '10px', textAlign: 'center', cursor: 'pointer' }} onClick={() => setStep(parseInt(num))}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: step >= parseInt(num) ? 'rgba(255,255,255,0.6)' : '#9aaabb' }}>Adım {num}</div>
               <div style={{ fontSize: '13px', fontWeight: '500', color: step >= parseInt(num) ? 'white' : '#0d1f35', marginTop: '2px' }}>{label}</div>
@@ -173,38 +154,9 @@ export default function YeniFirmaPage() {
               <div style={{ background: '#faf8f3', border: '1px solid #e8e4da', borderRadius: '8px', padding: '12px', fontSize: '12px', color: '#5a6a7a', marginBottom: '1.5rem' }}>
                 ℹ️ Bu kullanıcı firmaya admin olarak eklenecek ve sisteme giriş yapabilecek.
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setStep(1)} style={{ flex: 1, padding: '12px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>← Geri</button>
-                <button onClick={() => setStep(3)} style={{ flex: 2, padding: '12px', background: '#0d1f35', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>Devam Et →</button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
-              <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '4px', color: '#0d1f35' }}>💰 Hizmet Fiyatları</h3>
-              <p style={{ fontSize: '13px', color: '#5a6a7a', marginBottom: '1.5rem' }}>Varsayılan fiyatlar. Firma admin panelinden düzenleyebilir.</p>
-              <div style={{ marginBottom: '1.5rem' }}>
-                {prices.map((p, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '1px solid #f0ede6' }}>
-                    <div style={{ flex: 1, fontSize: '13px', color: '#0d1f35' }}>{p.country} — {p.visa_type}</div>
-                    <input
-                      type="number"
-                      value={p.price}
-                      onChange={e => {
-                        const updated = [...prices]
-                        updated[idx] = { ...updated[idx], price: parseInt(e.target.value) }
-                        setPrices(updated)
-                      }}
-                      style={{ width: '100px', padding: '6px 8px', border: '1.5px solid #e8e4da', borderRadius: '6px', fontSize: '13px', outline: 'none', fontFamily: 'inherit', textAlign: 'right' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#9aaabb' }}>₺</span>
-                  </div>
-                ))}
-              </div>
               {error && <p style={{ color: '#c0392b', fontSize: '12px', marginBottom: '12px' }}>{error}</p>}
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setStep(2)} style={{ flex: 1, padding: '12px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>← Geri</button>
+                <button onClick={() => setStep(1)} style={{ flex: 1, padding: '12px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>← Geri</button>
                 <button onClick={kaydet} disabled={saving} style={{ flex: 2, padding: '12px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
                   {saving ? 'Oluşturuluyor...' : '✓ Firmayı Oluştur'}
                 </button>
