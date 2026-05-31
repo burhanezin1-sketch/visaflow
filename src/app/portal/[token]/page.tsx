@@ -229,7 +229,7 @@ export default function PortalPage() {
   )
 
   const tamamlanan = userSubmittedDocs.filter(d =>
-    d.delivery_type === 'firma' || d.status === 'approved' || (d.file_url && d.status === 'pending')
+    d.delivery_type === 'firma' || d.status === 'approved' || d.status === 'elden' || (d.file_url && d.status === 'pending')
   ).length
   const toplam = userSubmittedDocs.length
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
@@ -297,11 +297,12 @@ export default function PortalPage() {
 
                   {userSubmittedDocs.map((doc) => {
                     const key = doc.id
-                    const isFirma = doc.delivery_type === 'firma'
+                    const isFirma    = doc.delivery_type === 'firma'
                     const isPhysical = doc.delivery_type === 'physical'
                     const isApproved = doc.status === 'approved'
                     const isRejected = doc.status === 'rejected'
-                    const hasFile = !!doc.file_url
+                    const isElden    = doc.status === 'elden'
+                    const hasFile    = !!doc.file_url
 
                     if (isFirma) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
@@ -329,6 +330,19 @@ export default function PortalPage() {
                           <span style={{ fontSize: '10px', color: isApproved ? '#1a7a45' : '#92600a', fontWeight: '600', background: isApproved ? '#edfaf3' : '#fff8ec', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
                             {isApproved ? '✓ Alındı' : 'Elden'}
                           </span>
+                        </div>
+                      </div>
+                    )
+
+                    if (isElden) return (
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff8ec', borderRadius: '8px', padding: '10px 12px' }}>
+                          <span style={{ fontSize: '16px' }}>🤝</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
+                            <div style={{ fontSize: '11px', color: '#92600a', marginTop: '2px' }}>Danışmana elden teslim edilecek.</div>
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f0d08a', whiteSpace: 'nowrap' }}>Elden</span>
                         </div>
                       </div>
                     )

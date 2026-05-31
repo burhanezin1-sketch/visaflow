@@ -284,6 +284,20 @@ export default function MusteriDetayPage() {
     setDocActionSaving(prev => ({ ...prev, [docId]: false }))
   }
 
+  async function eldenDoc(docId: string, docName: string) {
+    if (!application) return
+    setDocActionSaving(prev => ({ ...prev, [docId]: true }))
+    setEvrakHata(null)
+    const { error } = await supabase
+      .from('user_submitted_docs')
+      .update({ status: 'elden' })
+      .eq('id', docId)
+    if (error) { setEvrakHata(`Hata: ${error.message}`); setDocActionSaving(prev => ({ ...prev, [docId]: false })); return }
+    await fetchAll()
+    logAction(companyId!, currentUser?.id, currentUserName, `Evrak elden teslim: ${docName}`, 'document', application.id, client?.full_name)
+    setDocActionSaving(prev => ({ ...prev, [docId]: false }))
+  }
+
   async function generateDocList() {
     if (!application) return
     setEvrakHata(null)
@@ -356,7 +370,7 @@ export default function MusteriDetayPage() {
   }
 
   const tamamlanan = userSubmittedDocs.filter(d =>
-    d.delivery_type === 'firma' || d.status === 'approved'
+    d.delivery_type === 'firma' || d.status === 'approved' || d.status === 'elden'
   ).length
   const toplam = userSubmittedDocs.length
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
@@ -527,11 +541,13 @@ export default function MusteriDetayPage() {
 
                     {userSubmittedDocs.map((evrak) => {
                       const saving = !!docActionSaving[evrak.id]
-                      const isFirma = evrak.delivery_type === 'firma'
+                      const isFirma    = evrak.delivery_type === 'firma'
                       const isPhysical = evrak.delivery_type === 'physical'
                       const isApproved = evrak.status === 'approved'
                       const isRejected = evrak.status === 'rejected'
-                      const hasFile = !!evrak.file_url
+                      const isElden    = evrak.status === 'elden'
+                      const hasFile    = !!evrak.file_url
+                      const isDone     = isFirma || isApproved || isElden
 
                       return (
                         <div key={evrak.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
@@ -540,6 +556,8 @@ export default function MusteriDetayPage() {
                               <span style={{ fontSize: '14px', flexShrink: 0 }}>🏢</span>
                             ) : isApproved ? (
                               <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
+                            ) : isElden ? (
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>🤝</div>
                             ) : isRejected ? (
                               <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
                             ) : hasFile ? (
@@ -552,44 +570,55 @@ export default function MusteriDetayPage() {
                             <div style={{ minWidth: 0 }}>
                               <div style={{ fontSize: '13px', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evrak.doc_name}</div>
                               <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
-                                {isFirma ? 'Firma hazırlayacak'
+                                {isFirma    ? 'Firma hazırlayacak'
                                   : isApproved ? 'Onaylandı'
+                                  : isElden    ? 'Elden teslim alınacak'
                                   : isRejected ? 'Reddedildi'
-                                  : hasFile ? 'Yüklendi — inceleniyor'
+                                  : hasFile    ? 'Yüklendi — inceleniyor'
                                   : isPhysical ? 'Elden teslim bekleniyor'
                                   : 'Müşteri yükleyecek'}
                               </div>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, marginLeft: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
                             {isFirma && (
                               <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>Firma</span>
                             )}
                             {isApproved && (
                               <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>✓ Onaylı</span>
                             )}
+                            {isElden && (
+                              <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>🤝 Elden</span>
+                            )}
                             {isRejected && (
                               <span style={{ fontSize: '10px', color: '#c0392b', fontWeight: '600', background: '#fef0ee', padding: '3px 8px', borderRadius: '20px' }}>✗ Reddedildi</span>
                             )}
                             {hasFile && evrak.file_url && (
-                              <a href={evrak.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 8px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                              <a href={evrak.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 7px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                                 Gör
                               </a>
                             )}
-                            {isStaff && !isFirma && !isApproved && (
+                            {isStaff && !isFirma && !isDone && (
                               <>
                                 <button
                                   onClick={() => approveDoc(evrak.id, evrak.doc_name)}
                                   disabled={saving}
-                                  style={{ padding: '3px 8px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}
+                                  style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}
                                 >
                                   {saving ? '...' : '✓ Onayla'}
+                                </button>
+                                <button
+                                  onClick={() => eldenDoc(evrak.id, evrak.doc_name)}
+                                  disabled={saving}
+                                  style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#fff8ec', color: '#92600a', border: '1px solid #f0d08a', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}
+                                >
+                                  🤝 Elden
                                 </button>
                                 {!isRejected && (
                                   <button
                                     onClick={() => rejectDoc(evrak.id, evrak.doc_name)}
                                     disabled={saving}
-                                    style={{ padding: '3px 8px', fontSize: '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}
+                                    style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}
                                   >
                                     ✗ Reddet
                                   </button>
