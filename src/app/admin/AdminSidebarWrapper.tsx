@@ -14,6 +14,7 @@ const navItems = [
   { label: 'Tüm Müşteriler', href: '/admin/musteriler' },
   { label: 'Hizmet Fiyatları', href: '/admin/fiyatlar' },
   { label: 'Aktivite Geçmişi', href: '/admin/aktivite' },
+  { label: '↑ Toplu İçe Aktar', href: '/admin/import' },
 ]
 
 export default function AdminSidebarWrapper() {
