@@ -36,7 +36,7 @@ export default function MusterilerPage() {
   const [showModal, setShowModal] = useState(false)
   const [prices, setPrices] = useState<any[]>([])
   const { countries, visaTypesFor } = useVisaOptions()
-  const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '' })
+  const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '' })
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
@@ -141,10 +141,20 @@ export default function MusterilerPage() {
           client_id: newClient.id,
           country: form.country,
           visa_type: form.visa_type,
+          occupation: form.occupation || null,
           status: 'missing',
         })
         .select()
         .single()
+
+      if (newApp && form.country && form.visa_type) {
+        await supabase.rpc('get_visa_documents', {
+          p_application_id: newApp.id,
+          p_country: form.country,
+          p_visa_type: form.visa_type,
+          p_occupation: form.occupation || null,
+        })
+      }
 
       if (newApp && autoPrice) {
         await supabase.from('payments').insert({
@@ -161,7 +171,7 @@ export default function MusterilerPage() {
 
       await fetchData()
       setShowModal(false)
-      setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '' })
+      setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '' })
       router.push(`/dashboard/musteriler/${newClient.id}`)
     }
     setSaving(false)
@@ -320,6 +330,21 @@ export default function MusterilerPage() {
                   </div>
                 </div>
               </div>
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Meslek</label>
+              <select
+                value={form.occupation}
+                onChange={e => setForm({...form, occupation: e.target.value})}
+                style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit', color: form.occupation ? '#0d1f35' : '#9aaabb' }}
+              >
+                <option value="">Meslek Seçin (opsiyonel)</option>
+                <option value="calisan">Çalışan</option>
+                <option value="sirket_sahibi">İşveren / Serbest Meslek</option>
+                <option value="ogrenci">Öğrenci</option>
+                <option value="emekli">Emekli</option>
+                <option value="ev_hanimi">Çalışmıyor</option>
+              </select>
             </div>
             {autoPrice ? (
               <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

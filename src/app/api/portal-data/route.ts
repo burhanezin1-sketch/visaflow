@@ -35,26 +35,18 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
     const application = appArr?.[0] ?? null
 
-    let visaDocuments: any[] = []
-    let uploadedDocs: any[] = []
+    let userSubmittedDocs: any[] = []
 
-    if (application?.country && application?.visa_type) {
-      const { data: vd } = await supabase
-        .from('visa_documents')
-        .select('*')
-        .eq('country', application.country)
-        .eq('visa_type', application.visa_type)
-        .order('order_num', { ascending: true })
-      visaDocuments = vd || []
-
-      const { data: ud } = await supabase
-        .from('documents')
+    if (application?.id) {
+      const { data: usd } = await supabase
+        .from('user_submitted_docs')
         .select('*')
         .eq('application_id', application.id)
-      uploadedDocs = ud || []
+        .order('id', { ascending: true })
+      userSubmittedDocs = usd || []
     }
 
-    return NextResponse.json({ client: safeClient, application, visaDocuments, uploadedDocs })
+    return NextResponse.json({ client: safeClient, application, userSubmittedDocs })
   } catch (err: any) {
     console.error('[portal-data]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

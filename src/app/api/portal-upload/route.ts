@@ -76,6 +76,13 @@ export async function POST(req: NextRequest) {
       company_id: client.company_id,
     })
 
+    // user_submitted_docs'u güncelle (yeni 3-katmanlı mimari)
+    await supabase
+      .from('user_submitted_docs')
+      .update({ file_url: urlData.publicUrl, updated_at: new Date().toISOString() })
+      .eq('application_id', applicationId)
+      .eq('doc_name', docName)
+
     // OCR — sadece görsel ve pasaport/kimlik evrakları için
     let ocrFields: string[] = []
     const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))

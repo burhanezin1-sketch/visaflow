@@ -51,9 +51,8 @@ export default function MusteriDetayPage() {
   const [odemeEkleForm, setOdemeEkleForm] = useState({ total_amount: '', currency: 'TRY', paid_amount: '', notes: '' })
   const [odemeEkleSaving, setOdemeEkleSaving] = useState(false)
   const [linkKopyalandi, setLinkKopyalandi] = useState(false)
-  const [documents, setDocuments] = useState<any[]>([])
-  const [visaDocuments, setVisaDocuments] = useState<any[]>([])
-  const [eldenVerildiSaving, setEldenVerildiSaving] = useState<Record<string, boolean>>({})
+  const [userSubmittedDocs, setUserSubmittedDocs] = useState<any[]>([])
+  const [docActionSaving, setDocActionSaving] = useState<Record<string, boolean>>({})
   const [evrakHata, setEvrakHata] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState('')
   const [companyPlan, setCompanyPlan] = useState('')
@@ -85,17 +84,11 @@ export default function MusteriDetayPage() {
     const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
     const { data: transferArr } = await supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').order('created_at', { ascending: false })
     const transferData = transferArr?.[0] ?? null
-    const { data: docsData } = await supabase.from('documents').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
-
-    if (appData?.country && appData?.visa_type) {
-      const { data: visaDocs } = await supabase
-        .from('visa_documents')
-        .select('*')
-        .eq('country', appData.country)
-        .eq('visa_type', appData.visa_type)
-        .order('order_num', { ascending: true })
-      setVisaDocuments(visaDocs || [])
-    }
+    const { data: usdData } = await supabase
+      .from('user_submitted_docs')
+      .select('*')
+      .eq('application_id', appData?.id ?? 'none')
+      .order('id', { ascending: true })
 
     setClient(clientData)
     setApplication(appData)
@@ -107,7 +100,7 @@ export default function MusteriDetayPage() {
     setCurrentUserName(usersData?.find((u: any) => u.id === user?.id)?.full_name || user?.email || 'Bilinmeyen')
     setCompanyPlan(companyData?.plan || 'basic')
     setPendingTransfer(transferData || null)
-    setDocuments(docsData || [])
+    setUserSubmittedDocs(usdData || [])
     setLoading(false)
   }
 
@@ -263,44 +256,45 @@ export default function MusteriDetayPage() {
     logAction(companyId!, currentUser?.id, currentUserName, `Başvuru durumu: ${statusMap[val]?.label}`, 'application', application.id, client?.full_name)
   }
 
-  async function eldenVerildiIsaretle(docName: string) {
+  async function approveDoc(docId: string, docName: string) {
     if (!application) return
-    setEldenVerildiSaving(prev => ({ ...prev, [docName]: true }))
+    setDocActionSaving(prev => ({ ...prev, [docId]: true }))
     setEvrakHata(null)
-
-    const { error: delErr } = await supabase
-      .from('documents')
-      .delete()
-      .eq('application_id', application.id)
-      .eq('name', docName)
-
-    if (delErr) {
-      setEvrakHata(`Silme hatası: ${delErr.message}`)
-      setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
-      return
-    }
-
-    const { error: insErr } = await supabase
-      .from('documents')
-      .insert({
-        application_id: application.id,
-        company_id: application.company_id,
-        name: docName,
-        file_url: null,
-        file_name: null,
-        status: 'approved',
-        delivery_type: 'physical',
-      })
-
-    if (insErr) {
-      setEvrakHata(`Kayıt hatası: ${insErr.message}`)
-      setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
-      return
-    }
-
+    const { error } = await supabase
+      .from('user_submitted_docs')
+      .update({ status: 'approved' })
+      .eq('id', docId)
+    if (error) { setEvrakHata(`Hata: ${error.message}`); setDocActionSaving(prev => ({ ...prev, [docId]: false })); return }
     await fetchAll()
-    logAction(companyId!, currentUser?.id, currentUserName, `Evrak elden verildi: ${docName}`, 'document', application.id, client?.full_name)
-    setEldenVerildiSaving(prev => ({ ...prev, [docName]: false }))
+    logAction(companyId!, currentUser?.id, currentUserName, `Evrak onaylandı: ${docName}`, 'document', application.id, client?.full_name)
+    setDocActionSaving(prev => ({ ...prev, [docId]: false }))
+  }
+
+  async function rejectDoc(docId: string, docName: string) {
+    if (!application) return
+    setDocActionSaving(prev => ({ ...prev, [docId]: true }))
+    setEvrakHata(null)
+    const { error } = await supabase
+      .from('user_submitted_docs')
+      .update({ status: 'rejected' })
+      .eq('id', docId)
+    if (error) { setEvrakHata(`Hata: ${error.message}`); setDocActionSaving(prev => ({ ...prev, [docId]: false })); return }
+    await fetchAll()
+    logAction(companyId!, currentUser?.id, currentUserName, `Evrak reddedildi: ${docName}`, 'document', application.id, client?.full_name)
+    setDocActionSaving(prev => ({ ...prev, [docId]: false }))
+  }
+
+  async function generateDocList() {
+    if (!application) return
+    setEvrakHata(null)
+    const { error } = await supabase.rpc('get_visa_documents', {
+      p_application_id: application.id,
+      p_country: application.country,
+      p_visa_type: application.visa_type,
+      p_occupation: application.occupation || null,
+    })
+    if (error) { setEvrakHata(`Evrak listesi oluşturulamadı: ${error.message}`); return }
+    await fetchAll()
   }
 
   async function niyetMektubuOlustur() {
@@ -356,21 +350,15 @@ export default function MusteriDetayPage() {
   const currentUserRole = danismanlar.find(d => d.id === currentUser?.id)?.role
   const isStaff = currentUserRole === 'admin' || currentUserRole === 'danisan'
 
-  // ✅ DÜZELTME: delivery_type'a göre doğru durum okunuyor
-  const evrakDurumu = visaDocuments.map(vd => {
-    const doc = documents.find(d => d.name === vd.doc_name)
-    return {
-      ...vd,
-      yuklendi: doc?.delivery_type === 'digital',
-      eldenSecildi: doc?.delivery_type === 'physical' && doc?.status === 'physical',
-      eldenVerildi: doc?.delivery_type === 'physical' && doc?.status === 'approved',
-      fileUrl: doc?.file_url,
-    }
-  })
+  const occupationLabels: Record<string, string> = {
+    calisan: 'Çalışan', sirket_sahibi: 'İşveren / Serbest Meslek',
+    ogrenci: 'Öğrenci', emekli: 'Emekli', ev_hanimi: 'Çalışmıyor',
+  }
 
-  // ✅ DÜZELTME: eldenSecildi de tamamlanmış sayılıyor
-  const tamamlanan = evrakDurumu.filter(e => e.yuklendi || e.eldenSecildi || e.eldenVerildi || e.delivery_type === 'company').length
-  const toplam = evrakDurumu.length
+  const tamamlanan = userSubmittedDocs.filter(d =>
+    d.delivery_type === 'firma' || d.status === 'approved'
+  ).length
+  const toplam = userSubmittedDocs.length
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
 
   return (
@@ -445,6 +433,7 @@ export default function MusteriDetayPage() {
                 ['Doğum Tarihi', client.birth_date ? new Date(client.birth_date).toLocaleDateString('tr-TR') : '-'],
                 ['Son Geçerlilik', client.passport_expiry ? new Date(client.passport_expiry).toLocaleDateString('tr-TR') : '-'],
                 ['Vize', application?.country + ' ' + application?.visa_type],
+                ['Meslek', occupationLabels[application?.occupation] || '-'],
                 ['Konsolosluk', application?.consulate || '-'],
                 ...(application?.appointment_date ? [['Randevu', new Date(application.appointment_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })]] : []),
               ].map(([label, value]) => (
@@ -512,8 +501,18 @@ export default function MusteriDetayPage() {
                     {evrakHata}
                   </div>
                 )}
-                {visaDocuments.length === 0 ? (
-                  <p style={{ fontSize: '12px', color: '#9aaabb' }}>Bu vize tipi için evrak listesi tanımlanmamış.</p>
+                {userSubmittedDocs.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                    <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '1rem' }}>Evrak listesi henüz oluşturulmamış.</p>
+                    {application?.country && application?.visa_type && (
+                      <button
+                        onClick={generateDocList}
+                        style={{ padding: '9px 18px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}
+                      >
+                        📋 Evrak Listesini Oluştur
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <div style={{ marginBottom: '1rem' }}>
@@ -525,72 +524,83 @@ export default function MusteriDetayPage() {
                         <div style={{ height: '100%', width: `${yuzde}%`, background: yuzde === 100 ? '#1a7a45' : '#1a5fa5', borderRadius: '10px', transition: 'width 0.3s' }} />
                       </div>
                     </div>
-                    {evrakDurumu.map((evrak, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                          {evrak.delivery_type === 'company' ? (
-                            <span style={{ fontSize: '14px' }}>🏢</span>
-                          ) : evrak.eldenVerildi ? (
-                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
-                          ) : evrak.delivery_type === 'physical' ? (
-                            <span style={{ fontSize: '14px' }}>🤝</span>
-                          ) : evrak.yuklendi ? (
-                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
-                          ) : evrak.eldenSecildi ? (
-                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', flexShrink: 0 }}>🤝</div>
-                          ) : (
-                            <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid #e2e2e8', flexShrink: 0 }} />
-                          )}
-                          <div>
-                            <div style={{ fontSize: '13px', color: '#0d1f35' }}>{evrak.doc_name}</div>
-                            <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
-                              {evrak.delivery_type === 'company'
-                                ? 'Firma ekleyecek'
-                                : evrak.eldenVerildi
-                                ? 'Elden teslim alındı'
-                                : evrak.delivery_type === 'physical'
-                                ? 'Elden teslim'
-                                : evrak.yuklendi
-                                ? 'Yüklendi'
-                                : evrak.eldenSecildi
-                                ? 'Elden getirilecek'
-                                : 'Bekleniyor'}
+
+                    {userSubmittedDocs.map((evrak) => {
+                      const saving = !!docActionSaving[evrak.id]
+                      const isFirma = evrak.delivery_type === 'firma'
+                      const isPhysical = evrak.delivery_type === 'physical'
+                      const isApproved = evrak.status === 'approved'
+                      const isRejected = evrak.status === 'rejected'
+                      const hasFile = !!evrak.file_url
+
+                      return (
+                        <div key={evrak.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                            {isFirma ? (
+                              <span style={{ fontSize: '14px', flexShrink: 0 }}>🏢</span>
+                            ) : isApproved ? (
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
+                            ) : isRejected ? (
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
+                            ) : hasFile ? (
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>↑</div>
+                            ) : isPhysical ? (
+                              <span style={{ fontSize: '14px', flexShrink: 0 }}>🤝</span>
+                            ) : (
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid #e2e2e8', flexShrink: 0 }} />
+                            )}
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evrak.doc_name}</div>
+                              <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
+                                {isFirma ? 'Firma hazırlayacak'
+                                  : isApproved ? 'Onaylandı'
+                                  : isRejected ? 'Reddedildi'
+                                  : hasFile ? 'Yüklendi — inceleniyor'
+                                  : isPhysical ? 'Elden teslim bekleniyor'
+                                  : 'Müşteri yükleyecek'}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                          {evrak.eldenVerildi ? (
-                            <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>✓ Alındı</span>
-                          ) : (
-                            <>
-                              {evrak.yuklendi && evrak.fileUrl && (
-                                <a href={evrak.fileUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                                  Görüntüle
-                                </a>
-                              )}
-                              {evrak.eldenSecildi && (
-                                <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Elden</span>
-                              )}
-                              {!evrak.yuklendi && !evrak.eldenSecildi && evrak.delivery_type === 'physical' && (
-                                <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>Zorunlu Elden</span>
-                              )}
-                              {evrak.delivery_type === 'company' && (
-                                <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>Firma</span>
-                              )}
-                              {isStaff && evrak.delivery_type !== 'company' && !evrak.yuklendi && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, marginLeft: '8px' }}>
+                            {isFirma && (
+                              <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>Firma</span>
+                            )}
+                            {isApproved && (
+                              <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>✓ Onaylı</span>
+                            )}
+                            {isRejected && (
+                              <span style={{ fontSize: '10px', color: '#c0392b', fontWeight: '600', background: '#fef0ee', padding: '3px 8px', borderRadius: '20px' }}>✗ Reddedildi</span>
+                            )}
+                            {hasFile && evrak.file_url && (
+                              <a href={evrak.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 8px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                Gör
+                              </a>
+                            )}
+                            {isStaff && !isFirma && !isApproved && (
+                              <>
                                 <button
-                                  onClick={() => eldenVerildiIsaretle(evrak.doc_name)}
-                                  disabled={!!eldenVerildiSaving[evrak.doc_name]}
-                                  style={{ padding: '3px 8px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: eldenVerildiSaving[evrak.doc_name] ? 0.6 : 1 }}
+                                  onClick={() => approveDoc(evrak.id, evrak.doc_name)}
+                                  disabled={saving}
+                                  style={{ padding: '3px 8px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}
                                 >
-                                  {eldenVerildiSaving[evrak.doc_name] ? '...' : 'Elden Verildi'}
+                                  {saving ? '...' : '✓ Onayla'}
                                 </button>
-                              )}
-                            </>
-                          )}
+                                {!isRejected && (
+                                  <button
+                                    onClick={() => rejectDoc(evrak.id, evrak.doc_name)}
+                                    disabled={saving}
+                                    style={{ padding: '3px 8px', fontSize: '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}
+                                  >
+                                    ✗ Reddet
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
+
                     <button
                       onClick={() => {
                         setActiveTab('wp')

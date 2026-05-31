@@ -16,12 +16,10 @@ export default function PortalPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [bilgiKaydedildi, setBilgiKaydedildi] = useState(false)
-  const [visaDocuments, setVisaDocuments] = useState<any[]>([])
-  const [uploadedDocs, setUploadedDocs] = useState<any[]>([])
-  const [uploading, setUploading] = useState<Record<number, boolean>>({})
-  const [eldenSaving, setEldenSaving] = useState<Record<number, boolean>>({})
-  const [ocrStatus, setOcrStatus] = useState<Record<number, 'scanning' | 'done' | 'error'>>({})
-  const fileRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  const [userSubmittedDocs, setUserSubmittedDocs] = useState<any[]>([])
+  const [uploading, setUploading] = useState<Record<string, boolean>>({})
+  const [ocrStatus, setOcrStatus] = useState<Record<string, 'scanning' | 'done' | 'error'>>({})
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
     async function fetchClient() {
@@ -37,8 +35,7 @@ export default function PortalPage() {
         setPhone(data.client.phone || '')
         if (data.client.consent_approved !== true) setShowConsent(true)
         setApplication(data.application)
-        setVisaDocuments(data.visaDocuments || [])
-        setUploadedDocs(data.uploadedDocs || [])
+        setUserSubmittedDocs(data.userSubmittedDocs || [])
       } catch (err) {
         console.error('[portal] fetchClient error', err)
       }
@@ -86,7 +83,7 @@ export default function PortalPage() {
     setTimeout(() => setBilgiKaydedildi(false), 2000)
   }
 
-  async function handleFileUpload(idx: number, docName: string, e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileUpload(idx: string, docName: string, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !client || !application) return
     setUploading(prev => ({ ...prev, [idx]: true }))
@@ -103,7 +100,7 @@ export default function PortalPage() {
     fd.append('clientId', client.id)
     fd.append('applicationId', application.id)
     fd.append('docName', docName)
-    fd.append('idx', String(idx))
+    fd.append('idx', idx)
 
     try {
       const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
@@ -128,40 +125,11 @@ export default function PortalPage() {
     const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr2)}`)
     if (refreshRes.ok) {
       const refreshData = await refreshRes.json()
-      setUploadedDocs(refreshData.uploadedDocs || [])
+      setUserSubmittedDocs(refreshData.userSubmittedDocs || [])
     }
     setUploading(prev => ({ ...prev, [idx]: false }))
   }
 
-  async function handleEldenSec(idx: number, docName: string) {
-    if (!client || !application) return
-    setEldenSaving(prev => ({ ...prev, [idx]: true }))
-    const tokenStr = Array.isArray(token) ? token[0] : String(token)
-    try {
-      const res = await fetch('/api/portal-elden', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenStr, clientId: client.id, applicationId: application.id, docName }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        console.error('[elden]', err.error)
-        setEldenSaving(prev => ({ ...prev, [idx]: false }))
-        return
-      }
-    } catch (err) {
-      console.error('[elden] fetch error', err)
-      setEldenSaving(prev => ({ ...prev, [idx]: false }))
-      return
-    }
-    const tokenStr2 = Array.isArray(token) ? token[0] : String(token)
-    const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr2)}`)
-    if (refreshRes.ok) {
-      const refreshData = await refreshRes.json()
-      setUploadedDocs(refreshData.uploadedDocs || [])
-    }
-    setEldenSaving(prev => ({ ...prev, [idx]: false }))
-  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', fontFamily: 'system-ui' }}>
@@ -260,11 +228,10 @@ export default function PortalPage() {
     </div>
   )
 
-  const tamamlanan = visaDocuments.filter(vd => {
-    if (vd.delivery_type === 'company') return true
-    return uploadedDocs.some(d => d.name === vd.doc_name)
-  }).length
-  const toplam = visaDocuments.length
+  const tamamlanan = userSubmittedDocs.filter(d =>
+    d.delivery_type === 'firma' || d.status === 'approved' || (d.file_url && d.status === 'pending')
+  ).length
+  const toplam = userSubmittedDocs.length
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
 
   return (
@@ -314,7 +281,7 @@ export default function PortalPage() {
         <div style={{ padding: '1.5rem' }}>
           {activeTab === 'evrak' && (
             <div>
-              {visaDocuments.length === 0 ? (
+              {userSubmittedDocs.length === 0 ? (
                 <p style={{ fontSize: '13px', color: '#9aaabb', textAlign: 'center', padding: '2rem 0' }}>Evrak listesi henüz hazırlanmadı.</p>
               ) : (
                 <>
@@ -328,17 +295,20 @@ export default function PortalPage() {
                     </div>
                   </div>
 
-                  {visaDocuments.map((vd, idx) => {
-                    const yuklenenDoc = uploadedDocs.find(d => d.name === vd.doc_name)
-                    const yuklendi = yuklenenDoc?.delivery_type === 'digital'
-                    const eldenSecildi = yuklenenDoc?.delivery_type === 'physical'
+                  {userSubmittedDocs.map((doc) => {
+                    const key = doc.id
+                    const isFirma = doc.delivery_type === 'firma'
+                    const isPhysical = doc.delivery_type === 'physical'
+                    const isApproved = doc.status === 'approved'
+                    const isRejected = doc.status === 'rejected'
+                    const hasFile = !!doc.file_url
 
-                    if (vd.delivery_type === 'company') return (
-                      <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                    if (isFirma) return (
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#eef4fb', borderRadius: '8px', padding: '10px 12px' }}>
                           <span style={{ fontSize: '16px' }}>🏢</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{vd.doc_name}</div>
+                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
                             <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>Danışmanlık firmanız tarafından karşılanacak.</div>
                           </div>
                           <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px', border: '1px solid #b8d4f0', whiteSpace: 'nowrap' }}>Firma</span>
@@ -346,71 +316,88 @@ export default function PortalPage() {
                       </div>
                     )
 
-                    if (vd.delivery_type === 'physical') return (
-                      <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#faf8f3', borderRadius: '8px', padding: '10px 12px' }}>
-                          <span style={{ fontSize: '16px' }}>🤝</span>
+                    if (isPhysical) return (
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isApproved ? '#edfaf3' : '#faf8f3', borderRadius: '8px', padding: '10px 12px' }}>
+                          <span style={{ fontSize: '16px' }}>{isApproved ? '✅' : '🤝'}</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{vd.doc_name}</div>
-                            <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>Randevu günü elden teslim edilmelidir.</div>
+                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
+                            <div style={{ fontSize: '11px', color: isApproved ? '#1a7a45' : '#9aaabb', marginTop: '2px' }}>
+                              {isApproved ? 'Elden teslim alındı.' : 'Randevu günü elden teslim edilmelidir.'}
+                            </div>
                           </div>
-                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>Elden</span>
-                        </div>
-                      </div>
-                    )
-
-                    if (yuklendi) return (
-                      <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
-                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{vd.doc_name}</span>
-                          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                            <span style={{ fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>Yüklendi ✓</span>
-                            {ocrStatus[idx] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6' }}>🔍 Taranıyor...</span>}
-                            {ocrStatus[idx] === 'done' && <span style={{ fontSize: '10px', color: '#1a7a45' }}>✓ Veriler okundu</span>}
+                          <span style={{ fontSize: '10px', color: isApproved ? '#1a7a45' : '#92600a', fontWeight: '600', background: isApproved ? '#edfaf3' : '#fff8ec', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+                            {isApproved ? '✓ Alındı' : 'Elden'}
                           </span>
                         </div>
                       </div>
                     )
 
-                    if (eldenSecildi) return (
-                      <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                    if (isApproved) return (
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>🤝</div>
-                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{vd.doc_name}</span>
-                          <span style={{ fontSize: '11px', color: '#92600a', fontWeight: '500' }}>Elden getirilecek</span>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
+                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
+                          <span style={{ fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>Onaylandı ✓</span>
                         </div>
                       </div>
                     )
 
-                    if (uploading[idx]) return (
-                      <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ fontSize: '13px', color: '#9aaabb' }}>{vd.doc_name} — yükleniyor...</div>
+                    if (isRejected) return (
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
+                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
+                          <span style={{ fontSize: '11px', color: '#c0392b', fontWeight: '500' }}>Reddedildi — yeniden yükleyin</span>
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            ref={el => { fileRefs.current[key] = el }}
+                            onChange={e => handleFileUpload(key, doc.doc_name, e)}
+                            style={{ display: 'none' }}
+                          />
+                          <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#c0392b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                            📎 Yeniden Yükle
+                          </button>
+                        </div>
+                      </div>
+                    )
+
+                    if (hasFile) return (
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>↑</div>
+                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
+                          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                            <span style={{ fontSize: '11px', color: '#1a5fa5', fontWeight: '500' }}>Yüklendi — inceleniyor</span>
+                            {ocrStatus[key] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6' }}>🔍 Taranıyor...</span>}
+                            {ocrStatus[key] === 'done' && <span style={{ fontSize: '10px', color: '#1a7a45' }}>✓ Veriler okundu</span>}
+                          </span>
+                        </div>
+                      </div>
+                    )
+
+                    if (uploading[key]) return (
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div style={{ fontSize: '13px', color: '#9aaabb' }}>{doc.doc_name} — yükleniyor...</div>
                       </div>
                     )
 
                     return (
-                      <div key={idx} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{vd.doc_name}</div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <input
-                            type="file"
-                            accept="image/*,application/pdf"
-                            ref={el => { fileRefs.current[idx] = el }}
-                            onChange={e => handleFileUpload(idx, vd.doc_name, e)}
-                            style={{ display: 'none' }}
-                          />
-                          <button onClick={() => fileRefs.current[idx]?.click()} style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                            📎 Dijital Yükle
-                          </button>
-                          <button
-                            onClick={() => handleEldenSec(idx, vd.doc_name)}
-                            disabled={eldenSaving[idx]}
-                            style={{ flex: 1, padding: '8px', fontSize: '12px', fontWeight: '500', background: '#faf8f3', color: '#1a3a5c', border: '1.5px solid #1a3a5c', borderRadius: '8px', cursor: 'pointer', opacity: eldenSaving[idx] ? 0.6 : 1 }}
-                          >
-                            {eldenSaving[idx] ? 'Kaydediliyor...' : '🤝 Elden Getireceğim'}
-                          </button>
-                        </div>
+                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{doc.doc_name}</div>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          ref={el => { fileRefs.current[key] = el }}
+                          onChange={e => handleFileUpload(key, doc.doc_name, e)}
+                          style={{ display: 'none' }}
+                        />
+                        <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                          📎 Dijital Yükle
+                        </button>
                       </div>
                     )
                   })}
