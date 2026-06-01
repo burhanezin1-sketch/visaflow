@@ -199,7 +199,7 @@ export default function SuperAdminDashboard() {
   const monthlyRevenueTRY = Object.entries(mrrByCurrency).reduce((sum, [cur, amt]) => sum + amountToTRY(amt, cur, rates), 0)
   const hasMrrForeign = Object.keys(mrrByCurrency).some(c => c !== 'TRY')
   const mrrDisplay = hasMrrForeign
-    ? CUR_ORDER.filter(c => mrrByCurrency[c]).map(c => `${CUR_SYM[c]}${mrrByCurrency[c].toLocaleString('tr-TR')}`).join(' / ')
+    ? CUR_ORDER.filter(c => mrrByCurrency[c]).map(c => `${CUR_SYM[c]} ${mrrByCurrency[c].toLocaleString('tr-TR')}`).join('\n')
     : `₺${monthlyRevenue.toLocaleString('tr-TR')}`
   const mrrRateNote = fmtRateNote(rates)
 
@@ -341,7 +341,8 @@ export default function SuperAdminDashboard() {
                 ].map((s, i) => (
                   <div key={i} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: '10px', padding: '1.1rem' }}>
                     <div style={{ fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>{s.label}</div>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'white' }}>{s.value}</div>
+                    <div style={{ fontSize: i === 3 && hasMrrForeign ? '15px' : '24px', fontWeight: '700', color: 'white', whiteSpace: 'pre-line', lineHeight: '1.6' }}>{s.value}</div>
+                    {i === 3 && hasMrrForeign && <div style={{ fontSize: '11px', color: S.muted, marginTop: '4px' }}>≈ ₺{monthlyRevenueTRY.toLocaleString('tr-TR')}</div>}
                   </div>
                 ))}
               </div>
@@ -395,8 +396,13 @@ export default function SuperAdminDashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                   <span style={{ fontSize: '13px', fontWeight: '600', color: 'white' }}>Aylık MRR Tahmini (Son 12 Ay)</span>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: hasMrrForeign ? '14px' : '18px', fontWeight: '700', color: 'white' }}>{mrrDisplay}</div>
-                    {hasMrrForeign && <div style={{ fontSize: '12px', color: S.muted }}>~₺{monthlyRevenueTRY.toLocaleString('tr-TR')}</div>}
+                    <div style={{ fontSize: hasMrrForeign ? '14px' : '18px', fontWeight: '700', color: 'white', whiteSpace: 'pre-line', lineHeight: '1.6' }}>{mrrDisplay}</div>
+                    {hasMrrForeign && (
+                      <>
+                        <div style={{ borderTop: `1px solid ${S.border}`, margin: '4px 0 3px' }} />
+                        <div style={{ fontSize: '12px', color: S.muted }}>≈ ₺{monthlyRevenueTRY.toLocaleString('tr-TR')} TL karşılığı</div>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div style={{ height: '260px' }}>
@@ -432,8 +438,13 @@ export default function SuperAdminDashboard() {
                       <td style={{ ...tdS, fontWeight: '700' }}>{companies.length}</td>
                       <td style={tdS} />
                       <td style={{ ...tdS, fontWeight: '700' }}>
-                        <div>{mrrDisplay}</div>
-                        {hasMrrForeign && <div style={{ fontSize: '11px', color: S.muted }}>~₺{monthlyRevenueTRY.toLocaleString('tr-TR')}</div>}
+                        <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>{mrrDisplay}</div>
+                        {hasMrrForeign && (
+                          <>
+                            <div style={{ borderTop: `1px solid ${S.border}`, margin: '4px 0 3px' }} />
+                            <div style={{ fontSize: '11px', color: S.muted }}>≈ ₺{monthlyRevenueTRY.toLocaleString('tr-TR')}</div>
+                          </>
+                        )}
                       </td>
                     </tr>
                   </tbody>

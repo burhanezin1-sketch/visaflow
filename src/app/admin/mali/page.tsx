@@ -63,6 +63,17 @@ export default function MaliPage() {
   const tahsilEdilenTRY = Object.entries(currencyBreakdown).reduce((sum, [cur, b]) => sum + amountToTRY(b.collected, cur, rates), 0)
   const tahsilEdilmemisTRY = toplamCiroTRY - tahsilEdilenTRY
 
+  const multiLineRemaining = () => {
+    if (!hasForeign) return `${tahsilEdilmemisTRY.toLocaleString('tr-TR')} ₺`
+    return CUR_ORDER
+      .filter(c => ((currencyBreakdown[c]?.total ?? 0) - (currencyBreakdown[c]?.collected ?? 0)) > 0)
+      .map(c => {
+        const rem = (currencyBreakdown[c]?.total ?? 0) - (currencyBreakdown[c]?.collected ?? 0)
+        return `${CUR_SYM[c]} ${rem.toLocaleString('tr-TR')}`
+      })
+      .join('\n') || `${tahsilEdilmemisTRY.toLocaleString('tr-TR')} ₺`
+  }
+
   const bekleyenler = payments.filter(p => p.total_amount - p.paid_amount > 0)
   const fmtTRY = (n: number) => `~${n.toLocaleString('tr-TR')} ₺`
   const rateNote = fmtRateNote(rates)
@@ -72,7 +83,10 @@ export default function MaliPage() {
       const b = currencyBreakdown['TRY'] || { total: 0, collected: 0 }
       return `${b[key].toLocaleString('tr-TR')} ₺`
     }
-    return CUR_ORDER.filter(c => currencyBreakdown[c]).map(c => `${CUR_SYM[c]}${currencyBreakdown[c][key].toLocaleString('tr-TR')}`).join(' / ')
+    return CUR_ORDER
+      .filter(c => (currencyBreakdown[c]?.[key] ?? 0) > 0)
+      .map(c => `${CUR_SYM[c]} ${currencyBreakdown[c][key].toLocaleString('tr-TR')}`)
+      .join('\n')
   }
 
   return (
@@ -86,12 +100,17 @@ export default function MaliPage() {
           {[
             { label: 'Toplam Ciro', value: multiLine('total'), tryVal: hasForeign ? fmtTRY(toplamCiroTRY) : null, color: '#0d1f35' },
             { label: 'Tahsil Edilen', value: multiLine('collected'), tryVal: hasForeign ? fmtTRY(tahsilEdilenTRY) : null, color: '#1a7a45' },
-            { label: 'Tahsil Edilmemiş', value: hasForeign ? fmtTRY(tahsilEdilmemisTRY) : `${tahsilEdilmemisTRY.toLocaleString('tr-TR')} ₺`, tryVal: null, color: '#c0392b' },
+            { label: 'Tahsil Edilmemiş', value: multiLineRemaining(), tryVal: hasForeign ? fmtTRY(tahsilEdilmemisTRY) : null, color: '#c0392b' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: isMobile ? '10px' : '12px', padding: isMobile ? '0.75rem' : '1.25rem' }}>
               <div style={{ fontSize: '9px', fontWeight: '700', color: '#9aaabb', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.7px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</div>
-              <div style={{ fontSize: hasForeign ? (isMobile ? '11px' : '13px') : (isMobile ? '14px' : '22px'), fontWeight: '600', color: s.color, lineHeight: '1.4' }}>{s.value}</div>
-              {s.tryVal && <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#9aaabb', marginTop: '3px' }}>{s.tryVal}</div>}
+              <div style={{ fontSize: hasForeign ? (isMobile ? '12px' : '14px') : (isMobile ? '14px' : '22px'), fontWeight: '600', color: s.color, lineHeight: '1.6', whiteSpace: 'pre-line' }}>{s.value}</div>
+              {s.tryVal && (
+                <>
+                  <div style={{ borderTop: '1px solid #f0ede6', margin: '6px 0 4px' }} />
+                  <div style={{ fontSize: isMobile ? '10px' : '12px', color: '#9aaabb' }}>Toplam (TL karşılığı): {s.tryVal}</div>
+                </>
+              )}
             </div>
           ))}
         </div>

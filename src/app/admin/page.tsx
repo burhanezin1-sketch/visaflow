@@ -164,7 +164,7 @@ export default function AdminPage() {
     return CUR_ORDER
       .filter(c => (currencyBreakdown[c]?.[key] ?? 0) > 0)
       .map(c => `${CUR_SYM[c]} ${currencyBreakdown[c][key].toLocaleString('tr-TR')}`)
-      .join(' / ') || '₺ 0'
+      .join('\n') || '₺ 0'
   }
 
   function multiLineRemaining(): string {
@@ -174,7 +174,7 @@ export default function AdminPage() {
         const rem = (currencyBreakdown[c]?.total ?? 0) - (currencyBreakdown[c]?.collected ?? 0)
         return `${CUR_SYM[c]} ${rem.toLocaleString('tr-TR')}`
       })
-      .join(' / ') || '₺ 0'
+      .join('\n') || '₺ 0'
   }
 
   return (
@@ -189,13 +189,13 @@ export default function AdminPage() {
             {
               label: 'Toplam Ciro',
               value: hasForeign ? multiLine('total') : fmt(stats.toplamOdeme),
-              sub: hasForeign ? '~' + fmt(stats.toplamOdeme) + ' toplam' : stats.toplamMusteri + ' müşteri',
+              sub: hasForeign ? `Toplam (TL karşılığı): ~${fmt(stats.toplamOdeme)}` : stats.toplamMusteri + ' müşteri',
               color: '#1a7a45',
             },
             {
               label: 'Tahsil Edilmemiş',
               value: hasForeign ? multiLineRemaining() : fmt(stats.tahsilEdilmemis),
-              sub: hasForeign ? '~' + fmt(stats.tahsilEdilmemis) + ' toplam' : null,
+              sub: hasForeign ? `~${fmt(stats.tahsilEdilmemis)} TL karşılığı` : null,
               color: '#c0392b',
             },
             { label: 'Aktif Dosya', value: stats.toplamMusteri, color: '#0d1f35', sub: null },
@@ -203,8 +203,13 @@ export default function AdminPage() {
           ].map((s, i) => (
             <div key={i} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: isMobile ? '10px' : '12px', padding: isMobile ? '0.875rem' : '1.25rem' }}>
               <div style={{ fontSize: '9px', fontWeight: '700', color: '#9aaabb', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</div>
-              <div style={{ fontSize: (hasForeign && i < 2) ? (isMobile ? '13px' : '15px') : (isMobile ? '18px' : '22px'), fontWeight: '600', color: s.color, wordBreak: 'break-word' }}>{s.value}</div>
-              {s.sub && !isMobile && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>{s.sub}</div>}
+              <div style={{ fontSize: (hasForeign && i < 2) ? (isMobile ? '13px' : '15px') : (isMobile ? '18px' : '22px'), fontWeight: '600', color: s.color, wordBreak: 'break-word', whiteSpace: 'pre-line', lineHeight: '1.5' }}>{s.value}</div>
+              {s.sub && (
+                <>
+                  {hasForeign && i < 2 && <div style={{ borderTop: '1px solid #f0ede6', margin: '6px 0 4px' }} />}
+                  <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>{s.sub}</div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -249,7 +254,7 @@ export default function AdminPage() {
                 ].map(([label, value, color]) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f0ede6', fontSize: '13px' }}>
                     <span style={{ color: '#5a6a7a' }}>{label}</span>
-                    <span style={{ fontWeight: '600', color }}>{value}</span>
+                    <span style={{ fontWeight: '600', color, whiteSpace: 'pre-line', textAlign: 'right', lineHeight: '1.5' }}>{value}</span>
                   </div>
                 ))}
                 {rateNote && <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '8px', lineHeight: '1.5' }}>{rateNote}</div>}
