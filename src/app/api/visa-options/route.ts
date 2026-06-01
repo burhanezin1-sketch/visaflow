@@ -14,31 +14,52 @@ function getAdmin() {
 export async function GET() {
   try {
     const admin = getAdmin()
-    const allRows: { country: string; visa_type: string }[] = []
+
+    // 1. Ülke listesi: eski visa_documents tablosundan (sayfalı)
+    const countryRows: { country: string; visa_type: string }[] = []
     let from = 0
     const pageSize = 1000
-
     while (true) {
       const { data, error } = await admin
         .from('visa_documents')
         .select('country, visa_type')
         .range(from, from + pageSize - 1)
       if (error || !data?.length) break
-      allRows.push(...data)
+      countryRows.push(...data)
       if (data.length < pageSize) break
       from += pageSize
     }
 
-    // Build country → sorted visa_types[] map
-    const map: Record<string, Set<string>> = {}
-    for (const row of allRows) {
-      if (!map[row.country]) map[row.country] = new Set()
-      map[row.country].add(row.visa_type)
-    }
+    // 2. Tüm vize türleri: visa_package_rules tablosundan (yeni sistem)
+    const { data: rulesData } = await admin
+      .from('visa_package_rules')
+      .select('visa_type')
+      .eq('is_active', true)
 
+    // Kural tablosundaki DISTINCT vize türleri
+    const ruleVisaTypes = new Set<string>(
+      (rulesData || []).map((r: { visa_type: string }) => r.visa_type)
+    )
+
+    // visa_documents'tan gelen eski vize türlerini de ekle (geriye dönük uyumluluk)
+    const oldVisaTypes = new Set<string>(countryRows.map(r => r.visa_type))
+
+    // Birleşik vize türleri listesi — Türkçe alfabetik sıra
+    const allVisaTypes = [...new Set([...ruleVisaTypes, ...oldVisaTypes])].sort(
+      (a, b) => a.localeCompare(b, 'tr')
+    )
+
+    // 3. Ülke listesi: visa_documents'tan DISTINCT ülkeler
+    const countries = [...new Set(countryRows.map(r => r.country))].sort(
+      (a, b) => a.localeCompare(b, 'tr')
+    )
+
+    // 4. Her ülke için tüm vize türlerini döndür
+    // 3-katmanlı mimari her ülke + vize tipi kombinasyonunu destekliyor;
+    // country_specific_docs'ta kayıt yoksa standard + occupation evrakları gelir.
     const result: Record<string, string[]> = {}
-    for (const country of Object.keys(map).sort((a, b) => a.localeCompare(b, 'tr'))) {
-      result[country] = [...map[country]].sort((a, b) => a.localeCompare(b, 'tr'))
+    for (const country of countries) {
+      result[country] = allVisaTypes
     }
 
     return NextResponse.json(result, {
