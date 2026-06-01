@@ -46,7 +46,7 @@ export default function SuperAdminDashboard() {
   const [monthlyCounts, setMonthlyCounts] = useState<Record<string, number>>({})
   const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'genel' | 'gelir' | 'saglik' | 'destek' | 'firmalar' | 'evraklar'>('genel')
+  const [activeTab, setActiveTab] = useState<'genel' | 'gelir' | 'saglik' | 'destek' | 'firmalar' | 'evraklar' | 'kurallar'>('genel')
 
   const [fxRates, setFxRates] = useState<FxRates | null>(null)
   const [saglik, setSaglik] = useState<{ leads: number; monthlyApps: number; activeUsers7d: number; logs: any[] }>({ leads: 0, monthlyApps: 0, activeUsers7d: 0, logs: [] })
@@ -57,6 +57,7 @@ export default function SuperAdminDashboard() {
   const [destekSent, setDestekSent] = useState(false)
   const [sendingDestek, setSendingDestek] = useState(false)
 
+  const [rules, setRules] = useState<any[]>([])
   const [visaDocs, setVisaDocs] = useState<any[]>([])
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedVisa, setSelectedVisa] = useState('')
@@ -77,7 +78,7 @@ export default function SuperAdminDashboard() {
     if (!user) { router.push('/superadmin/login'); return }
     const { data: sa } = await supabase.from('superadmins').select('id').eq('id', user.id).single()
     if (!sa) { router.push('/superadmin/login'); return }
-    const [rates] = await Promise.all([fetchFxRates(), fetchCompanies(), fetchVisaDocs(), fetchActivities(), fetchSaglik()])
+    const [rates] = await Promise.all([fetchFxRates(), fetchCompanies(), fetchVisaDocs(), fetchRules(), fetchActivities(), fetchSaglik()])
     setFxRates(rates)
     setLoading(false)
   }
@@ -136,6 +137,21 @@ export default function SuperAdminDashboard() {
       setSelectedCountry(docs[0].country)
       setSelectedVisa(docs[0].visa_type)
     }
+  }
+
+  async function fetchRules() {
+    const { data } = await supabase
+      .from('visa_package_rules')
+      .select('*')
+      .order('visa_type')
+      .order('priority')
+      .order('occupation')
+    setRules(data || [])
+  }
+
+  async function toggleRule(id: string, current: boolean) {
+    await supabase.from('visa_package_rules').update({ is_active: !current }).eq('id', id)
+    await fetchRules()
   }
 
   async function logout() { await supabase.auth.signOut(); router.push('/superadmin/login') }
@@ -260,6 +276,7 @@ export default function SuperAdminDashboard() {
     ['destek', 'Destek'],
     ['firmalar', 'Firmalar'],
     ['evraklar', 'Evrak Şablonları'],
+    ['kurallar', 'Vize Kuralları'],
   ]
 
   const inpS: React.CSSProperties = { width: '100%', padding: '9px 12px', background: '#0f172a', border: `1px solid ${S.border}`, borderRadius: '8px', fontSize: '13px', color: 'white', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }
@@ -641,6 +658,80 @@ export default function SuperAdminDashboard() {
               </div>
             </>
           )}
+
+          {/* ── VİZE KURALLARI ── */}
+          {activeTab === 'kurallar' && (() => {
+            const pkgColors: Record<string, { bg: string; color: string }> = {
+              calisan:          { bg: '#1e3a5f', color: '#7dd3fc' },
+              sirket_sahibi:    { bg: '#1e2e1e', color: '#86efac' },
+              emekli:           { bg: '#2e2a1a', color: '#fcd34d' },
+              ogrenci:          { bg: '#2a1e3f', color: '#c4b5fd' },
+              ev_hanimi:        { bg: '#2e1e2e', color: '#f9a8d4' },
+              isveren_evraklari:{ bg: '#1e2e2e', color: '#67e8f9' },
+              none:             { bg: '#1e293b', color: '#94a3b8' },
+            }
+            const grouped = rules.reduce((acc: Record<string, any[]>, r) => {
+              if (!acc[r.visa_type]) acc[r.visa_type] = []
+              acc[r.visa_type].push(r)
+              return acc
+            }, {})
+            return (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <span style={{ fontSize: '13px', color: S.muted }}>{rules.length} kural — aktif: {rules.filter(r => r.is_active).length}</span>
+                  <button onClick={fetchRules} className="sd-btn-ghost" style={{ padding: '6px 14px', fontSize: '12px' }}>Yenile</button>
+                </div>
+                {Object.entries(grouped).map(([visaType, typeRules]) => (
+                  <div key={visaType} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: '10px', overflow: 'hidden', marginBottom: '1rem' }}>
+                    <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${S.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: 'white' }}>{visaType}</span>
+                      <span style={{ fontSize: '11px', color: S.muted }}>{typeRules.filter(r => r.is_active).length}/{typeRules.length} aktif</span>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          {['Meslek', 'Paket', 'Öncelik', 'Durum'].map(h => (
+                            <th key={h} style={thS}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {typeRules.map(r => {
+                          const pc = pkgColors[r.package_name] || { bg: '#1e293b', color: '#94a3b8' }
+                          return (
+                            <tr key={r.id} className="sd-row">
+                              <td style={{ ...tdS, color: r.occupation ? 'white' : S.faint, fontStyle: r.occupation ? 'normal' : 'italic' }}>
+                                {r.occupation ?? 'tüm meslekler'}
+                              </td>
+                              <td style={tdS}>
+                                <span style={{ fontSize: '11px', fontWeight: '500', padding: '2px 8px', borderRadius: '4px', background: pc.bg, color: pc.color }}>
+                                  {r.package_name}
+                                </span>
+                              </td>
+                              <td style={{ ...tdS, color: S.muted }}>{r.priority}</td>
+                              <td style={tdS}>
+                                <button
+                                  onClick={() => toggleRule(r.id, r.is_active)}
+                                  style={{
+                                    padding: '3px 10px', fontSize: '11px', fontWeight: '600',
+                                    borderRadius: '20px', border: 'none', cursor: 'pointer',
+                                    background: r.is_active ? 'rgba(134,239,172,0.15)' : 'rgba(148,163,184,0.1)',
+                                    color: r.is_active ? '#86efac' : S.faint,
+                                  }}
+                                >
+                                  {r.is_active ? '● Aktif' : '○ Pasif'}
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </>
+            )
+          })()}
         </div>
 
         {/* ── Evrak Modal ── */}
