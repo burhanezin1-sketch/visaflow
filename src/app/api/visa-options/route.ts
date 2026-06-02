@@ -30,24 +30,16 @@ export async function GET() {
       from += pageSize
     }
 
-    // 2. Tüm vize türleri: visa_package_rules tablosundan (yeni sistem)
+    // 2. Vize türleri: YALNIZCA visa_package_rules'tan (tek kaynak)
+    // visa_documents'tan eski isimler ('Ticari/İş' vb.) karışmasın
     const { data: rulesData } = await admin
       .from('visa_package_rules')
       .select('visa_type')
       .eq('is_active', true)
 
-    // Kural tablosundaki DISTINCT vize türleri
-    const ruleVisaTypes = new Set<string>(
+    const allVisaTypes = [...new Set<string>(
       (rulesData || []).map((r: { visa_type: string }) => r.visa_type)
-    )
-
-    // visa_documents'tan gelen eski vize türlerini de ekle (geriye dönük uyumluluk)
-    const oldVisaTypes = new Set<string>(countryRows.map(r => r.visa_type))
-
-    // Birleşik vize türleri listesi — Türkçe alfabetik sıra
-    const allVisaTypes = [...new Set([...ruleVisaTypes, ...oldVisaTypes])].sort(
-      (a, b) => a.localeCompare(b, 'tr')
-    )
+    )].sort((a, b) => a.localeCompare(b, 'tr'))
 
     // 3. Ülke listesi: visa_documents'tan DISTINCT ülkeler
     const countries = [...new Set(countryRows.map(r => r.country))].sort(
