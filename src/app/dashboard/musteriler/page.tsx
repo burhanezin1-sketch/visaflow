@@ -345,6 +345,11 @@ export default function MusterilerPage() {
                 <option value="emekli">Emekli</option>
                 <option value="ev_hanimi">Çalışmıyor</option>
               </select>
+              {form.visa_type === 'Resmi Vize' && (
+                <div style={{ marginTop: '6px', fontSize: '11px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '6px 10px', lineHeight: '1.5' }}>
+                  ⚠️ Resmi vize yalnızca devlet görevlileri içindir. Hususi (Yeşil) veya Hizmet (Gri) pasaport sahipleri Schengen ülkelerine 90 güne kadar vizesiz seyahat edebilir.
+                </div>
+              )}
             </div>
             {autoPrice ? (
               <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
