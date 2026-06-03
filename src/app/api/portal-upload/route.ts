@@ -20,14 +20,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const formData = await req.formData()
-    const file = formData.get('file') as File | null
+    const files = formData.getAll('file') as File[]
     const token = formData.get('token') as string
     const clientId = formData.get('clientId') as string
     const applicationId = formData.get('applicationId') as string
     const docName = formData.get('docName') as string
     const idx = formData.get('idx') as string
-
-    if (!file || !token || !clientId || !applicationId || !docName) {
+    if (!files.length || !token || !clientId || !applicationId || !docName) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 })
     }
 
@@ -51,26 +50,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    const fileName = `${clientId}/${idx}_${Date.now()}_${file.name}`
+    const uploadedUrls: string[] = []
+    const ts = Date.now()
 
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(fileName, buffer, { contentType: file.type, upsert: true })
-
-    if (uploadError) {
-      return NextResponse.json({ error: 'Upload failed: ' + uploadError.message }, { status: 500 })
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i]
+      const buf = Buffer.from(await f.arrayBuffer())
+      const fileName = `${clientId}/${idx}_${ts}_${i}_${f.name}`
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, buf, { contentType: f.type, upsert: true })
+      if (uploadError) {
+        return NextResponse.json({ error: 'Upload failed: ' + uploadError.message }, { status: 500 })
+      }
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
+      uploadedUrls.push(urlData.publicUrl)
     }
 
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
+    const fileUrlValue = uploadedUrls.length === 1 ? uploadedUrls[0] : JSON.stringify(uploadedUrls)
 
     await supabase.from('documents').delete().eq('application_id', applicationId).eq('name', docName)
     await supabase.from('documents').insert({
       application_id: applicationId,
       name: docName,
-      file_url: urlData.publicUrl,
-      file_name: file.name,
+      file_url: fileUrlValue,
+      file_name: files.map(f => f.name).join(', '),
       status: 'uploaded',
       delivery_type: 'digital',
       company_id: client.company_id,
@@ -79,15 +83,17 @@ export async function POST(req: NextRequest) {
     // user_submitted_docs'u güncelle (yeni 3-katmanlı mimari)
     await supabase
       .from('user_submitted_docs')
-      .update({ file_url: urlData.publicUrl, updated_at: new Date().toISOString() })
+      .update({ file_url: fileUrlValue, updated_at: new Date().toISOString() })
       .eq('application_id', applicationId)
       .eq('doc_name', docName)
 
-    // OCR — sadece görsel ve pasaport/kimlik evrakları için
+    // OCR — sadece görsel ve pasaport/kimlik evrakları için (ilk resim dosyası)
     let ocrFields: string[] = []
     const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
+    const file = files.find(f => f.type.startsWith('image/')) ?? null
 
-    if (isIdDoc && file.type.startsWith('image/')) {
+    if (isIdDoc && file) {
+      const buffer = Buffer.from(await file.arrayBuffer())
       try {
         const base64 = buffer.toString('base64')
         const mediaType = file.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
@@ -134,7 +140,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, fileUrl: urlData.publicUrl, ocrFields })
+    return NextResponse.json({ success: true, fileUrls: uploadedUrls, ocrFields })
   } catch (err: any) {
     console.error('[portal-upload]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

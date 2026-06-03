@@ -19,6 +19,7 @@ export default function PortalPage() {
   const [userSubmittedDocs, setUserSubmittedDocs] = useState<any[]>([])
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const [ocrStatus, setOcrStatus] = useState<Record<string, 'scanning' | 'done' | 'error'>>({})
+  const [fileEntries, setFileEntries] = useState<Record<string, { name: string; status: 'uploading' | 'done' | 'error' }[]>>({})
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -83,19 +84,26 @@ export default function PortalPage() {
     setTimeout(() => setBilgiKaydedildi(false), 2000)
   }
 
+  function removeFileEntry(idx: string, i: number) {
+    setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).filter((_, j) => j !== i) }))
+  }
+
   async function handleFileUpload(idx: string, docName: string, e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !client || !application) return
+    const files = e.target.files
+    if (!files || files.length === 0 || !client || !application) return
+
+    const fileArr = Array.from(files)
+    setFileEntries(prev => ({ ...prev, [idx]: fileArr.map(f => ({ name: f.name, status: 'uploading' as const })) }))
     setUploading(prev => ({ ...prev, [idx]: true }))
 
     const tokenStr = Array.isArray(token) ? token[0] : String(token)
     const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
-    if (isIdDoc && file.type.startsWith('image/')) {
+    if (isIdDoc && fileArr.some(f => f.type.startsWith('image/'))) {
       setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
     }
 
     const fd = new FormData()
-    fd.append('file', file)
+    fileArr.forEach(f => fd.append('file', f))
     fd.append('token', tokenStr)
     fd.append('clientId', client.id)
     fd.append('applicationId', application.id)
@@ -107,22 +115,23 @@ export default function PortalPage() {
       const data = await res.json()
       if (!res.ok) {
         console.error('[upload]', data.error)
+        setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'error' as const })) }))
         setUploading(prev => ({ ...prev, [idx]: false }))
         if (isIdDoc) setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
         return
       }
-      if (isIdDoc && file.type.startsWith('image/')) {
+      setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'done' as const })) }))
+      if (isIdDoc && fileArr.some(f => f.type.startsWith('image/'))) {
         setOcrStatus(prev => ({ ...prev, [idx]: data.ocrFields?.length > 0 ? 'done' : 'error' }))
       }
     } catch (err) {
       console.error('[upload] fetch error', err)
+      setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'error' as const })) }))
       setUploading(prev => ({ ...prev, [idx]: false }))
       return
     }
 
-    // Güncel evrak listesini yenile
-    const tokenStr2 = Array.isArray(token) ? token[0] : String(token)
-    const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr2)}`)
+    const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr)}`)
     if (refreshRes.ok) {
       const refreshData = await refreshRes.json()
       setUserSubmittedDocs(refreshData.userSubmittedDocs || [])
@@ -367,6 +376,7 @@ export default function PortalPage() {
                         <div>
                           <input
                             type="file"
+                            multiple
                             accept="image/*,application/pdf"
                             ref={el => { fileRefs.current[key] = el }}
                             onChange={e => handleFileUpload(key, doc.doc_name, e)}
@@ -375,6 +385,13 @@ export default function PortalPage() {
                           <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#c0392b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
                             📎 Yeniden Yükle
                           </button>
+                          {(fileEntries[key] || []).map((entry, fi) => (
+                            <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
+                              <span>{entry.status === 'done' ? '✓' : entry.status === 'error' ? '✗' : '⏳'}</span>
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.name}</span>
+                              <button onClick={() => removeFileEntry(key, fi)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9aaabb', fontSize: '14px', lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )
@@ -404,6 +421,7 @@ export default function PortalPage() {
                         <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{doc.doc_name}</div>
                         <input
                           type="file"
+                          multiple
                           accept="image/*,application/pdf"
                           ref={el => { fileRefs.current[key] = el }}
                           onChange={e => handleFileUpload(key, doc.doc_name, e)}
@@ -412,6 +430,13 @@ export default function PortalPage() {
                         <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
                           📎 Dijital Yükle
                         </button>
+                        {(fileEntries[key] || []).map((entry, fi) => (
+                          <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
+                            <span>{entry.status === 'done' ? '✓' : entry.status === 'error' ? '✗' : '⏳'}</span>
+                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.name}</span>
+                            <button onClick={() => removeFileEntry(key, fi)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9aaabb', fontSize: '14px', lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>
+                          </div>
+                        ))}
                       </div>
                     )
                   })}
