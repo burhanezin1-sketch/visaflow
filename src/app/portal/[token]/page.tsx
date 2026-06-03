@@ -3,14 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 
-const SIRKET_SUB_DOCS = [
-  { key: 'vergi',    label: 'Vergi levhası' },
-  { key: 'faaliyet', label: 'Şirket faaliyet belgesi' },
-  { key: 'sicil',    label: 'Ticaret sicil gazetesi' },
-  { key: 'imza',     label: 'İmza sirküleri' },
-] as const
-
-type SubDocStatus = { fileName: string; fileUrl: string | null; status: 'uploading' | 'done' | 'error' }
+const MULTI_UPLOAD_DOCS = [
+  'Şirket evrakları (güncel vergi levhası, imza sirküleri, faaliyet belgesi, ticaret sicil gazetesi)',
+  'Diploma ve mesleki belgeler',
+  'İş deneyimi belgeleri',
+]
 
 export default function PortalPage() {
   const { token } = useParams()
@@ -29,7 +26,6 @@ export default function PortalPage() {
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const [ocrStatus, setOcrStatus] = useState<Record<string, 'scanning' | 'done' | 'error'>>({})
   const [fileEntries, setFileEntries] = useState<Record<string, { name: string; status: 'uploading' | 'done' | 'error' }[]>>({})
-  const [sirketUploads, setSirketUploads] = useState<Record<string, Record<string, SubDocStatus>>>({})
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -148,62 +144,6 @@ export default function PortalPage() {
     }
     setUploading(prev => ({ ...prev, [idx]: false }))
   }
-
-  async function handleSirketSubUpload(docId: string, parentDocName: string, subKey: string, subLabel: string, file: File) {
-    if (!client || !application) return
-    const tokenStr = Array.isArray(token) ? token[0] : String(token)
-
-    setSirketUploads(prev => ({
-      ...prev,
-      [docId]: { ...(prev[docId] || {}), [subKey]: { fileName: file.name, fileUrl: null, status: 'uploading' } },
-    }))
-
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('token', tokenStr)
-    fd.append('clientId', client.id)
-    fd.append('applicationId', application.id)
-    fd.append('docName', `${parentDocName} — ${subLabel}`)
-    fd.append('idx', `${docId}_${subKey}`)
-
-    let fileUrl: string | null = null
-    try {
-      const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) {
-        setSirketUploads(prev => ({
-          ...prev,
-          [docId]: { ...(prev[docId] || {}), [subKey]: { fileName: file.name, fileUrl: null, status: 'error' } },
-        }))
-        return
-      }
-      fileUrl = data.fileUrls?.[0] ?? null
-    } catch {
-      setSirketUploads(prev => ({
-        ...prev,
-        [docId]: { ...(prev[docId] || {}), [subKey]: { fileName: file.name, fileUrl: null, status: 'error' } },
-      }))
-      return
-    }
-
-    const nextState = { ...(sirketUploads[docId] || {}), [subKey]: { fileName: file.name, fileUrl, status: 'done' as const } }
-    setSirketUploads(prev => ({ ...prev, [docId]: nextState }))
-
-    if (SIRKET_SUB_DOCS.every(s => nextState[s.key]?.status === 'done')) {
-      const allUrls = SIRKET_SUB_DOCS.map(s => nextState[s.key]!.fileUrl!).filter(Boolean)
-      await fetch('/api/portal-doc-approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenStr, clientId: client.id, applicationId: application.id, docId, fileUrls: allUrls }),
-      })
-      const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr)}`)
-      if (refreshRes.ok) {
-        const refreshData = await refreshRes.json()
-        setUserSubmittedDocs(refreshData.userSubmittedDocs || [])
-      }
-    }
-  }
-
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', fontFamily: 'system-ui' }}>
@@ -441,7 +381,7 @@ export default function PortalPage() {
                         <div>
                           <input
                             type="file"
-                            multiple
+                            {...(MULTI_UPLOAD_DOCS.includes(doc.doc_name) ? { multiple: true } : {})}
                             accept="image/*,application/pdf"
                             ref={el => { fileRefs.current[key] = el }}
                             onChange={e => handleFileUpload(key, doc.doc_name, e)}
@@ -461,9 +401,9 @@ export default function PortalPage() {
                       </div>
                     )
 
-                    const isSirket = doc.doc_name.startsWith('Şirket evrakları')
+                    const isMulti = MULTI_UPLOAD_DOCS.includes(doc.doc_name)
 
-                    if (hasFile && !isSirket) return (
+                    if (hasFile) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>↑</div>
@@ -477,48 +417,9 @@ export default function PortalPage() {
                       </div>
                     )
 
-                    if (uploading[key] && !isSirket) return (
+                    if (uploading[key]) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ fontSize: '13px', color: '#9aaabb' }}>{doc.doc_name} — yükleniyor...</div>
-                      </div>
-                    )
-
-                    if (isSirket) return (
-                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{doc.doc_name}</div>
-                        <div style={{ border: '1px solid #e8e4da', borderRadius: '8px', overflow: 'hidden' }}>
-                          {SIRKET_SUB_DOCS.map((sub, si) => {
-                            const subState = sirketUploads[key]?.[sub.key]
-                            const refKey = `${key}_${sub.key}`
-                            const isDone      = subState?.status === 'done'
-                            const isUploading = subState?.status === 'uploading'
-                            const isError     = subState?.status === 'error'
-                            return (
-                              <div key={sub.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: isDone ? '#edfaf3' : isError ? '#fef0ee' : 'white', borderBottom: si < 3 ? '1px solid #f0ede6' : 'none' }}>
-                                <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: isDone ? '#1a7a45' : isError ? '#c0392b' : '#f0ede6', border: `1.5px solid ${isDone ? '#1a7a45' : isError ? '#c0392b' : '#d8d4cc'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: isDone ? 'white' : isError ? 'white' : '#9aaabb', flexShrink: 0 }}>
-                                  {isDone ? '✓' : isError ? '✗' : isUploading ? '…' : si + 1}
-                                </div>
-                                <span style={{ fontSize: '12px', color: isDone ? '#1a7a45' : '#0d1f35', flex: 1, fontWeight: isDone ? '500' : '400' }}>{sub.label}</span>
-                                {isUploading ? (
-                                  <span style={{ fontSize: '11px', color: '#9aaabb' }}>yükleniyor...</span>
-                                ) : isDone ? null : (
-                                  <>
-                                    <input
-                                      type="file"
-                                      accept="image/*,application/pdf"
-                                      ref={el => { fileRefs.current[refKey] = el }}
-                                      onChange={e => { const f = e.target.files?.[0]; if (f) handleSirketSubUpload(key, doc.doc_name, sub.key, sub.label, f) }}
-                                      style={{ display: 'none' }}
-                                    />
-                                    <button onClick={() => fileRefs.current[refKey]?.click()} style={{ fontSize: '11px', padding: '4px 10px', background: isError ? '#c0392b' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
-                                      {isError ? '↺ Tekrar' : '📎 Yükle'}
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
                       </div>
                     )
 
@@ -527,15 +428,16 @@ export default function PortalPage() {
                         <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{doc.doc_name}</div>
                         <input
                           type="file"
-                          multiple
+                          {...(isMulti ? { multiple: true } : {})}
                           accept="image/*,application/pdf"
                           ref={el => { fileRefs.current[key] = el }}
                           onChange={e => handleFileUpload(key, doc.doc_name, e)}
                           style={{ display: 'none' }}
                         />
                         <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                          📎 Dijital Yükle
+                          📎 {isMulti ? 'Dosyaları Yükle' : 'Dijital Yükle'}
                         </button>
+                        {isMulti && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>Birden fazla dosya seçebilirsiniz</div>}
                         {(fileEntries[key] || []).map((entry, fi) => (
                           <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
                             <span>{entry.status === 'done' ? '✓' : entry.status === 'error' ? '✗' : '⏳'}</span>

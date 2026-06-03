@@ -64,8 +64,17 @@ export async function POST(req: NextRequest) {
       if (uploadError) {
         return NextResponse.json({ error: 'Upload failed: ' + uploadError.message }, { status: 500 })
       }
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
-      uploadedUrls.push(urlData.publicUrl)
+      const { data: signedData, error: signedErr } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365)
+      if (signedErr || !signedData?.signedUrl) {
+        // fallback: public URL (works when bucket is public)
+        const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName)
+        uploadedUrls.push(urlData.publicUrl)
+        console.warn('[portal-upload] signed URL failed, using public URL:', signedErr?.message)
+      } else {
+        uploadedUrls.push(signedData.signedUrl)
+      }
     }
 
     const fileUrlValue = uploadedUrls.length === 1 ? uploadedUrls[0] : JSON.stringify(uploadedUrls)
@@ -82,11 +91,12 @@ export async function POST(req: NextRequest) {
     })
 
     // user_submitted_docs'u güncelle — status her zaman pending'e çekilir (danışman manuel onaylar)
-    await supabase
+    const { error: usdErr } = await supabase
       .from('user_submitted_docs')
-      .update({ file_url: fileUrlValue, status: 'pending', updated_at: new Date().toISOString() })
+      .update({ file_url: fileUrlValue, status: 'pending' })
       .eq('application_id', applicationId)
       .eq('doc_name', docName)
+    if (usdErr) console.error('[portal-upload] user_submitted_docs update error:', usdErr.message)
 
     // OCR — sadece görsel ve pasaport/kimlik evrakları için (ilk resim dosyası)
     let ocrFields: string[] = []
