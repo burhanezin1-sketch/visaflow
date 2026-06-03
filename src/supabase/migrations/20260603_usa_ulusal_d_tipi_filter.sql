@@ -1,10 +1,8 @@
 -- ============================================================
--- 20260603_get_visa_documents_usa_postprocess.sql
+-- 20260603_usa_ulusal_d_tipi_filter.sql
 --
--- POST-PROCESSING'e Amerika kuralları eklendi:
--- 1. Schengen / 30.000 € artıklarını sil
--- 2. Birleşik şirket paketi varsa tekil evrakları sil
--- 3. Biyometrik fotoğrafı Amerika standardına (50x50mm) çevir
+-- Amerika post-processing: Schengen/30.000€ DELETE'e
+-- 'Ulusal (D Tipi)' filtresi eklendi
 -- ============================================================
 
 DROP FUNCTION IF EXISTS public.get_visa_documents(uuid, text, text, text);
