@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     const applicationId = formData.get('applicationId') as string
     const docName = formData.get('docName') as string
     const idx = formData.get('idx') as string
+    const skipDocUpdate = formData.get('skipDocUpdate') === 'true'
     if (!files.length || !token || !clientId || !applicationId || !docName) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 })
     }
@@ -90,13 +91,15 @@ export async function POST(req: NextRequest) {
       company_id: client.company_id,
     })
 
-    // user_submitted_docs'u güncelle — status her zaman pending'e çekilir (danışman manuel onaylar)
-    const { error: usdErr } = await supabase
-      .from('user_submitted_docs')
-      .update({ file_url: fileUrlValue, status: 'pending' })
-      .eq('application_id', applicationId)
-      .eq('doc_name', docName)
-    if (usdErr) console.error('[portal-upload] user_submitted_docs update error:', usdErr.message)
+    // user_submitted_docs'u güncelle — çoklu yükleme durumunda client combined URL gönderir (skipDocUpdate=true)
+    if (!skipDocUpdate) {
+      const { error: usdErr } = await supabase
+        .from('user_submitted_docs')
+        .update({ file_url: fileUrlValue, status: 'pending' })
+        .eq('application_id', applicationId)
+        .eq('doc_name', docName)
+      if (usdErr) console.error('[portal-upload] user_submitted_docs update error:', usdErr.message)
+    }
 
     // OCR — sadece görsel ve pasaport/kimlik evrakları için (ilk resim dosyası)
     let ocrFields: string[] = []

@@ -95,46 +95,88 @@ export default function PortalPage() {
   }
 
   async function handleFileUpload(idx: string, docName: string, e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
-    if (!files || files.length === 0 || !client || !application) return
+    const fileList = e.target.files
+    if (!fileList || fileList.length === 0 || !client || !application) return
 
-    const fileArr = Array.from(files)
-    setFileEntries(prev => ({ ...prev, [idx]: fileArr.map(f => ({ name: f.name, status: 'uploading' as const })) }))
-    setUploading(prev => ({ ...prev, [idx]: true }))
-
+    const fileArr = Array.from(fileList)
+    const isMulti = MULTI_UPLOAD_DOCS.includes(docName)
     const tokenStr = Array.isArray(token) ? token[0] : String(token)
     const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
+
+    setFileEntries(prev => ({ ...prev, [idx]: fileArr.map(f => ({ name: f.name, status: 'uploading' as const })) }))
+    setUploading(prev => ({ ...prev, [idx]: true }))
     if (isIdDoc && fileArr.some(f => f.type.startsWith('image/'))) {
       setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
     }
 
-    const fd = new FormData()
-    fileArr.forEach(f => fd.append('file', f))
-    fd.append('token', tokenStr)
-    fd.append('clientId', client.id)
-    fd.append('applicationId', application.id)
-    fd.append('docName', docName)
-    fd.append('idx', idx)
+    if (isMulti) {
+      // Her dosyayı ayrı ayrı yükle, per-file durum takibi
+      const collectedUrls: string[] = []
 
-    try {
-      const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) {
-        console.error('[upload]', data.error)
+      for (let i = 0; i < fileArr.length; i++) {
+        const f = fileArr[i]
+        const fd = new FormData()
+        fd.append('file', f)
+        fd.append('token', tokenStr)
+        fd.append('clientId', client.id)
+        fd.append('applicationId', application.id)
+        fd.append('docName', docName)
+        fd.append('idx', idx)
+        fd.append('skipDocUpdate', 'true')
+
+        try {
+          const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
+          const data = await res.json()
+          if (!res.ok) {
+            setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'error' as const } : e) }))
+          } else {
+            const url = data.fileUrls?.[0]
+            if (url) collectedUrls.push(url)
+            setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'done' as const } : e) }))
+          }
+        } catch {
+          setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'error' as const } : e) }))
+        }
+      }
+
+      // Tüm URL'leri birleştirip user_submitted_docs'a yaz
+      if (collectedUrls.length > 0) {
+        await fetch('/api/portal-update-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenStr, clientId: client.id, applicationId: application.id, docName, fileUrls: collectedUrls }),
+        })
+      }
+    } else {
+      // Tek dosya: mevcut batch davranışı
+      const fd = new FormData()
+      fd.append('file', fileArr[0])
+      fd.append('token', tokenStr)
+      fd.append('clientId', client.id)
+      fd.append('applicationId', application.id)
+      fd.append('docName', docName)
+      fd.append('idx', idx)
+
+      try {
+        const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (!res.ok) {
+          console.error('[upload]', data.error)
+          setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'error' as const })) }))
+          setUploading(prev => ({ ...prev, [idx]: false }))
+          if (isIdDoc) setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
+          return
+        }
+        setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'done' as const })) }))
+        if (isIdDoc && fileArr.some(f => f.type.startsWith('image/'))) {
+          setOcrStatus(prev => ({ ...prev, [idx]: data.ocrFields?.length > 0 ? 'done' : 'error' }))
+        }
+      } catch (err) {
+        console.error('[upload] fetch error', err)
         setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'error' as const })) }))
         setUploading(prev => ({ ...prev, [idx]: false }))
-        if (isIdDoc) setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
         return
       }
-      setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'done' as const })) }))
-      if (isIdDoc && fileArr.some(f => f.type.startsWith('image/'))) {
-        setOcrStatus(prev => ({ ...prev, [idx]: data.ocrFields?.length > 0 ? 'done' : 'error' }))
-      }
-    } catch (err) {
-      console.error('[upload] fetch error', err)
-      setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'error' as const })) }))
-      setUploading(prev => ({ ...prev, [idx]: false }))
-      return
     }
 
     const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr)}`)
