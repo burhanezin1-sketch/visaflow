@@ -257,46 +257,39 @@ export default function MusteriDetayPage() {
     logAction(companyId!, currentUser?.id, currentUserName, `Başvuru durumu: ${statusMap[val]?.label}`, 'application', application.id, client?.full_name)
   }
 
-  async function approveDoc(docId: string, docName: string) {
+  async function callDocAction(docId: string, docName: string, action: 'approve' | 'reject' | 'elden', logMsg: string) {
     if (!application) return
     setDocActionSaving(prev => ({ ...prev, [docId]: true }))
     setEvrakHata(null)
-    const { error } = await supabase
-      .from('user_submitted_docs')
-      .update({ status: 'approved' })
-      .eq('id', docId)
-    if (error) { setEvrakHata(`Hata: ${error.message}`); setDocActionSaving(prev => ({ ...prev, [docId]: false })); return }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/doc-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ docId, action, applicationId: application.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setEvrakHata(`Hata: ${data.error}`); return }
+    } catch (err: any) {
+      setEvrakHata(`Hata: ${err.message}`)
+      return
+    } finally {
+      setDocActionSaving(prev => ({ ...prev, [docId]: false }))
+    }
     await fetchAll()
-    logAction(companyId!, currentUser?.id, currentUserName, `Evrak onaylandı: ${docName}`, 'document', application.id, client?.full_name)
-    setDocActionSaving(prev => ({ ...prev, [docId]: false }))
+    logAction(companyId!, currentUser?.id, currentUserName, logMsg, 'document', application.id, client?.full_name)
   }
 
-  async function rejectDoc(docId: string, docName: string) {
-    if (!application) return
-    setDocActionSaving(prev => ({ ...prev, [docId]: true }))
-    setEvrakHata(null)
-    const { error } = await supabase
-      .from('user_submitted_docs')
-      .update({ status: 'rejected' })
-      .eq('id', docId)
-    if (error) { setEvrakHata(`Hata: ${error.message}`); setDocActionSaving(prev => ({ ...prev, [docId]: false })); return }
-    await fetchAll()
-    logAction(companyId!, currentUser?.id, currentUserName, `Evrak reddedildi: ${docName}`, 'document', application.id, client?.full_name)
-    setDocActionSaving(prev => ({ ...prev, [docId]: false }))
+  function approveDoc(docId: string, docName: string) {
+    return callDocAction(docId, docName, 'approve', `Evrak onaylandı: ${docName}`)
   }
 
-  async function eldenDoc(docId: string, docName: string) {
-    if (!application) return
-    setDocActionSaving(prev => ({ ...prev, [docId]: true }))
-    setEvrakHata(null)
-    const { error } = await supabase
-      .from('user_submitted_docs')
-      .update({ status: 'elden' })
-      .eq('id', docId)
-    if (error) { setEvrakHata(`Hata: ${error.message}`); setDocActionSaving(prev => ({ ...prev, [docId]: false })); return }
-    await fetchAll()
-    logAction(companyId!, currentUser?.id, currentUserName, `Evrak elden teslim: ${docName}`, 'document', application.id, client?.full_name)
-    setDocActionSaving(prev => ({ ...prev, [docId]: false }))
+  function rejectDoc(docId: string, docName: string) {
+    return callDocAction(docId, docName, 'reject', `Evrak reddedildi: ${docName}`)
+  }
+
+  function eldenDoc(docId: string, docName: string) {
+    return callDocAction(docId, docName, 'elden', `Evrak elden teslim: ${docName}`)
   }
 
   async function generateDocList() {

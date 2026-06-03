@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < files.length; i++) {
       const f = files[i]
       const buf = Buffer.from(await f.arrayBuffer())
-      const fileName = `${clientId}/${idx}_${ts}_${i}_${f.name}`
+      const safeFileName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const fileName = `${clientId}/${idx}_${ts}_${i}_${safeFileName}`
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(fileName, buf, { contentType: f.type, upsert: true })
@@ -80,10 +81,10 @@ export async function POST(req: NextRequest) {
       company_id: client.company_id,
     })
 
-    // user_submitted_docs'u güncelle (yeni 3-katmanlı mimari)
+    // user_submitted_docs'u güncelle — status her zaman pending'e çekilir (danışman manuel onaylar)
     await supabase
       .from('user_submitted_docs')
-      .update({ file_url: fileUrlValue, updated_at: new Date().toISOString() })
+      .update({ file_url: fileUrlValue, status: 'pending', updated_at: new Date().toISOString() })
       .eq('application_id', applicationId)
       .eq('doc_name', docName)
 
