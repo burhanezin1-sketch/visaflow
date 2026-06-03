@@ -134,6 +134,8 @@ export default function MusterilerPage() {
       .single()
 
     if (newClient) {
+      console.log('[saveClient] form.occupation:', form.occupation)
+
       const { data: newApp } = await supabase
         .from('applications')
         .insert({
@@ -147,12 +149,16 @@ export default function MusterilerPage() {
         .select()
         .single()
 
+      console.log('[saveClient] applications INSERT occupation:', form.occupation || null, '| newApp.id:', newApp?.id)
+
       if (newApp && form.country && form.visa_type) {
+        const p_occupation = form.occupation || null
+        console.log('[saveClient] get_visa_documents p_occupation:', p_occupation)
         const { error: rpcError } = await supabase.rpc('get_visa_documents', {
           p_application_id: newApp.id,
           p_country: form.country,
           p_visa_type: form.visa_type,
-          p_occupation: form.occupation || null,
+          p_occupation,
         })
         if (rpcError) console.error('[get_visa_documents] hata:', rpcError.message, rpcError.code)
       }

@@ -90,6 +90,7 @@ export default function MusteriDetayPage() {
       .eq('application_id', appData?.id ?? 'none')
       .order('id', { ascending: true })
 
+    console.log('[fetchAll] application.occupation:', appData?.occupation)
     setClient(clientData)
     setApplication(appData)
     setPayment(paymentData)
@@ -301,11 +302,14 @@ export default function MusteriDetayPage() {
   async function generateDocList() {
     if (!application) return
     setEvrakHata(null)
+    console.log('[generateDocList] application.occupation:', application.occupation)
+    const p_occupation = application.occupation || null
+    console.log('[generateDocList] get_visa_documents p_occupation:', p_occupation)
     const { error } = await supabase.rpc('get_visa_documents', {
       p_application_id: application.id,
       p_country: application.country,
       p_visa_type: application.visa_type,
-      p_occupation: application.occupation || null,
+      p_occupation,
     })
     if (error) { setEvrakHata(`Evrak listesi oluşturulamadı: ${error.message}`); return }
     await fetchAll()
