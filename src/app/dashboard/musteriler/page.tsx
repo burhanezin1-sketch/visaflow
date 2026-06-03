@@ -148,12 +148,13 @@ export default function MusterilerPage() {
         .single()
 
       if (newApp && form.country && form.visa_type) {
-        await supabase.rpc('get_visa_documents', {
+        const { error: rpcError } = await supabase.rpc('get_visa_documents', {
           p_application_id: newApp.id,
           p_country: form.country,
           p_visa_type: form.visa_type,
           p_occupation: form.occupation || null,
         })
+        if (rpcError) console.error('[get_visa_documents] hata:', rpcError.message, rpcError.code)
       }
 
       if (newApp && autoPrice) {
