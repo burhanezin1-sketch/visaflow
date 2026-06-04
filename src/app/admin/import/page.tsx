@@ -178,17 +178,57 @@ export default function ImportPage() {
 
       // Application ekle (ülke/vize bilgisi varsa)
       if (country || visaType) {
-        const { error: appErr } = await supabase.from('applications').insert({
-          company_id: companyId,
-          client_id: client.id,
-          country: country || 'Belirtilmedi',
-          visa_type: visaType || 'Belirtilmedi',
-          status: 'missing',
-          notes: notes || null,
-        })
-        if (appErr) {
-          res.push({ row: i + 2, name: fullName, status: 'ok', message: `Müşteri eklendi ama başvuru oluşturulamadı: ${appErr.message}` })
-          continue
+        const { data: newApp, error: appErr } = await supabase
+          .from('applications')
+          .insert({
+            company_id: companyId,
+            client_id: client.id,
+            country: country || 'Belirtilmedi',
+            visa_type: visaType || 'Belirtilmedi',
+            status: 'missing',
+            notes: notes || null,
+          })
+          .select('id')
+          .single()
+
+        if (appErr || !newApp) {
+          // INSERT başarılı ama SELECT RLS tarafından bloklandıysa tekrar çek
+          let appId: string | null = null
+          if (!appErr) {
+            const { data: refetched } = await supabase
+              .from('applications')
+              .select('id')
+              .eq('client_id', client.id)
+              .order('created_at', { ascending: false })
+              .maybeSingle()
+            appId = refetched?.id ?? null
+          }
+
+          if (!appId) {
+            res.push({ row: i + 2, name: fullName, status: 'ok', message: `Müşteri eklendi ama başvuru oluşturulamadı: ${appErr?.message || 'bilinmeyen hata'}` })
+            continue
+          }
+
+          // Evrak listesini oluştur
+          if (country && visaType) {
+            await supabase.rpc('get_visa_documents', {
+              p_application_id: appId,
+              p_country: country,
+              p_visa_type: visaType,
+              p_occupation: null,
+            })
+          }
+        } else {
+          // Evrak listesini oluştur
+          if (country && visaType) {
+            const { error: rpcErr } = await supabase.rpc('get_visa_documents', {
+              p_application_id: newApp.id,
+              p_country: country,
+              p_visa_type: visaType,
+              p_occupation: null,
+            })
+            if (rpcErr) console.error('[import] get_visa_documents hata:', rpcErr.message)
+          }
         }
       }
 
