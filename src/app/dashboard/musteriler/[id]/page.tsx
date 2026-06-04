@@ -84,11 +84,19 @@ export default function MusteriDetayPage() {
     const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
     const { data: transferArr } = await supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').order('created_at', { ascending: false })
     const transferData = transferArr?.[0] ?? null
-    const { data: usdData } = await supabase
-      .from('user_submitted_docs')
-      .select('*')
-      .eq('application_id', appData?.id ?? 'none')
-      .order('id', { ascending: true })
+    // user_submitted_docs: RLS bypass için admin API üzerinden oku
+    let usdData: any[] = []
+    if (appData?.id) {
+      try {
+        const usdRes = await fetch(`/api/user-docs?application_id=${appData.id}`)
+        if (usdRes.ok) {
+          const usdJson = await usdRes.json()
+          usdData = usdJson.docs || []
+        }
+      } catch (e) {
+        console.error('[fetchAll] user-docs fetch error', e)
+      }
+    }
 
     console.log('[fetchAll] application.occupation:', appData?.occupation)
     setClient(clientData)
@@ -101,7 +109,7 @@ export default function MusteriDetayPage() {
     setCurrentUserName(usersData?.find((u: any) => u.id === user?.id)?.full_name || user?.email || 'Bilinmeyen')
     setCompanyPlan(companyData?.plan || 'basic')
     setPendingTransfer(transferData || null)
-    setUserSubmittedDocs(usdData || [])
+    setUserSubmittedDocs(usdData)
     setLoading(false)
   }
 

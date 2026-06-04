@@ -160,7 +160,10 @@ export default function MusterilerPage() {
           p_visa_type: form.visa_type,
           p_occupation,
         })
-        if (rpcError) console.error('[get_visa_documents] hata:', rpcError.message, rpcError.code)
+        if (rpcError) {
+          console.error('[get_visa_documents] hata:', rpcError.message, rpcError.code)
+          setLimitError(`Evrak listesi oluşturulamadı: ${rpcError.message}`)
+        }
       }
 
       if (newApp && autoPrice) {

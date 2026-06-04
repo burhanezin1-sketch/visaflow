@@ -96,8 +96,14 @@ export default function SuperAdminDashboard() {
   }
 
   async function fetchActivities() {
-    const { data } = await supabase.from('applications').select('id, status, country, visa_type, created_at, clients(full_name, companies(name))').order('created_at', { ascending: false }).limit(10)
-    setActivities(data || [])
+    try {
+      const res = await fetch('/api/superadmin/activities')
+      if (!res.ok) { setActivities([]); return }
+      const json = await res.json()
+      setActivities(json.activities || [])
+    } catch {
+      setActivities([])
+    }
   }
 
   async function fetchSaglik() {
