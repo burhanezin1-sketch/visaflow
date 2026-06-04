@@ -134,9 +134,9 @@ export default function MusterilerPage() {
       .single()
 
     if (newClient) {
-      console.log('[saveClient] form.occupation:', form.occupation)
+      console.log('[saveClient] form:', { country: form.country, visa_type: form.visa_type, occupation: form.occupation })
 
-      const { data: newApp } = await supabase
+      const { data: newApp, error: appInsertError } = await supabase
         .from('applications')
         .insert({
           company_id: companyId,
@@ -149,21 +149,40 @@ export default function MusterilerPage() {
         .select()
         .single()
 
-      console.log('[saveClient] applications INSERT occupation:', form.occupation || null, '| newApp.id:', newApp?.id)
+      console.log('[saveClient] applications INSERT → data:', newApp?.id, '| error:', appInsertError?.message)
 
-      if (newApp && form.country && form.visa_type) {
+      // RLS SELECT sonrası null dönerse yeniden çek (INSERT başarılı ama SELECT kısıtlı olabilir)
+      let resolvedApp = newApp
+      if (!resolvedApp && !appInsertError) {
+        const { data: refetched } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('client_id', newClient.id)
+          .order('created_at', { ascending: false })
+          .maybeSingle()
+        resolvedApp = refetched
+        console.log('[saveClient] applications refetch → id:', resolvedApp?.id)
+      }
+
+      console.log('[saveClient] RPC çağrılacak mı:', !!(resolvedApp && form.country && form.visa_type))
+
+      if (resolvedApp && form.country && form.visa_type) {
         const p_occupation = form.occupation || null
-        console.log('[saveClient] get_visa_documents p_occupation:', p_occupation)
+        console.log('[saveClient] get_visa_documents →', { p_application_id: resolvedApp.id, p_country: form.country, p_visa_type: form.visa_type, p_occupation })
         const { error: rpcError } = await supabase.rpc('get_visa_documents', {
-          p_application_id: newApp.id,
+          p_application_id: resolvedApp.id,
           p_country: form.country,
           p_visa_type: form.visa_type,
           p_occupation,
         })
         if (rpcError) {
-          console.error('[get_visa_documents] hata:', rpcError.message, rpcError.code)
+          console.error('[get_visa_documents] HATA:', rpcError.message, '| code:', rpcError.code, '| details:', rpcError.details)
           setLimitError(`Evrak listesi oluşturulamadı: ${rpcError.message}`)
+        } else {
+          console.log('[saveClient] get_visa_documents → başarılı')
         }
+      } else {
+        console.warn('[saveClient] RPC ÇAĞRILMADI → resolvedApp:', resolvedApp?.id, '| country:', form.country, '| visa_type:', form.visa_type)
       }
 
       if (newApp && autoPrice) {
