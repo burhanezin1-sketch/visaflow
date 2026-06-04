@@ -3,11 +3,16 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 
-const MULTI_UPLOAD_DOCS = [
-  'Şirket evrakları (güncel vergi levhası, imza sirküleri, faaliyet belgesi, ticaret sicil gazetesi)',
+// startsWith ile eşleşir — DB'deki parantez içi sıralamadan bağımsız
+const MULTI_UPLOAD_PREFIXES = [
+  'Şirket evrakları',
   'Diploma ve mesleki belgeler',
   'İş deneyimi belgeleri',
 ]
+
+function isMultiUploadDoc(docName: string) {
+  return MULTI_UPLOAD_PREFIXES.some(p => docName.startsWith(p))
+}
 
 export default function PortalPage() {
   const { token } = useParams()
@@ -99,7 +104,7 @@ export default function PortalPage() {
     if (!fileList || fileList.length === 0 || !client || !application) return
 
     const fileArr = Array.from(fileList)
-    const isMulti = MULTI_UPLOAD_DOCS.includes(docName)
+    const isMulti = isMultiUploadDoc(docName)
     const tokenStr = Array.isArray(token) ? token[0] : String(token)
     const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
 
@@ -423,7 +428,7 @@ export default function PortalPage() {
                         <div>
                           <input
                             type="file"
-                            {...(MULTI_UPLOAD_DOCS.includes(doc.doc_name) ? { multiple: true } : {})}
+                            {...(isMultiUploadDoc(doc.doc_name) ? { multiple: true } : {})}
                             accept="image/*,application/pdf"
                             ref={el => { fileRefs.current[key] = el }}
                             onChange={e => handleFileUpload(key, doc.doc_name, e)}
@@ -443,9 +448,10 @@ export default function PortalPage() {
                       </div>
                     )
 
-                    const isMulti = MULTI_UPLOAD_DOCS.includes(doc.doc_name)
+                    const isMulti = isMultiUploadDoc(doc.doc_name)
 
-                    if (hasFile) return (
+                    // Tek-dosya evraklarda yüklü dosya varsa upload butonunu gizle
+                    if (hasFile && !isMulti) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>↑</div>
@@ -468,6 +474,11 @@ export default function PortalPage() {
                     return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{doc.doc_name}</div>
+                        {hasFile && isMulti && (
+                          <div style={{ fontSize: '11px', color: '#1a5fa5', marginBottom: '6px' }}>
+                            ↑ Yüklendi — daha fazla ekleyebilirsiniz
+                          </div>
+                        )}
                         <input
                           type="file"
                           {...(isMulti ? { multiple: true } : {})}
@@ -477,9 +488,9 @@ export default function PortalPage() {
                           style={{ display: 'none' }}
                         />
                         <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                          📎 {isMulti ? 'Dosyaları Yükle' : 'Dijital Yükle'}
+                          📎 {isMulti ? (hasFile ? 'Daha Fazla Ekle' : 'Dosyaları Yükle') : 'Dijital Yükle'}
                         </button>
-                        {isMulti && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>Birden fazla dosya seçebilirsiniz</div>}
+                        {isMulti && !hasFile && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>Birden fazla dosya seçebilirsiniz</div>}
                         {(fileEntries[key] || []).map((entry, fi) => (
                           <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
                             <span>{entry.status === 'done' ? '✓' : entry.status === 'error' ? '✗' : '⏳'}</span>

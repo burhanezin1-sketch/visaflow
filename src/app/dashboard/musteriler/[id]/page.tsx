@@ -590,11 +590,16 @@ export default function MusteriDetayPage() {
                             {isRejected && (
                               <span style={{ fontSize: '10px', color: '#c0392b', fontWeight: '600', background: '#fef0ee', padding: '3px 8px', borderRadius: '20px' }}>✗ Reddedildi</span>
                             )}
-                            {hasFile && evrak.file_url && (
-                              <a href={evrak.file_url} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 7px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-                                Gör
-                              </a>
-                            )}
+                            {hasFile && evrak.file_url && (() => {
+                              let urls: string[]
+                              try { const p = JSON.parse(evrak.file_url); urls = Array.isArray(p) ? p : [evrak.file_url] }
+                              catch { urls = [evrak.file_url] }
+                              return urls.map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ padding: '3px 7px', fontSize: '11px', background: '#1a3a5c', color: 'white', borderRadius: '6px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                  {urls.length > 1 ? `Gör ${i + 1}` : 'Gör'}
+                                </a>
+                              ))
+                            })()}
                             {isStaff && !isFirma && !isDone && (
                               <>
                                 <button
