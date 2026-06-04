@@ -13,6 +13,7 @@ const TARGET_COLS = [
   { key: 'email',        label: 'E-posta',      required: false },
   { key: 'country',      label: 'Ülke',         required: false },
   { key: 'visa_type',    label: 'Vize Tipi',    required: false },
+  { key: 'occupation',   label: 'Meslek',       required: false },
   { key: 'passport_no',  label: 'Pasaport No',  required: false },
   { key: 'notes',        label: 'Notlar',       required: false },
 ] as const
@@ -23,10 +24,10 @@ interface ParsedRow { [col: string]: string }
 interface ImportResult { row: number; name: string; status: 'ok' | 'skip' | 'error'; message: string }
 
 // ── Şablon verisi ──────────────────────────────────────────────────────────
-const TEMPLATE_HEADERS = ['Ad Soyad', 'Telefon', 'Email', 'Ülke', 'Vize Tipi', 'Pasaport No', 'Notlar']
+const TEMPLATE_HEADERS = ['Ad Soyad', 'Telefon', 'Email', 'Ülke', 'Vize Tipi', 'Meslek', 'Pasaport No', 'Notlar']
 const TEMPLATE_EXAMPLE = [
-  ['Ahmet Yılmaz', '+90 555 111 22 33', 'ahmet@example.com', 'Schengen', 'Turist', 'TR1234567', 'Acele dosya'],
-  ['Fatma Kaya',   '+90 532 444 55 66', 'fatma@example.com', 'UK',       'Öğrenci',  'TR7654321', ''],
+  ['Ahmet Yılmaz', '+90 555 111 22 33', 'ahmet@example.com', 'Almanya', 'Turistik', 'calisan',     'TR1234567', 'Acele dosya'],
+  ['Fatma Kaya',   '+90 532 444 55 66', 'fatma@example.com', 'Fransa',  'Turistik', 'ogrenci',     'TR7654321', ''],
 ]
 
 export default function ImportPage() {
@@ -88,6 +89,7 @@ export default function ImportPage() {
       else if (n.includes('mail'))                          autoMap[h] = 'email'
       else if (n.includes('ülke') || n.includes('ulke') || n.includes('country')) autoMap[h] = 'country'
       else if (n.includes('vize') || n.includes('visa'))   autoMap[h] = 'visa_type'
+      else if (n.includes('meslek') || n.includes('occupation') || n.includes('job')) autoMap[h] = 'occupation'
       else if (n.includes('pasaport') || n.includes('passport')) autoMap[h] = 'passport_no'
       else if (n.includes('not'))                           autoMap[h] = 'notes'
       else autoMap[h] = ''
@@ -140,12 +142,13 @@ export default function ImportPage() {
         continue
       }
 
-      const phone   = get('phone')
-      const email   = get('email')
-      const country = get('country')
-      const visaType = get('visa_type')
+      const phone      = get('phone')
+      const email      = get('email')
+      const country    = get('country')
+      const visaType   = get('visa_type')
+      const occupation = get('occupation')
       const passportNo = get('passport_no')
-      const notes   = get('notes')
+      const notes      = get('notes')
 
       // Telefon duplikat kontrolü
       if (phone) {
@@ -185,6 +188,7 @@ export default function ImportPage() {
             client_id: client.id,
             country: country || 'Belirtilmedi',
             visa_type: visaType || 'Belirtilmedi',
+            occupation: occupation || null,
             status: 'missing',
             notes: notes || null,
           })
@@ -215,7 +219,7 @@ export default function ImportPage() {
               p_application_id: appId,
               p_country: country,
               p_visa_type: visaType,
-              p_occupation: null,
+              p_occupation: occupation || null,
             })
           }
         } else {
@@ -225,7 +229,7 @@ export default function ImportPage() {
               p_application_id: newApp.id,
               p_country: country,
               p_visa_type: visaType,
-              p_occupation: null,
+              p_occupation: occupation || null,
             })
             if (rpcErr) console.error('[import] get_visa_documents hata:', rpcErr.message)
           }
