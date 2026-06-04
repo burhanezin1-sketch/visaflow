@@ -348,9 +348,11 @@ export default function MusterilerPage() {
                 <option value="">Meslek Seçin (opsiyonel)</option>
                 <option value="calisan">Çalışan</option>
                 <option value="sirket_sahibi">İşveren / Serbest Meslek</option>
+                <option value="devlet_memuru">Devlet Memuru</option>
                 <option value="ogrenci">Öğrenci</option>
                 <option value="emekli">Emekli</option>
                 <option value="ev_hanimi">Çalışmıyor</option>
+                <option value="ev_hanimi_meslek">Ev Hanımı</option>
               </select>
               {form.visa_type === 'Resmi Vize' && (
                 <div style={{ marginTop: '6px', fontSize: '11px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '6px 10px', lineHeight: '1.5' }}>

@@ -363,6 +363,7 @@ export default function MusteriDetayPage() {
 
   const occupationLabels: Record<string, string> = {
     calisan: 'Çalışan', sirket_sahibi: 'İşveren / Serbest Meslek',
+    devlet_memuru: 'Devlet Memuru', ev_hanimi_meslek: 'Ev Hanımı',
     ogrenci: 'Öğrenci', emekli: 'Emekli', ev_hanimi: 'Çalışmıyor',
   }
 
