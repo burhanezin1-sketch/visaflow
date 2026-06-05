@@ -71,27 +71,28 @@ export default function ImportPage() {
 
     if (raw.length < 2) return
 
-    const hdrs = (raw[0] as string[]).map(h => String(h).trim())
+    const rawHdrs  = (raw[0] as string[]).map(h => String(h).trim())
+    const normHdrs = rawHdrs.map(h => h.toLowerCase())   // case-insensitive keys
+
     const dataRows: ParsedRow[] = raw.slice(1)
       .filter(r => r.some(c => String(c).trim()))
-      .map(r => Object.fromEntries(hdrs.map((h, i) => [h, String(r[i] ?? '').trim()])))
+      .map(r => Object.fromEntries(normHdrs.map((h, i) => [h, String(r[i] ?? '').trim()])))
 
-    setHeaders(hdrs)
+    setHeaders(rawHdrs)
     setRows(dataRows)
 
-    // Otomatik eşleştirme (basit içerik karşılaştırması)
+    // Otomatik eşleştirme — normHdrs zaten lowercase, sadece boşlukları kaldır
     const autoMap: Record<string, TargetKey | ''> = {}
-    const normalize = (s: string) => s.toLowerCase().replace(/\s/g, '')
-    for (const h of hdrs) {
-      const n = normalize(h)
-      if (n.includes('ad') && n.includes('soyad'))         autoMap[h] = 'full_name'
-      else if (n.includes('tel') || n.includes('gsm'))     autoMap[h] = 'phone'
-      else if (n.includes('mail'))                          autoMap[h] = 'email'
+    for (const h of normHdrs) {
+      const n = h.replace(/\s+/g, '')
+      if (n.includes('ad') && n.includes('soyad'))                                autoMap[h] = 'full_name'
+      else if (n.includes('tel') || n.includes('gsm'))                            autoMap[h] = 'phone'
+      else if (n.includes('mail'))                                                 autoMap[h] = 'email'
       else if (n.includes('ülke') || n.includes('ulke') || n.includes('country')) autoMap[h] = 'country'
-      else if (n.includes('vize') || n.includes('visa'))   autoMap[h] = 'visa_type'
+      else if (n.includes('vize') || n.includes('visa'))                          autoMap[h] = 'visa_type'
       else if (n.includes('meslek') || n.includes('occupation') || n.includes('job')) autoMap[h] = 'occupation'
-      else if (n.includes('pasaport') || n.includes('passport')) autoMap[h] = 'passport_no'
-      else if (n.includes('not'))                           autoMap[h] = 'notes'
+      else if (n.includes('pasaport') || n.includes('passport'))                  autoMap[h] = 'passport_no'
+      else if (n.includes('not'))                                                  autoMap[h] = 'notes'
       else autoMap[h] = ''
     }
     setMapping(autoMap)
@@ -332,8 +333,8 @@ export default function ImportPage() {
                 <div key={h}>
                   <label style={labelS}>{h}</label>
                   <select
-                    value={mapping[h] || ''}
-                    onChange={e => setMapping({ ...mapping, [h]: e.target.value as TargetKey | '' })}
+                    value={mapping[h.toLowerCase()] || ''}
+                    onChange={e => setMapping({ ...mapping, [h.toLowerCase()]: e.target.value as TargetKey | '' })}
                     style={selS}
                   >
                     <option value="">— Atla —</option>
@@ -363,7 +364,7 @@ export default function ImportPage() {
                     {headers.map(h => (
                       <th key={h} style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.6px', padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3', whiteSpace: 'nowrap' }}>
                         {h}
-                        {mapping[h] && <span style={{ color: '#378ADD' }}> → {TARGET_COLS.find(t => t.key === mapping[h])?.label}</span>}
+                        {mapping[h.toLowerCase()] && <span style={{ color: '#378ADD' }}> → {TARGET_COLS.find(t => t.key === mapping[h.toLowerCase()])?.label}</span>}
                       </th>
                     ))}
                   </tr>
@@ -373,7 +374,7 @@ export default function ImportPage() {
                     <tr key={i}>
                       {headers.map(h => (
                         <td key={h} style={{ padding: '8px 12px', fontSize: '12px', borderBottom: '1px solid #f0ede6', color: '#0d1f35', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {row[h] || <span style={{ color: '#d0d8e4' }}>—</span>}
+                          {row[h.toLowerCase()] || <span style={{ color: '#d0d8e4' }}>—</span>}
                         </td>
                       ))}
                     </tr>
