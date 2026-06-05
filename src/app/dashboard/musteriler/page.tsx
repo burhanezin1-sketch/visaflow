@@ -25,6 +25,12 @@ const statusMap: any = {
   rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
 }
 
+const occupationLabels: Record<string, string> = {
+  calisan: 'Çalışan', sirket_sahibi: 'İşveren / Serbest',
+  devlet_memuru: 'Devlet Memuru', ogrenci: 'Öğrenci',
+  emekli: 'Emekli', ev_hanimi: 'Çalışmıyor', ev_hanimi_meslek: 'Ev Hanımı',
+}
+
 export default function MusterilerPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
@@ -279,7 +285,7 @@ export default function MusterilerPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
             <thead>
               <tr>
-                {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Durum', 'Tarih'].map(h => (
+                {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Meslek', 'Durum', 'Tarih'].map(h => (
                   <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
                 ))}
               </tr>
@@ -287,7 +293,7 @@ export default function MusterilerPage() {
             <tbody>
               {displayed.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
+                  <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
                     {activeTab === 'benimkiler' ? 'Size atanmış müşteri yok.' : 'Henüz müşteri yok.'}
                   </td>
                 </tr>
@@ -303,6 +309,7 @@ export default function MusterilerPage() {
                     <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{c.phone}</td>
                     <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.country || '-'}</td>
                     <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.visa_type || '-'}</td>
+                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{occupationLabels[app?.occupation] || '-'}</td>
                     <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
                       <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>{s.label}</span>
                     </td>
