@@ -94,5 +94,69 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Kanada + Eğitim/Öğrenci + ogrenci: finansal evrak enjeksiyonu + akademik belge açıklama güncelleme
+  if (appRow?.country === 'Kanada' && appRow?.visa_type === 'Eğitim/Öğrenci') {
+    // 1. Finansal evrakları yoksa ekle
+    const finansalToInsert: { application_id: string; doc_name: string; delivery_type: string; status: string }[] = []
+
+    const hasBanka = docs.some((d: any) =>
+      d.doc_name?.includes('banka hesap dökümü') || d.doc_name?.includes('şahsi banka')
+    )
+    if (!hasBanka) finansalToInsert.push({
+      application_id: applicationId,
+      doc_name: 'Sponsor veya Şahsın Son 3 aylık şahsi banka hesap dökümü (banka kaşeli ve ıslak imzalı, Kanada için yeterli bakiye gösteren)',
+      delivery_type: 'digital',
+      status: 'pending',
+    })
+
+    const hasGelir = docs.some((d: any) =>
+      d.doc_name?.includes('bordro') || d.doc_name?.includes('Vergi levhası') || d.doc_name?.includes('Emeklilik belgesi') || d.doc_name?.includes('Sponsorun Gelir')
+    )
+    if (!hasGelir) finansalToInsert.push({
+      application_id: applicationId,
+      doc_name: 'Sponsorun Gelir / İşyeri Belgeleri (Maaş bordrosu, Vergi levhası veya Emeklilik belgesi)',
+      delivery_type: 'digital',
+      status: 'pending',
+    })
+
+    if (finansalToInsert.length > 0) {
+      const { data: inserted } = await admin
+        .from('user_submitted_docs')
+        .insert(finansalToInsert)
+        .select()
+      if (inserted) docs = [...docs, ...inserted]
+    }
+
+    // 2. Öğrenci belgesi ve Transkript isimlerine İngilizce notu ekle
+    const suffix = ' (İngilizce olarak okuldan alınmalı veya e-devletten İngilizce barkodlu indirilmelidir)'
+    const akademikIds: string[] = []
+    const akademikUpdates: { id: string; doc_name: string }[] = []
+
+    docs.forEach((d: any) => {
+      const isAkademik =
+        (d.doc_name?.toLowerCase().includes('öğrenci belgesi') || d.doc_name?.toLowerCase().includes('transkript'))
+        && !d.doc_name?.includes('İngilizce olarak okuldan')
+      if (isAkademik) {
+        akademikUpdates.push({ id: d.id, doc_name: d.doc_name + suffix })
+        akademikIds.push(d.id)
+      }
+    })
+
+    for (const upd of akademikUpdates) {
+      await admin
+        .from('user_submitted_docs')
+        .update({ doc_name: upd.doc_name })
+        .eq('id', upd.id)
+    }
+
+    if (akademikIds.length > 0) {
+      docs = docs.map((d: any) =>
+        akademikIds.includes(d.id)
+          ? { ...d, doc_name: d.doc_name + suffix }
+          : d
+      )
+    }
+  }
+
   return NextResponse.json({ docs })
 }
