@@ -48,5 +48,51 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ docs: data ?? [] })
+  let docs = data ?? []
+
+  // Schengen Turistik fallback: uçak + konaklama garantisi
+  const schengenCountries = [
+    'Almanya', 'Avusturya', 'Belçika', 'Çekya', 'Danimarka', 'Estonya',
+    'Finlandiya', 'Fransa', 'Hollanda', 'İspanya', 'İsveç', 'İsviçre',
+    'İtalya', 'İzlanda', 'Letonya', 'Liechtenstein', 'Litvanya',
+    'Lüksemburg', 'Macaristan', 'Malta', 'Norveç', 'Polonya', 'Portekiz',
+    'Slovakya', 'Slovenya', 'Yunanistan',
+  ]
+
+  const { data: appRow } = await admin
+    .from('applications')
+    .select('country, visa_type')
+    .eq('id', applicationId)
+    .maybeSingle()
+
+  if (appRow?.visa_type === 'Turistik' && schengenCountries.includes(appRow.country)) {
+    const hasUcak = docs.some((d: any) => d.doc_name?.includes('uçak bileti rezervasyonu'))
+    const hasOtel = docs.some((d: any) => d.doc_name?.includes('konaklama rezervasyonu'))
+
+    const toInsert: { application_id: string; doc_name: string; delivery_type: string; status: string }[] = []
+
+    if (!hasUcak) toInsert.push({
+      application_id: applicationId,
+      doc_name: 'Gidiş-dönüş uçak bileti rezervasyonu',
+      delivery_type: 'digital',
+      status: 'pending',
+    })
+
+    if (!hasOtel) toInsert.push({
+      application_id: applicationId,
+      doc_name: 'Otel / konaklama rezervasyonu (seyahat tarihleri ile uyumlu)',
+      delivery_type: 'digital',
+      status: 'pending',
+    })
+
+    if (toInsert.length > 0) {
+      const { data: inserted } = await admin
+        .from('user_submitted_docs')
+        .insert(toInsert)
+        .select()
+      if (inserted) docs = [...docs, ...inserted]
+    }
+  }
+
+  return NextResponse.json({ docs })
 }
