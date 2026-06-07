@@ -1,3 +1,7 @@
+DROP POLICY IF EXISTS vdm_authenticated_read ON public.visa_doc_master;
+DROP POLICY IF EXISTS vdm_superadmin_write ON public.visa_doc_master;
+DELETE FROM public.visa_doc_master;
+
 -- ============================================================
 -- ADIM 1: visa_doc_master tablosu + indeksler + RLS
 -- ============================================================
@@ -53,7 +57,7 @@ SELECT
       ARRAY['İngiltere','Japonya','Güney Kore','Kanada','Amerika Birleşik Devletleri']
     ELSE NULL
   END
-FROM public.standard_travel_docs
+FROM public.standard_travel_docs_backup
 ORDER BY order_num;
 
 -- FIX 4: Standart banka satırı (universal — tüm meslek/ülke/vize)
@@ -97,7 +101,7 @@ SELECT
     THEN ARRAY['Çalışma/İş Vizesi']
     ELSE NULL
   END
-FROM public.occupation_doc_packages
+FROM public.occupation_doc_packages_backup
 ORDER BY occupation, order_num;
 
 -- FIX 4: Mesleğe özgü şahsi banka satırlarını sil — universal satır yeterli
@@ -121,7 +125,7 @@ SELECT
   CASE WHEN country    IS NOT NULL THEN ARRAY[country]    ELSE NULL END,
   CASE WHEN visa_type  IS NOT NULL THEN ARRAY[visa_type]  ELSE NULL END,
   CASE WHEN occupation IS NOT NULL THEN ARRAY[occupation] ELSE NULL END
-FROM public.country_specific_docs
+FROM public.country_specific_docs_backup
 ORDER BY
   CASE WHEN country   IS NOT NULL THEN 0 ELSE 1 END,
   CASE WHEN visa_type IS NOT NULL THEN 0 ELSE 1 END,
@@ -353,11 +357,4 @@ BEGIN
 END;
 $$;
 
--- ============================================================
--- ADIM 5: Eski tabloları yedekle (silme, backup olarak kalsın)
--- ============================================================
-
-ALTER TABLE public.standard_travel_docs    RENAME TO standard_travel_docs_backup;
-ALTER TABLE public.occupation_doc_packages RENAME TO occupation_doc_packages_backup;
-ALTER TABLE public.country_specific_docs   RENAME TO country_specific_docs_backup;
-ALTER TABLE public.visa_package_rules      RENAME TO visa_package_rules_backup;
+-- ADIM 5 kaldırıldı: tablolar zaten _backup olarak rename edilmiş durumda
