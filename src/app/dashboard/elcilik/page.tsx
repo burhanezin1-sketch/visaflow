@@ -15,15 +15,15 @@ const schengen = [
   { ulke: '🇵🇱 Polonya',     kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/pol' },
   { ulke: '🇭🇺 Macaristan',  kurum: 'AS Visa',        url: 'https://www.as-visa.com' },
   { ulke: '🇨🇭 İsviçre',     kurum: 'TLScontact',     url: 'https://www.tlscontact.com/en/start-your-visa-journey/' },
-  { ulke: '🇵🇹 Portekiz',    kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/prt' },
+  { ulke: '🇵🇹 Portekiz',    kurum: 'AS Visa Solutions', url: 'https://www.as-visa.com' },
   { ulke: '🇨🇿 Çekya',       kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/cze' },
   { ulke: '🇩🇰 Danimarka',   kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/dnk' },
   { ulke: '🇸🇪 İsveç',       kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/swe' },
   { ulke: '🇫🇮 Finlandiya',  kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/fin' },
-  { ulke: '🇳🇴 Norveç',      kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/nor' },
+  { ulke: '🇳🇴 Norveç',      kurum: 'AS Visa Solutions', url: 'https://www.as-visa.com' },
   { ulke: '🇲🇹 Malta',       kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/mlt' },
   { ulke: '🇸🇰 Slovakya',    kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/svk' },
-  { ulke: '🇸🇮 Slovenya',    kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/svn' },
+  { ulke: '🇸🇮 Slovenya',    kurum: 'VFS Global / AS Visa Solutions', url: 'https://visa.vfsglobal.com/tur/tr/svn', url2: 'https://www.as-visa.com' },
   { ulke: '🇭🇷 Hırvatistan', kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/hrv' },
   { ulke: '🇪🇪 Estonya',     kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/est' },
   { ulke: '🇱🇻 Letonya',     kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/lva' },
@@ -55,7 +55,9 @@ const araclar = [
   { ulke: '🇩🇪 iDATA',                   kurum: 'Almanya & İtalya Vize',      url: 'https://www.idata.com.tr' },
 ]
 
-function LinkKarti({ items, title, isMobile }: { items: { ulke: string; kurum: string; url: string }[], title: string, isMobile: boolean }) {
+type LinkItem = { ulke: string; kurum: string; url: string; url2?: string }
+
+function LinkKarti({ items, title, isMobile }: { items: LinkItem[], title: string, isMobile: boolean }) {
   return (
     <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: isMobile ? '0.75rem' : '1.25rem' }}>
       <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>
@@ -67,12 +69,22 @@ function LinkKarti({ items, title, isMobile }: { items: { ulke: string; kurum: s
             <div style={{ fontSize: isMobile ? '12px' : '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.ulke}</div>
             <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>{item.kurum}</div>
           </div>
-          <button
-            onClick={() => window.open(item.url, '_blank')}
-            style={{ padding: isMobile ? '5px 10px' : '6px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', flexShrink: 0 }}
-          >
-            Aç →
-          </button>
+          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+            <button
+              onClick={() => window.open(item.url, '_blank')}
+              style={{ padding: isMobile ? '5px 10px' : '6px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              {item.url2 ? 'VFS →' : 'Aç →'}
+            </button>
+            {item.url2 && (
+              <button
+                onClick={() => window.open(item.url2, '_blank')}
+                style={{ padding: isMobile ? '5px 10px' : '6px 14px', fontSize: '12px', fontWeight: '500', background: '#2d6a4f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                AS →
+              </button>
+            )}
+          </div>
         </div>
       ))}
     </div>
