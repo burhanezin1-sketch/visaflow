@@ -18,17 +18,29 @@
     },
     {
       "id": "a1b2c3d4-0002-0002-0002-000000000002",
-      "name": "Gemini API",
+      "name": "OpenAI API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [480, 300],
       "parameters": {
         "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
-        "sendHeaders": false,
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
-        "body": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Sen, Türkiye'deki en prestijli vize danışmanlık acentelerinin altyapısını yöneten, 2026 yılı güncel konsolosluk prosedürlerine, vize kanunlarına ve evrak gereksinimlerine eksiksiz hakim bir Kıdemli Vize Danışmanlık Robotusun.\\n\\nSana kullanıcı arayüzündeki \\\"Yeni Müşteri Ekle\\\" formundan şu dinamik değişkenler aktarılacaktır:\\n\\n- Ülke: {{ $json.body.country }}\\n- Vize Türü: {{ $json.body.visa_type }}\\n- Meslek: {{ $json.body.occupation }}\\n- Ek Notlar (Özel Durum): {{ $json.body.notes }}\\n\\nGÖREVİN:\\n\\nBu 4 parametreyi analiz ederek, başvuru sahibinin profilinde listelenecek olan EN GÜNCEL, NOKTA ATIŞI ve EKSİKSİZ evrak listesini tek bir JSON objesi olarak üretmektir.\\n\\nKATI VE DEĞİŞTİRİLEMEZ KURALLAR:\\n\\n1. OCR VE PASAPORT PARÇALAMA KURALI (EN KRİTİK KURAL):\\n\\n   Sistemimizde otomatik OCR (Karakter Tanıma) entegrasyonu vardır. Bu yüzden pasaport belgelerini \\\"Pasaport Aslı ve Fotokopisi\\\" şeklinde tek bir maddede BİRLEŞTİRMEYECEKSİN. Kesinlikle şu iki ayrı maddeyi üreteceksin:\\n\\n   - \\\"Pasaport Fotokopisi\\\": delivery_type değeri kesinlikle \\\"digital\\\" olmalıdır. Açıklaması: \\\"Sistem tarafından otomatik taranabilmesi (OCR) için pasaportun resimli ana sayfasının net, parlamayan ve yüksek çözünürlüklü fotoğrafı veya PDF'i yüklenmelidir.\\\" şeklinde olmalıdır.\\n\\n   - \\\"Pasaport Aslı\\\": delivery_type değeri kesinlikle \\\"physical\\\" olmalıdır. Açıklaması: \\\"Seyahat bitişinden itibaren en az 6 ay geçerli, son 10 yılda alınmış ve en az 2 sayfası boş olan pasaportun aslı ofisimize kargo ile ulaştırılmalıdır.\\\" şeklinde olmalıdır.\\n\\n2. ÜLKE VE KONSOLOSLUK İSTİSNALARI:\\n\\n   - Almanya Eğitim/Öğrenci vizelerinde: Klasik \\\"Vize Sponsor Dilekçesi\\\" kesinlikle EKLEME, konsolosluk kabul etmez! Yerine \\\"Bloke Hesap (Sperrkonto) Onay Belgesi\\\" (delivery_type: \\\"digital\\\") maddesini ekle.\\n\\n   - Amerika Birleşik Devletleri (ABD) vizelerinde: Otel veya uçak rezervasyonu konsolosluk tarafından istenmez. Listeye seyahat rezervasyonu EKLEME!\\n\\n   - Japonya vizelerinde: Zorunlu seyahat sağlık sigortası şartı yoktur. Listeye sigorta poliçesi EKLEME!\\n\\n   - Schengen Bölgesi dışındaki ülkeler için (Örn: İngiltere, ABD, Dubai vb.) \\\"Schengen Seyahat Sağlık Sigortası\\\" gibi ifadeler kullanma, ülkenin kendi kurallarına göre sigorta üret veya es geç.\\n\\n3. MESLEKİ EVRAK FİLTRELEME:\\n\\n   Gelen occupation parametresine göre sadece o mesleğin yasal evraklarını getir:\\n\\n   - \\\"Öğrenci\\\" ise: Güncel Öğrenci Belgesi, Not Dökümü (Transkript), Okul Kabul Mektubu.\\n\\n   - \\\"İşveren / Serbest Meslek\\\" ise: Güncel Vergi Levhası, Şirket İmza Sirküleri, Ticaret Sicil Gazetesi, Faaliyet Belgesi.\\n\\n   - \\\"Çalışan\\\" ise: SGK İşe Giriş Bildirgesi, SGK Tescil ve Hizmet Dökümü, Son 3 Aylık Maaş Bordrosu (Islak imzalı/mühürlü).\\n\\n4. VERİ FORMATI VE delivery_type SINIRLANDIRMASI:\\n\\n   Her evrak için sadece şu üç teslim türünden birini atayabilirsin. Başka bir kelime yazılması veritabanını patlatır:\\n\\n   - \\\"digital\\\": E-devletten indirilen, bilgisayarda hazırlanan ve OCR/Sistem tarafından taranacak dijital belgeler.\\n\\n   - \\\"physical\\\": Konsolosluğun elden, ıslak imzalı veya mühürlü istediği, kargo ile ofise gelmesi gereken fiziksel nesneler/evraklar (Örn: Pasaport Aslı, Biyometrik Fotoğraf).\\n\\n   - \\\"firma\\\": Müşterinin hazırlamadığı, bizim acente olarak sisteme yükleyeceğimiz belgeler (Örn: Vize Başvuru Formu, Randevu Belgesi).\\n\\n5. EK NOTLARIN DİNAMİK ENJEKSİYONU:\\n\\n   Eğer Ek Notlar alanı doluysa (Örn: \\\"kira geliri var\\\", \\\"burs alıyor\\\", \\\"üstüne kayıtlı ev var\\\") bu durumu finansal evraklar kısmına akıllıca yansıt. \\\"Kira Sözleşmesi\\\", \\\"Tapu Fotokopisi\\\" veya \\\"Burs Belgesi\\\" gibi ek dijital evrakları listeye dinamik olarak dahil et.\\n\\nÇIKTI FORMATI:\\n\\nAsla kod blokları, ekstra açıklamalar, giriş/gelişme cümleleri veya insan taklidi yorumlar yazma. SADECE VE SADECE aşağıdaki gibi geçerli bir JSON objesi dön:\\n\\n{\\n  \\\"evraklar\\\": [\\n    {\\n      \\\"doc_name\\\": \\\"Pasaport Fotokopisi\\\",\\n      \\\"delivery_type\\\": \\\"digital\\\",\\n      \\\"description\\\": \\\"Sistem tarafından otomatik taranabilmesi (OCR) için pasaportun resimli ana sayfasının net, parlamayan ve yüksek çözünürlüklü fotoğrafı veya PDF'i yüklenmelidir.\\\"\\n    },\\n    {\\n      \\\"doc_name\\\": \\\"Pasaport Aslı\\\",\\n      \\\"delivery_type\\\": \\\"physical\\\",\\n      \\\"description\\\": \\\"Seyahat bitişinden itibaren en az 6 ay geçerli, son 10 yılda alınmış ve en az 2 sayfası boş olan pasaportun aslı ofisimize kargo ile ulaştırılmalıdır.\\\"\\n    }\\n  ]\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.1,\n    \"responseMimeType\": \"application/json\"\n  }\n}",
+        "body": "={\n  \"model\": \"gpt-4o-mini\",\n  \"temperature\": 0.1,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Sen, Türkiye'deki en prestijli vize danışmanlık acentelerinin altyapısını yöneten, 2026 yılı güncel konsolosluk prosedürlerine, vize kanunlarına ve evrak gereksinimlerine eksiksiz hakim bir Kıdemli Vize Danışmanlık Robotusun.\\n\\nSana kullanıcı mesajında Ülke, Vize Türü, Meslek ve Ek Not bilgileri verilecektir. Bu 4 parametreyi analiz ederek, başvuru sahibinin profilinde listelenecek olan EN GÜNCEL, NOKTA ATIŞI ve EKSİKSİZ evrak listesini tek bir JSON objesi olarak üretmektir.\\n\\nKATI VE DEĞİŞTİRİLEMEZ KURALLAR:\\n\\n1. OCR VE PASAPORT PARÇALAMA KURALI (EN KRİTİK KURAL):\\n\\n   Sistemimizde otomatik OCR (Karakter Tanıma) entegrasyonu vardır. Bu yüzden pasaport belgelerini \\\"Pasaport Aslı ve Fotokopisi\\\" şeklinde tek bir maddede BİRLEŞTİRMEYECEKSİN. Kesinlikle şu iki ayrı maddeyi üreteceksin:\\n\\n   - \\\"Pasaport Fotokopisi\\\": delivery_type değeri kesinlikle \\\"digital\\\" olmalıdır. Açıklaması: \\\"Sistem tarafından otomatik taranabilmesi (OCR) için pasaportun resimli ana sayfasının net, parlamayan ve yüksek çözünürlüklü fotoğrafı veya PDF'i yüklenmelidir.\\\" şeklinde olmalıdır.\\n\\n   - \\\"Pasaport Aslı\\\": delivery_type değeri kesinlikle \\\"physical\\\" olmalıdır. Açıklaması: \\\"Seyahat bitişinden itibaren en az 6 ay geçerli, son 10 yılda alınmış ve en az 2 sayfası boş olan pasaportun aslı ofisimize kargo ile ulaştırılmalıdır.\\\" şeklinde olmalıdır.\\n\\n2. ÜLKE VE KONSOLOSLUK İSTİSNALARI:\\n\\n   - Almanya Eğitim/Öğrenci vizelerinde: Klasik \\\"Vize Sponsor Dilekçesi\\\" kesinlikle EKLEME, konsolosluk kabul etmez! Yerine \\\"Bloke Hesap (Sperrkonto) Onay Belgesi\\\" (delivery_type: \\\"digital\\\") maddesini ekle.\\n\\n   - Amerika Birleşik Devletleri (ABD) vizelerinde: Otel veya uçak rezervasyonu konsolosluk tarafından istenmez. Listeye seyahat rezervasyonu EKLEME!\\n\\n   - Japonya vizelerinde: Zorunlu seyahat sağlık sigortası şartı yoktur. Listeye sigorta poliçesi EKLEME!\\n\\n   - Schengen Bölgesi dışındaki ülkeler için (Örn: İngiltere, ABD, Dubai vb.) \\\"Schengen Seyahat Sağlık Sigortası\\\" gibi ifadeler kullanma, ülkenin kendi kurallarına göre sigorta üret veya es geç.\\n\\n3. MESLEKİ EVRAK FİLTRELEME:\\n\\n   Gelen occupation parametresine göre sadece o mesleğin yasal evraklarını getir:\\n\\n   - \\\"Öğrenci\\\" ise: Güncel Öğrenci Belgesi, Not Dökümü (Transkript), Okul Kabul Mektubu.\\n\\n   - \\\"İşveren / Serbest Meslek\\\" ise: Güncel Vergi Levhası, Şirket İmza Sirküleri, Ticaret Sicil Gazetesi, Faaliyet Belgesi.\\n\\n   - \\\"Çalışan\\\" ise: SGK İşe Giriş Bildirgesi, SGK Tescil ve Hizmet Dökümü, Son 3 Aylık Maaş Bordrosu (Islak imzalı/mühürlü).\\n\\n4. VERİ FORMATI VE delivery_type SINIRLANDIRMASI:\\n\\n   Her evrak için sadece şu üç teslim türünden birini atayabilirsin. Başka bir kelime yazılması veritabanını patlatır:\\n\\n   - \\\"digital\\\": E-devletten indirilen, bilgisayarda hazırlanan ve OCR/Sistem tarafından taranacak dijital belgeler.\\n\\n   - \\\"physical\\\": Konsolosluğun elden, ıslak imzalı veya mühürlü istediği, kargo ile ofise gelmesi gereken fiziksel nesneler/evraklar (Örn: Pasaport Aslı, Biyometrik Fotoğraf).\\n\\n   - \\\"firma\\\": Müşterinin hazırlamadığı, bizim acente olarak sisteme yükleyeceğimiz belgeler (Örn: Vize Başvuru Formu, Randevu Belgesi).\\n\\n5. EK NOTLARIN DİNAMİK ENJEKSİYONU:\\n\\n   Eğer Ek Notlar alanı doluysa (Örn: \\\"kira geliri var\\\", \\\"burs alıyor\\\", \\\"üstüne kayıtlı ev var\\\") bu durumu finansal evraklar kısmına akıllıca yansıt. \\\"Kira Sözleşmesi\\\", \\\"Tapu Fotokopisi\\\" veya \\\"Burs Belgesi\\\" gibi ek dijital evrakları listeye dinamik olarak dahil et.\\n\\nÇIKTI FORMATI:\\n\\nAsla kod blokları, ekstra açıklamalar, giriş/gelişme cümleleri veya insan taklidi yorumlar yazma. SADECE VE SADECE aşağıdaki gibi geçerli bir JSON objesi dön:\\n\\n{\\n  \\\"evraklar\\\": [\\n    {\\n      \\\"doc_name\\\": \\\"Pasaport Fotokopisi\\\",\\n      \\\"delivery_type\\\": \\\"digital\\\",\\n      \\\"description\\\": \\\"Sistem tarafından otomatik taranabilmesi (OCR) için pasaportun resimli ana sayfasının net, parlamayan ve yüksek çözünürlüklü fotoğrafı veya PDF'i yüklenmelidir.\\\"\\n    },\\n    {\\n      \\\"doc_name\\\": \\\"Pasaport Aslı\\\",\\n      \\\"delivery_type\\\": \\\"physical\\\",\\n      \\\"description\\\": \\\"Seyahat bitişinden itibaren en az 6 ay geçerli, son 10 yılda alınmış ve en az 2 sayfası boş olan pasaportun aslı ofisimize kargo ile ulaştırılmalıdır.\\\"\\n    }\\n  ]\\n}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"=Ülke: {{ $json.body.country }}\\nVize Türü: {{ $json.body.visa_type }}\\nMeslek: {{ $json.body.occupation }}\\nEk Not: {{ $json.body.notes }}\"\n    }\n  ]\n}",
         "options": {}
       }
     },
@@ -39,7 +51,7 @@
       "typeVersion": 2,
       "position": [720, 300],
       "parameters": {
-        "jsCode": "const response = JSON.parse($input.first().json.candidates[0].content.parts[0].text);\nconst evraklar = response.evraklar;\nconst applicationId = $('Webhook').first().json.body.application_id;\n\nreturn evraklar.map(evrak => ({\n  json: {\n    application_id: applicationId,\n    doc_name: evrak.doc_name,\n    delivery_type: evrak.delivery_type,\n    description: evrak.description,\n    status: 'pending'\n  }\n}));"
+        "jsCode": "const response = JSON.parse($input.first().json.choices[0].message.content);\nconst evraklar = response.evraklar;\nconst applicationId = $('Webhook').first().json.body.application_id;\n\nreturn evraklar.map(evrak => ({\n  json: {\n    application_id: applicationId,\n    doc_name: evrak.doc_name,\n    delivery_type: evrak.delivery_type,\n    description: evrak.description,\n    status: 'pending'\n  }\n}));"
       }
     },
     {
@@ -73,14 +85,7 @@
             }
           ]
         },
-        "options": {
-          "batching": {
-            "batch": {
-              "batchSize": 1,
-              "batchInterval": 0
-            }
-          }
-        }
+        "options": {}
       },
       "executeOnce": true
     },
@@ -138,14 +143,14 @@
       "main": [
         [
           {
-            "node": "Gemini API",
+            "node": "OpenAI API",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gemini API": {
+    "OpenAI API": {
       "main": [
         [
           {
@@ -197,5 +202,5 @@
     "n8nVersion": "1.0.0"
   },
   "staticData": null,
-  "tags": ["vize", "ai", "gemini"]
+  "tags": ["vize", "ai", "openai"]
 }
