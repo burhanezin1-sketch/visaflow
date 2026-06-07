@@ -1,0 +1,201 @@
+{
+  "name": "Vize Evrak AI Üretici",
+  "active": false,
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-visa-docs",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "visa-docs-ai-webhook"
+    },
+    {
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "name": "Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={{ $env.GEMINI_API_KEY }}",
+        "sendHeaders": false,
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"Sen bir Türk vize danışmanlık firmasının uzman asistanısın. Aşağıdaki vize başvurusu için gerekli evrak listesini JSON formatında üret.\\n\\nBaşvuru Bilgileri:\\n- Ülke: {{ $('Webhook').item.json.body.country }}\\n- Vize Türü: {{ $('Webhook').item.json.body.visa_type }}\\n- Meslek: {{ $('Webhook').item.json.body.occupation }}\\n- Ek Notlar: {{ $('Webhook').item.json.body.notes || 'Yok' }}\\n\\nKurallar:\\n1. Standart evraklar her başvuruda gereklidir: pasaport (son 10 yıl içinde alınmış, en az 2 boş sayfa), biyometrik fotoğraf (35x45 mm, beyaz arka plan), nüfus kayıt örneği (e-devlet barkodlu), ikametgah belgesi (e-devlet barkodlu).\\n2. Schengen ülkeleri için 30.000 EUR teminatlı seyahat sağlık sigortası zorunludur. İngiltere, Japonya, Güney Kore, Kanada, ABD için sigorta gerekmez.\\n3. Mesleke göre ek evrak: çalışan → maaş bordrosu + SGK hizmet dökümü + işveren izin yazısı; şirket sahibi → vergi levhası + faaliyet belgesi + ticaret sicil gazetesi + banka dökümü; serbest meslek → vergi levhası + banka dökümü; öğrenci → öğrenci belgesi + transkript + sponsor dilekçesi; emekli → emeklilik belgesi + emekli maaş bordrosu; devlet memuru → görev belgesi + resmi izin belgesi; ev hanımı/çalışmıyor → sponsor finansal evrakları.\\n4. Turistik vize için uçak bileti rezervasyonu ve otel/konaklama rezervasyonu gereklidir.\\n5. Almanya ve İtalya → iDATA aracılığıyla başvuru yapılır (Videx formu gereklidir).\\n6. Kanada → IRCC online portal (IMM 5257 yerine yeni portal).\\n7. ABD → DS-160 formu + randevu onay belgesi + MRV makbuzu + 50x50 mm fotoğraf.\\n8. delivery_type değerleri: 'digital' (dijital kopya yeterli), 'physical' (fiziksel aslı gerekli), 'firma' (vize firması tarafından temin edilecek).\\n\\nYanıtı YALNIZCA şu JSON formatında ver, başka açıklama ekleme:\\n{\\n  \\\"evraklar\\\": [\\n    {\\n      \\\"doc_name\\\": \\\"Evrak adı (kısa ve net)\\\",\\n      \\\"delivery_type\\\": \\\"digital|physical|firma\\\",\\n      \\\"description\\\": \\\"Detaylı açıklama ve özel notlar\\\"\\n    }\\n  ]\\n}\"\n    }]\n  }],\n  \"generationConfig\": {\n    \"temperature\": 0.1,\n    \"responseMimeType\": \"application/json\"\n  }\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "JSON Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "parameters": {
+        "jsCode": "const response = JSON.parse($input.first().json.candidates[0].content.parts[0].text);\nconst evraklar = response.evraklar;\nconst applicationId = $('Webhook').first().json.body.application_id;\n\nreturn evraklar.map(evrak => ({\n  json: {\n    application_id: applicationId,\n    doc_name: evrak.doc_name,\n    delivery_type: evrak.delivery_type,\n    description: evrak.description,\n    status: 'pending'\n  }\n}));"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-0004-0004-000000000004",
+      "name": "Supabase DELETE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 220],
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/user_submitted_docs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "application_id",
+              "value": "=eq.{{ $('Webhook').first().json.body.application_id }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 0
+            }
+          }
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "a1b2c3d4-0005-0005-0005-000000000005",
+      "name": "Supabase INSERT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 380],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/user_submitted_docs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ application_id: $json.application_id, doc_name: $json.doc_name, delivery_type: $json.delivery_type, description: $json.description, status: $json.status }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0006-0006-0006-000000000006",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, count: $input.all().length, application_id: $('Webhook').first().json.body.application_id }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini API": {
+      "main": [
+        [
+          {
+            "node": "JSON Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Parse": {
+      "main": [
+        [
+          {
+            "node": "Supabase DELETE",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase INSERT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase DELETE": {
+      "main": [[]]
+    },
+    "Supabase INSERT": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "n8nVersion": "1.0.0"
+  },
+  "staticData": null,
+  "tags": ["vize", "ai", "gemini"]
+}
