@@ -170,48 +170,28 @@ export default function MusterilerPage() {
         console.log('[saveClient] applications refetch → id:', resolvedApp?.id)
       }
 
-      console.log('[saveClient] RPC çağrılacak mı:', !!(resolvedApp && form.country && form.visa_type))
-
+      // n8n webhook: evrak listesini AI üretiyor (RPC kaldırıldı)
       if (resolvedApp && form.country && form.visa_type) {
-        const p_occupation = form.occupation || null
-        console.log('[saveClient] get_visa_documents →', { p_application_id: resolvedApp.id, p_country: form.country, p_visa_type: form.visa_type, p_occupation })
-        const { error: rpcError } = await supabase.rpc('get_visa_documents', {
-          p_application_id: resolvedApp.id,
-          p_country: form.country,
-          p_visa_type: form.visa_type,
-          p_occupation,
-        })
-        if (rpcError) {
-          console.error('[get_visa_documents] HATA:', rpcError.message, '| code:', rpcError.code, '| details:', rpcError.details)
-          setLimitError(`Evrak listesi oluşturulamadı: ${rpcError.message}`)
-        } else {
-          console.log('[saveClient] get_visa_documents → başarılı')
-
-          // n8n webhook: AI evrak üretimi
-          const webhookPayload = {
-            application_id: resolvedApp.id,
-            country: form.country,
-            visa_type: form.visa_type,
-            occupation: form.occupation || '',
-            notes: form.notes || '',
-          }
-          console.log('[webhook] çağrılıyor:', webhookPayload)
-          try {
-            const webhookRes = await fetch(
-              `${process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook'}/generate-visa-docs`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(webhookPayload),
-              }
-            )
-            console.log('[webhook] sonuç:', webhookRes.status, await webhookRes.text())
-          } catch (webhookErr) {
-            console.warn('[webhook] ulaşılamadı (n8n çalışmıyor olabilir):', webhookErr)
-          }
+        const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
+        console.log('[webhook] URL:', webhookUrl)
+        try {
+          const res = await fetch(webhookUrl!, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              application_id: resolvedApp.id,
+              country: form.country,
+              visa_type: form.visa_type,
+              occupation: form.occupation || '',
+              notes: form.notes || '',
+            }),
+          })
+          console.log('[webhook] status:', res.status)
+          const body = await res.text()
+          console.log('[webhook] body:', body)
+        } catch (webhookErr) {
+          console.warn('[webhook] ulaşılamadı:', webhookErr)
         }
-      } else {
-        console.warn('[saveClient] RPC ÇAĞRILMADI → resolvedApp:', resolvedApp?.id, '| country:', form.country, '| visa_type:', form.visa_type)
       }
 
       if (newApp && autoPrice) {
