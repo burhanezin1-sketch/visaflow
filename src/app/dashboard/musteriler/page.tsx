@@ -172,10 +172,9 @@ export default function MusterilerPage() {
 
       // n8n webhook: evrak listesini AI üretiyor (RPC kaldırıldı)
       if (resolvedApp && form.country && form.visa_type) {
-        const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL
-        console.log('[webhook] URL:', webhookUrl)
+        console.log('[webhook] /api/generate-visa-docs çağrılıyor')
         try {
-          const res = await fetch(webhookUrl!, {
+          const res = await fetch('/api/generate-visa-docs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
