@@ -11,21 +11,22 @@ function getAdmin() {
   )
 }
 
+const VIZE_TURLERI = [
+  'Turistik',
+  'Ticari/İş Gezisi',
+  'Aile/Arkadaş Ziyareti',
+  'Eğitim/Öğrenci',
+  'Çalışma/İş Vizesi',
+  'Aile Birleşimi Vizesi',
+  'Kültürel Vize',
+  'Resmi Vize',
+  'Tedavi/Sağlık Vizesi',
+  'Transit Vize',
+]
+
 export async function GET() {
   try {
     const admin = getAdmin()
-
-    // Vize türleri: visa_doc_master'dan DISTINCT include_visa_types (UNNEST karşılığı)
-    const { data: vtData } = await admin
-      .from('visa_doc_master')
-      .select('include_visa_types')
-      .not('include_visa_types', 'is', null)
-
-    const allVisaTypes = [
-      ...new Set(
-        (vtData || []).flatMap((r: { include_visa_types: string[] }) => r.include_visa_types ?? [])
-      ),
-    ].sort((a, b) => a.localeCompare(b, 'tr'))
 
     // Ülke listesi: visa_doc_master'dan DISTINCT include_countries
     const { data: countryData } = await admin
@@ -39,10 +40,10 @@ export async function GET() {
       ),
     ].sort((a, b) => a.localeCompare(b, 'tr'))
 
-    // Her ülke için tüm vize türlerini döndür
+    // Her ülke için sabit vize türü listesini döndür
     const result: Record<string, string[]> = {}
     for (const country of countries) {
-      result[country] = allVisaTypes
+      result[country] = VIZE_TURLERI
     }
 
     return NextResponse.json(result, {
