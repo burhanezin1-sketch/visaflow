@@ -15,40 +15,31 @@ export async function GET() {
   try {
     const admin = getAdmin()
 
-    // 1. Ülke listesi: eski visa_documents tablosundan (sayfalı)
-    const countryRows: { country: string; visa_type: string }[] = []
-    let from = 0
-    const pageSize = 1000
-    while (true) {
-      const { data, error } = await admin
-        .from('visa_documents')
-        .select('country, visa_type')
-        .range(from, from + pageSize - 1)
-      if (error || !data?.length) break
-      countryRows.push(...data)
-      if (data.length < pageSize) break
-      from += pageSize
-    }
+    // Vize türleri: visa_doc_master'dan DISTINCT include_visa_types (UNNEST karşılığı)
+    const { data: vtData } = await admin
+      .from('visa_doc_master')
+      .select('include_visa_types')
+      .not('include_visa_types', 'is', null)
 
-    // 2. Vize türleri: YALNIZCA visa_package_rules'tan (tek kaynak)
-    // visa_documents'tan eski isimler ('Ticari/İş' vb.) karışmasın
-    const { data: rulesData } = await admin
-      .from('visa_package_rules')
-      .select('visa_type')
-      .eq('is_active', true)
+    const allVisaTypes = [
+      ...new Set(
+        (vtData || []).flatMap((r: { include_visa_types: string[] }) => r.include_visa_types ?? [])
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'tr'))
 
-    const allVisaTypes = [...new Set<string>(
-      (rulesData || []).map((r: { visa_type: string }) => r.visa_type)
-    )].sort((a, b) => a.localeCompare(b, 'tr'))
+    // Ülke listesi: visa_doc_master'dan DISTINCT include_countries
+    const { data: countryData } = await admin
+      .from('visa_doc_master')
+      .select('include_countries')
+      .not('include_countries', 'is', null)
 
-    // 3. Ülke listesi: visa_documents'tan DISTINCT ülkeler
-    const countries = [...new Set(countryRows.map(r => r.country))].sort(
-      (a, b) => a.localeCompare(b, 'tr')
-    )
+    const countries = [
+      ...new Set(
+        (countryData || []).flatMap((r: { include_countries: string[] }) => r.include_countries ?? [])
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'tr'))
 
-    // 4. Her ülke için tüm vize türlerini döndür
-    // 3-katmanlı mimari her ülke + vize tipi kombinasyonunu destekliyor;
-    // country_specific_docs'ta kayıt yoksa standard + occupation evrakları gelir.
+    // Her ülke için tüm vize türlerini döndür
     const result: Record<string, string[]> = {}
     for (const country of countries) {
       result[country] = allVisaTypes
