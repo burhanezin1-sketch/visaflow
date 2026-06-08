@@ -37,8 +37,8 @@
           ]
         },
         "sendBody": true,
-        "bodyContentType": "json",
-        "jsonBody": "{\n  \"model\": \"gpt-4o-mini\",\n  \"temperature\": 0.1,\n  \"response_format\": {\"type\": \"json_object\"},\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Sen bir Kıdemli Vize Danışmanlık Robotusun. Pasaport belgelerini mutlaka Pasaport Fotokopisi (delivery_type: digital) ve Pasaport Aslı (delivery_type: physical) olarak iki ayrı madde yaz. delivery_type sadece digital, physical veya firma olabilir. SADECE JSON döndür: {\\\"evraklar\\\": [{\\\"doc_name\\\": \\\"\\\", \\\"delivery_type\\\": \\\"\\\", \\\"description\\\": \\\"\\\"}]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ 'Ülke: ' + $('Webhook').item.json.body.country + '\\\\nVize Türü: ' + $('Webhook').item.json.body.visa_type + '\\\\nMeslek: ' + $('Webhook').item.json.body.occupation + '\\\\nEk Notlar: ' + ($('Webhook').item.json.body.notes || '') }}\"\n    }\n  ]\n}",
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.1, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'Sen bir Kıdemli Vize Danışmanlık Robotusun. Pasaport belgelerini mutlaka Pasaport Fotokopisi (delivery_type: digital) ve Pasaport Aslı (delivery_type: physical) olarak iki ayrı madde yaz. delivery_type sadece digital, physical veya firma olabilir. SADECE JSON döndür: {\"evraklar\": [{\"doc_name\": \"\", \"delivery_type\": \"\", \"description\": \"\"}]}' }, { role: 'user', content: 'Ülke: ' + $(\\'Webhook\\').item.json.body.country + '\\nVize Türü: ' + $(\\'Webhook\\').item.json.body.visa_type + '\\nMeslek: ' + $(\\'Webhook\\').item.json.body.occupation + '\\nEk Notlar: ' + ($(\\'Webhook\\').item.json.body.notes || '') } ] }) }}",
         "options": {}
       }
     },
