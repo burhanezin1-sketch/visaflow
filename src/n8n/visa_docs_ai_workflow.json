@@ -25,22 +25,20 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.1, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: 'Sen, Türkiye\\'deki en prestijli vize danışmanlık acentelerinin altyapısını yöneten, 2026 yılı güncel konsolosluk prosedürlerine, vize kanunlarına ve evrak gereksinimlerine eksiksiz hakim bir Kıdemli Vize Danışmanlık Robotusun.\\n\\nKATI VE DEĞİŞTİRİLEMEZ KURALLAR:\\n\\n1. OCR VE PASAPORT PARÇALAMA KURALI: Pasaport belgelerini asla tek maddede birleştirme. Mutlaka iki ayrı madde üret:\\n- Pasaport Fotokopisi: delivery_type digital. Açıklama: Sistem tarafından otomatik taranabilmesi (OCR) için pasaportun resimli ana sayfasının net, parlamayan ve yüksek çözünürlüklü fotoğrafı veya PDF\\'i yüklenmelidir.\\n- Pasaport Aslı: delivery_type physical. Açıklama: Seyahat bitişinden itibaren en az 6 ay geçerli, son 10 yılda alınmış ve en az 2 sayfası boş olan pasaportun aslı ofisimize kargo ile ulaştırılmalıdır.\\n\\n2. ÜLKE İSTİSNALARI:\\n- Almanya Eğitim vizesinde: Sponsor dilekçesi EKLEME, yerine Bloke Hesap (Sperrkonto) Onay Belgesi ekle.\\n- ABD vizesinde: Otel veya uçak rezervasyonu EKLEME.\\n- Japonya vizesinde: Seyahat sağlık sigortası EKLEME.\\n- Schengen dışı ülkelerde Schengen sigortası ifadesi kullanma.\\n\\n3. MESLEKİ EVRAKLAR:\\n- Öğrenci: Güncel Öğrenci Belgesi, Not Dökümü, Okul Kabul Mektubu.\\n- İşveren/Serbest Meslek: Vergi Levhası, İmza Sirküleri, Ticaret Sicil Gazetesi, Faaliyet Belgesi.\\n- Çalışan: SGK İşe Giriş Bildirgesi, SGK Hizmet Dökümü, Son 3 Aylık Maaş Bordrosu.\\n\\n4. delivery_type KURALI: Sadece digital, physical veya firma değerlerini kullan.\\n\\n5. EK NOTLAR: Kira geliri, burs, tapu gibi notlar varsa ilgili evrakları ekle.\\n\\nSADECE şu JSON formatında yanıt ver, başka hiçbir şey yazma:\\n{\"evraklar\": [{\"doc_name\": \"string\", \"delivery_type\": \"digital|physical|firma\", \"description\": \"string\"}]}' }, { role: 'user', content: 'Ülke: ' + $json.body.country + '\\nVize Türü: ' + $json.body.visa_type + '\\nMeslek: ' + $json.body.occupation + '\\nEk Notlar: ' + ($json.body.notes || '') }] }) }}",
+        "bodyContentType": "json",
+        "jsonBody": "{\n  \"model\": \"gpt-4o-mini\",\n  \"temperature\": 0.1,\n  \"response_format\": {\"type\": \"json_object\"},\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Sen bir Kıdemli Vize Danışmanlık Robotusun. Pasaport belgelerini mutlaka Pasaport Fotokopisi (delivery_type: digital) ve Pasaport Aslı (delivery_type: physical) olarak iki ayrı madde yaz. delivery_type sadece digital, physical veya firma olabilir. SADECE JSON döndür: {\\\"evraklar\\\": [{\\\"doc_name\\\": \\\"\\\", \\\"delivery_type\\\": \\\"\\\", \\\"description\\\": \\\"\\\"}]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ 'Ülke: ' + $('Webhook').item.json.body.country + '\\\\nVize Türü: ' + $('Webhook').item.json.body.visa_type + '\\\\nMeslek: ' + $('Webhook').item.json.body.occupation + '\\\\nEk Notlar: ' + ($('Webhook').item.json.body.notes || '') }}\"\n    }\n  ]\n}",
         "options": {}
       }
     },
