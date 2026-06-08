@@ -49,7 +49,7 @@
       "typeVersion": 2,
       "position": [720, 300],
       "parameters": {
-        "jsCode": "const response = JSON.parse($input.first().json.choices[0].message.content);\nconst evraklar = response.evraklar;\nconst applicationId = $('Webhook').first().json.body.application_id;\n\nreturn evraklar.map(evrak => ({\n  json: {\n    application_id: applicationId,\n    doc_name: evrak.doc_name,\n    delivery_type: evrak.delivery_type,\n    description: evrak.description,\n    status: 'pending'\n  }\n}));"
+        "jsCode": "const raw = $input.first().json;\nconsole.log('[JSON Parse] raw input:', JSON.stringify(raw).slice(0, 500));\n\n// OpenAI content: string veya zaten parse edilmiş obje olabilir\nconst content = raw.choices?.[0]?.message?.content;\nif (!content) throw new Error('OpenAI response boş: ' + JSON.stringify(raw).slice(0, 300));\n\nconst response = typeof content === 'string' ? JSON.parse(content) : content;\nconsole.log('[JSON Parse] response keys:', Object.keys(response));\n\nconst evraklar = response.evraklar || response.documents || response.docs || [];\nif (!evraklar.length) throw new Error('evraklar dizisi boş. response: ' + JSON.stringify(response).slice(0, 300));\n\nconst applicationId = $('Webhook').first().json.body.application_id;\n\nreturn evraklar.map(evrak => ({\n  json: {\n    application_id: applicationId,\n    doc_name: evrak.doc_name,\n    delivery_type: evrak.delivery_type,\n    description: evrak.description || '',\n    status: 'pending'\n  }\n}));"
       }
     },
     {
