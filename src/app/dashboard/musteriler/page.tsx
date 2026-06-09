@@ -52,7 +52,10 @@ export default function MusterilerPage() {
   const [currentUserId, setCurrentUserId] = useState('')
   const [noTemplateModal, setNoTemplateModal] = useState(false)
   const [savedClientId, setSavedClientId] = useState<string | null>(null)
+  const [savedAppId, setSavedAppId] = useState<string | null>(null)
   const [globalToast, setGlobalToast] = useState(false)
+  const [pendingOwnToast, setPendingOwnToast] = useState(false)
+  const [similarTemplates, setSimilarTemplates] = useState<any[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -166,10 +169,13 @@ export default function MusterilerPage() {
 
       let matchedDocs: { doc_name: string; delivery_type: string; description?: string }[] | null = null
       let usedGlobal = false
+      let hasPendingOwn = false
 
       if (resolvedApp && form.country && form.visa_type) {
-        // 1. Firmaya ait onaylı şablon (ILIKE ile büyük/küçük harf duyarsız)
-        const { data: ownTpl } = await supabase
+        console.log('[şablon arama]', { country: form.country, visa_type: form.visa_type, occupation: form.occupation })
+
+        // a. Firma kendi approved şablonu
+        const { data: ownApproved } = await supabase
           .from('visa_templates')
           .select('docs')
           .eq('company_id', companyId)
@@ -180,24 +186,46 @@ export default function MusterilerPage() {
           .limit(1)
           .maybeSingle()
 
-        if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
-          matchedDocs = ownTpl.docs
+        console.log('[şablon sonuç] firma approved:', ownApproved)
+
+        if (ownApproved?.docs && Array.isArray(ownApproved.docs) && ownApproved.docs.length > 0) {
+          matchedDocs = ownApproved.docs
         } else {
-          // 2. Global onaylı şablon
-          const { data: globalTpl } = await supabase
+          // b. Firma kendi pending şablonu
+          const { data: ownPending } = await supabase
             .from('visa_templates')
-            .select('docs')
-            .eq('is_global', true)
-            .eq('status', 'approved')
+            .select('id')
+            .eq('company_id', companyId)
+            .eq('status', 'pending')
             .ilike('country', form.country)
             .ilike('visa_type', form.visa_type)
             .ilike('occupation', form.occupation || '')
             .limit(1)
             .maybeSingle()
 
-          if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
-            matchedDocs = globalTpl.docs
-            usedGlobal = true
+          console.log('[şablon sonuç] firma pending:', ownPending)
+
+          if (ownPending) {
+            hasPendingOwn = true
+          } else {
+            // c. Global onaylı şablon
+            const { data: globalTpl } = await supabase
+              .from('visa_templates')
+              .select('docs')
+              .eq('is_global', true)
+              .eq('status', 'approved')
+              .ilike('country', form.country)
+              .ilike('visa_type', form.visa_type)
+              .ilike('occupation', form.occupation || '')
+              .limit(1)
+              .maybeSingle()
+
+            console.log('[şablon sonuç] global:', globalTpl)
+
+            if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
+              matchedDocs = globalTpl.docs
+              usedGlobal = true
+            }
           }
         }
 
@@ -211,6 +239,17 @@ export default function MusterilerPage() {
               status: 'pending',
             }))
           )
+        }
+
+        // d. Hiçbiri yoksa benzer şablonları getir (sadece ülke eşleşmesi)
+        if (!matchedDocs && !hasPendingOwn) {
+          const { data: similar } = await supabase
+            .from('visa_templates')
+            .select('visa_type, occupation, docs, status, company_id, is_global')
+            .ilike('country', form.country)
+            .eq('status', 'approved')
+            .limit(6)
+          setSimilarTemplates(similar || [])
         }
       }
 
@@ -228,14 +267,19 @@ export default function MusterilerPage() {
       logAction(companyId, user?.id, userData?.full_name || 'Bilinmeyen', 'Yeni müşteri eklendi', 'client', newClient.id, newClient.full_name)
 
       const clientId = newClient.id
-      const showNoTemplate = !matchedDocs && resolvedApp && !!(form.country && form.visa_type)
+      const appId = resolvedApp?.id ?? null
 
       await fetchData()
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', notes: '' })
 
-      if (showNoTemplate) {
+      if (hasPendingOwn) {
+        setPendingOwnToast(true)
+        setTimeout(() => setPendingOwnToast(false), 4000)
+        router.push(`/dashboard/musteriler/${clientId}`)
+      } else if (!matchedDocs && resolvedApp && !!(form.country && form.visa_type)) {
         setSavedClientId(clientId)
+        setSavedAppId(appId)
         setNoTemplateModal(true)
       } else {
         if (usedGlobal) {
@@ -246,6 +290,22 @@ export default function MusterilerPage() {
       }
     }
     setSaving(false)
+  }
+
+  async function useSimilarTemplate(tpl: any) {
+    if (!savedAppId) return
+    await supabase.from('user_submitted_docs').insert(
+      (tpl.docs || []).map((d: any) => ({
+        application_id: savedAppId,
+        doc_name: d.doc_name,
+        delivery_type: d.delivery_type,
+        description: d.description || '',
+        status: 'pending',
+      }))
+    )
+    setNoTemplateModal(false)
+    setSimilarTemplates([])
+    router.push(`/dashboard/musteriler/${savedClientId}`)
   }
 
   if (companyLoading || loading) return (
@@ -362,6 +422,17 @@ export default function MusterilerPage() {
         </div>
       </div>
 
+      {pendingOwnToast && (
+        <div style={{
+          position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+          background: '#92600a', color: 'white', padding: '10px 20px', borderRadius: '8px',
+          fontSize: '13px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          whiteSpace: 'nowrap',
+        }}>
+          ⏳ Şablonunuz onay bekliyor — evrak listesi onaydan sonra oluşturulacak
+        </div>
+      )}
+
       {globalToast && (
         <div style={{
           position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
@@ -466,13 +537,45 @@ export default function MusterilerPage() {
 
       {noTemplateModal && savedClientId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)', textAlign: 'center' }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', marginBottom: '8px' }}>Şablon Bulunamadı</h3>
-            <p style={{ fontSize: '13px', color: '#5a6a7a', marginBottom: '1.5rem', lineHeight: '1.6' }}>
-              Bu kombinasyon için henüz şablon oluşturulmamış.<br />
-              Müşteri kaydedildi, evrak listesi şimdilik boş.
-            </p>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '460px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>📋</div>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', marginBottom: '6px' }}>Şablon Bulunamadı</h3>
+              <p style={{ fontSize: '13px', color: '#5a6a7a', lineHeight: '1.6', margin: 0 }}>
+                Bu kombinasyon için henüz şablon oluşturulmamış.<br />
+                Müşteri kaydedildi, evrak listesi şimdilik boş.
+              </p>
+            </div>
+
+            {similarTemplates.length > 0 && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#5a6a7a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
+                  Benzer şablonlar var, kullanmak ister misiniz?
+                  <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
+                </div>
+                {similarTemplates.map((tpl, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', marginBottom: '6px', gap: '8px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {tpl.visa_type}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>
+                        {tpl.occupation || 'Meslek belirtilmemiş'} · {(tpl.docs || []).length} evrak
+                        {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>🌐 Global</span>}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => useSimilarTemplate(tpl)}
+                      style={{ flexShrink: 0, padding: '6px 12px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      Bu Şablonu Kullan
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button
                 onClick={() => router.push('/dashboard/sablonlar')}
@@ -487,7 +590,7 @@ export default function MusterilerPage() {
                 🌐 Global Şablonlara Bak
               </button>
               <button
-                onClick={() => { setNoTemplateModal(false); router.push(`/dashboard/musteriler/${savedClientId}`) }}
+                onClick={() => { setNoTemplateModal(false); setSimilarTemplates([]); router.push(`/dashboard/musteriler/${savedClientId}`) }}
                 style={{ width: '100%', padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 Müşteri Profiline Git →
