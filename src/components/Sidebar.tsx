@@ -15,6 +15,7 @@ const navItems = [
   { label: 'Potansiyel Müşteriler', href: '/dashboard/leads', badge: 'lead' },
   { label: 'Takvim', href: '/dashboard/takvim' },
   { label: 'Elçilik Linkleri', href: '/dashboard/elcilik' },
+  { label: 'Şablon Kütüphanesi', href: '/dashboard/sablonlar' },
 ]
 
 export default function Sidebar() {

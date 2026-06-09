@@ -170,7 +170,35 @@ export default function MusterilerPage() {
         console.log('[saveClient] applications refetch → id:', resolvedApp?.id)
       }
 
-      // n8n webhook: evrak listesini AI üretiyor (RPC kaldırıldı)
+      // Şablon var mı? — visa_templates tablosundan eşleşen şablonu bul
+      if (resolvedApp && form.country && form.visa_type) {
+        const { data: tpl } = await supabase
+          .from('visa_templates')
+          .select('docs')
+          .eq('country', form.country)
+          .eq('visa_type', form.visa_type)
+          .eq('occupation', form.occupation || '')
+          .eq('status', 'approved')
+          .order('is_global', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (tpl?.docs && Array.isArray(tpl.docs) && tpl.docs.length > 0) {
+          console.log('[şablon] eşleşen şablon bulundu, docs ekleniyor:', tpl.docs.length)
+          const docInserts = tpl.docs.map((d: { doc_name: string; delivery_type: string; description?: string }) => ({
+            application_id: resolvedApp!.id,
+            doc_name: d.doc_name,
+            delivery_type: d.delivery_type,
+            description: d.description || '',
+            status: 'pending',
+          }))
+          await supabase.from('user_submitted_docs').insert(docInserts)
+        } else {
+          console.log('[şablon] eşleşen şablon yok, webhook çağrılıyor')
+        }
+      }
+
+      // n8n webhook: şablon yoksa AI üretimi
       if (resolvedApp && form.country && form.visa_type) {
         console.log('[webhook] /api/generate-visa-docs çağrılıyor')
         try {
