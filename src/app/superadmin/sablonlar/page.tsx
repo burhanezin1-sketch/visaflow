@@ -27,25 +27,43 @@ const S = {
 export default function SuperadminSablonlar() {
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState<string | null>(null)
   const [tab, setTab]             = useState<'pending' | 'approved' | 'rejected'>('pending')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
-    const res = await fetch('/api/superadmin/templates')
-    const json = await res.json()
-    setTemplates(json.templates || [])
-    setLoading(false)
+    setError(null)
+    try {
+      const res = await fetch('/api/superadmin/templates')
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`)
+      }
+      const json = await res.json()
+      setTemplates(json.templates || [])
+    } catch (err: any) {
+      console.error('[superadmin/sablonlar] load hatası:', err)
+      setError(err.message || 'Şablonlar yüklenemedi.')
+      setTemplates([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
 
   async function patch(id: string, update: object) {
-    await fetch('/api/superadmin/templates', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...update }),
-    })
+    try {
+      const res = await fetch('/api/superadmin/templates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...update }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch (err: any) {
+      console.error('[superadmin/sablonlar] patch hatası:', err)
+    }
     load()
   }
 
@@ -82,6 +100,12 @@ export default function SuperadminSablonlar() {
             </button>
           ))}
         </div>
+
+        {error && (
+          <div style={{ background: '#450a0a', border: '1px solid #7f1d1d', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#fca5a5' }}>
+            ⚠️ {error}
+          </div>
+        )}
 
         {loading ? (
           <div style={{ color: S.muted }}>Yükleniyor...</div>

@@ -281,7 +281,6 @@ export default function SuperAdminDashboard() {
     ['saglik', 'Sistem Sağlığı'],
     ['destek', 'Destek'],
     ['firmalar', 'Firmalar'],
-    ['evraklar', 'Evrak Şablonları'],
     ['kurallar', 'Vize Kuralları'],
   ]
 
@@ -324,6 +323,14 @@ export default function SuperAdminDashboard() {
 
           {/* Nav */}
           <nav style={{ flex: 1, padding: '0.5rem 0' }}>
+            {/* Şablonlar — öne çıkan link */}
+            <button
+              onClick={() => router.push('/superadmin/sablonlar')}
+              style={{ width: '100%', padding: '9px 1rem', display: 'block', background: '#1e3a5f', borderLeft: `3px solid ${S.accent}`, color: 'white', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '4px' }}
+            >
+              📋 Şablonlar
+            </button>
+            <div style={{ height: '1px', background: S.border, margin: '4px 0 4px' }} />
             {navItems.map(([key, label]) => {
               const active = activeTab === key
               return (
@@ -333,16 +340,6 @@ export default function SuperAdminDashboard() {
               )
             })}
           </nav>
-
-          {/* Şablonlar link */}
-          <div style={{ borderTop: `1px solid ${S.border}`, padding: '0.5rem 0' }}>
-            <button
-              onClick={() => router.push('/superadmin/sablonlar')}
-              style={{ width: '100%', padding: '9px 1rem', display: 'block', background: 'transparent', borderLeft: '3px solid transparent', color: S.muted, fontSize: '13px', fontWeight: '400', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', boxSizing: 'border-box' }}
-            >
-              📋 Şablonlar
-            </button>
-          </div>
 
           {/* Logout */}
           <div style={{ padding: '1rem', borderTop: `1px solid ${S.border}` }}>

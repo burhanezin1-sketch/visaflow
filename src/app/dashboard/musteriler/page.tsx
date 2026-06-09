@@ -172,10 +172,10 @@ export default function MusterilerPage() {
       let hasPendingOwn = false
 
       if (resolvedApp && form.country && form.visa_type) {
-        console.log('[şablon arama]', { country: form.country, visa_type: form.visa_type, occupation: form.occupation })
+        console.log('[sablon ara]', { country: form.country, visa_type: form.visa_type, occupation: form.occupation, companyId })
 
         // a. Firma kendi approved şablonu
-        const { data: ownApproved } = await supabase
+        const { data: ownApproved, error: ownApprovedErr } = await supabase
           .from('visa_templates')
           .select('docs')
           .eq('company_id', companyId)
@@ -186,15 +186,15 @@ export default function MusterilerPage() {
           .limit(1)
           .maybeSingle()
 
-        console.log('[şablon sonuç] firma approved:', ownApproved)
+        console.log('[sablon] firma approved:', ownApproved, '| err:', ownApprovedErr?.message)
 
         if (ownApproved?.docs && Array.isArray(ownApproved.docs) && ownApproved.docs.length > 0) {
           matchedDocs = ownApproved.docs
         } else {
-          // b. Firma kendi pending şablonu
-          const { data: ownPending } = await supabase
+          // b. Firma kendi pending şablonu — superadmin onayı bekleniyor
+          const { data: ownPending, error: ownPendingErr } = await supabase
             .from('visa_templates')
-            .select('id')
+            .select('id, country, visa_type, occupation')
             .eq('company_id', companyId)
             .eq('status', 'pending')
             .ilike('country', form.country)
@@ -203,13 +203,13 @@ export default function MusterilerPage() {
             .limit(1)
             .maybeSingle()
 
-          console.log('[şablon sonuç] firma pending:', ownPending)
+          console.log('[sablon] firma pending:', ownPending, '| err:', ownPendingErr?.message)
 
           if (ownPending) {
             hasPendingOwn = true
           } else {
             // c. Global onaylı şablon
-            const { data: globalTpl } = await supabase
+            const { data: globalTpl, error: globalErr } = await supabase
               .from('visa_templates')
               .select('docs')
               .eq('is_global', true)
@@ -220,7 +220,7 @@ export default function MusterilerPage() {
               .limit(1)
               .maybeSingle()
 
-            console.log('[şablon sonuç] global:', globalTpl)
+            console.log('[sablon] global approved:', globalTpl, '| err:', globalErr?.message)
 
             if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
               matchedDocs = globalTpl.docs
@@ -429,7 +429,7 @@ export default function MusterilerPage() {
           fontSize: '13px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           whiteSpace: 'nowrap',
         }}>
-          ⏳ Şablonunuz onay bekliyor — evrak listesi onaydan sonra oluşturulacak
+          ⏳ Şablonunuz superadmin onayı bekliyor — evrak listesi onaydan sonra oluşturulacak
         </div>
       )}
 
