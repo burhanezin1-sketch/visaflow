@@ -170,36 +170,54 @@ export default function MusterilerPage() {
         console.log('[saveClient] applications refetch → id:', resolvedApp?.id)
       }
 
-      // Şablon var mı? — visa_templates tablosundan eşleşen şablonu bul
+      // Şablon arama: 1) firma şablonu 2) global şablon
+      let matchedDocs: { doc_name: string; delivery_type: string; description?: string }[] | null = null
       if (resolvedApp && form.country && form.visa_type) {
-        const { data: tpl } = await supabase
+        const lookup = { country: form.country, visa_type: form.visa_type, occupation: form.occupation || '', status: 'approved' as const }
+
+        // 1. Firmaya ait onaylı şablon
+        const { data: ownTpl } = await supabase
           .from('visa_templates')
           .select('docs')
-          .eq('country', form.country)
-          .eq('visa_type', form.visa_type)
-          .eq('occupation', form.occupation || '')
-          .eq('status', 'approved')
-          .order('is_global', { ascending: false })
+          .match({ ...lookup, company_id: companyId })
           .limit(1)
           .maybeSingle()
 
-        if (tpl?.docs && Array.isArray(tpl.docs) && tpl.docs.length > 0) {
-          console.log('[şablon] eşleşen şablon bulundu, docs ekleniyor:', tpl.docs.length)
-          const docInserts = tpl.docs.map((d: { doc_name: string; delivery_type: string; description?: string }) => ({
-            application_id: resolvedApp!.id,
-            doc_name: d.doc_name,
-            delivery_type: d.delivery_type,
-            description: d.description || '',
-            status: 'pending',
-          }))
-          await supabase.from('user_submitted_docs').insert(docInserts)
+        if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
+          matchedDocs = ownTpl.docs
+          console.log('[şablon] firma şablonu bulundu:', matchedDocs.length, 'evrak')
         } else {
-          console.log('[şablon] eşleşen şablon yok, webhook çağrılıyor')
+          // 2. Global onaylı şablon
+          const { data: globalTpl } = await supabase
+            .from('visa_templates')
+            .select('docs')
+            .match({ ...lookup, is_global: true })
+            .limit(1)
+            .maybeSingle()
+
+          if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
+            matchedDocs = globalTpl.docs
+            console.log('[şablon] global şablon bulundu:', matchedDocs.length, 'evrak')
+          }
+        }
+
+        if (matchedDocs) {
+          await supabase.from('user_submitted_docs').insert(
+            matchedDocs.map(d => ({
+              application_id: resolvedApp!.id,
+              doc_name: d.doc_name,
+              delivery_type: d.delivery_type,
+              description: d.description || '',
+              status: 'pending',
+            }))
+          )
+        } else {
+          console.log('[şablon] eşleşen şablon yok, webhook çağrılacak')
         }
       }
 
       // n8n webhook: şablon yoksa AI üretimi
-      if (resolvedApp && form.country && form.visa_type) {
+      if (!matchedDocs && resolvedApp && form.country && form.visa_type) {
         console.log('[webhook] /api/generate-visa-docs çağrılıyor')
         try {
           const res = await fetch('/api/generate-visa-docs', {
