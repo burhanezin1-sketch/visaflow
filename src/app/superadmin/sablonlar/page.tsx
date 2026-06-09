@@ -13,22 +13,29 @@ type Template = {
   status: 'pending' | 'approved' | 'rejected'
   is_global: boolean
   created_at: string
-  companies?: { name: string }
+  companies?: { name: string } | null
+}
+
+const S = {
+  bg: '#0f172a', card: '#1e293b', border: '#334155',
+  text: 'white', muted: '#94a3b8', faint: '#475569', accent: '#6366f1',
 }
 
 const DELIVERY_COLORS: Record<string, string> = {
   digital: '#22c55e', physical: '#ef4444', firma: '#6366f1',
 }
-const S = {
-  bg: '#0f172a', card: '#1e293b', border: '#334155',
-  text: 'white', muted: '#94a3b8', accent: '#6366f1',
-}
+
+const TAB_LABELS: { key: Template['status']; label: string }[] = [
+  { key: 'pending',  label: 'Bekleyen' },
+  { key: 'approved', label: 'Onaylı' },
+  { key: 'rejected', label: 'Reddedildi' },
+]
 
 export default function SuperadminSablonlar() {
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState<string | null>(null)
-  const [tab, setTab]             = useState<'pending' | 'approved' | 'rejected'>('pending')
+  const [templates, setTemplates]   = useState<Template[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState<string | null>(null)
+  const [tab, setTab]               = useState<Template['status']>('pending')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   async function load() {
@@ -37,14 +44,14 @@ export default function SuperadminSablonlar() {
     try {
       const res = await fetch('/api/superadmin/templates')
       if (!res.ok) {
-        const text = await res.text()
-        throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`)
+        const text = await res.text().catch(() => '')
+        throw new Error(`HTTP ${res.status}${text ? ': ' + text.slice(0, 100) : ''}`)
       }
       const json = await res.json()
-      setTemplates(json.templates || [])
+      setTemplates(json.templates ?? [])
     } catch (err: any) {
-      console.error('[superadmin/sablonlar] load hatası:', err)
-      setError(err.message || 'Şablonlar yüklenemedi.')
+      console.error('[superadmin/sablonlar] yükleme hatası:', err)
+      setError(err.message ?? 'Şablonlar yüklenemedi.')
       setTemplates([])
     } finally {
       setLoading(false)
@@ -53,7 +60,7 @@ export default function SuperadminSablonlar() {
 
   useEffect(() => { load() }, [])
 
-  async function patch(id: string, update: object) {
+  async function patch(id: string, update: Record<string, unknown>) {
     try {
       const res = await fetch('/api/superadmin/templates', {
         method: 'PATCH',
@@ -62,7 +69,7 @@ export default function SuperadminSablonlar() {
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     } catch (err: any) {
-      console.error('[superadmin/sablonlar] patch hatası:', err)
+      console.error('[superadmin/sablonlar] güncelleme hatası:', err)
     }
     load()
   }
@@ -72,128 +79,153 @@ export default function SuperadminSablonlar() {
     approved: templates.filter(t => t.status === 'approved').length,
     rejected: templates.filter(t => t.status === 'rejected').length,
   }
-  const filtered = templates.filter(t => t.status === tab)
-
-  const tabs: { key: typeof tab; label: string }[] = [
-    { key: 'pending',  label: `Bekleyen (${counts.pending})` },
-    { key: 'approved', label: `Onaylı (${counts.approved})` },
-    { key: 'rejected', label: `Reddedildi (${counts.rejected})` },
-  ]
+  const visible = templates.filter(t => t.status === tab)
 
   return (
-    <div style={{ minHeight: '100vh', background: S.bg, padding: '2rem', color: S.text }}>
+    <div style={{ minHeight: '100vh', background: S.bg, padding: '2rem', color: S.text, fontFamily: 'system-ui' }}>
       <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '6px' }}>📋 Şablon Yönetimi</div>
-        <div style={{ fontSize: '13px', color: S.muted, marginBottom: '24px' }}>
-          Firmalar tarafından gönderilen evrak şablonlarını incele ve onayla.
+
+        {/* Header */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>📋 Şablon Yönetimi</div>
+          <div style={{ fontSize: '13px', color: S.muted }}>
+            Firmalar tarafından gönderilen evrak şablonlarını incele, onayla veya reddet.
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                fontSize: '13px', fontWeight: '500',
-                background: tab === t.key ? S.accent : S.card,
-                color: tab === t.key ? 'white' : S.muted }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
+        {/* Error banner */}
         {error && (
-          <div style={{ background: '#450a0a', border: '1px solid #7f1d1d', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#fca5a5' }}>
-            ⚠️ {error}
+          <div style={{ background: '#450a0a', border: '1px solid #7f1d1d', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>⚠️ {error}</span>
+            <button onClick={load} style={{ background: 'transparent', border: '1px solid #7f1d1d', color: '#fca5a5', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', cursor: 'pointer' }}>
+              Yeniden Dene
+            </button>
           </div>
         )}
 
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}>
+          {TAB_LABELS.map(({ key, label }) => (
+            <button key={key} onClick={() => setTab(key)} style={{
+              padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              fontSize: '13px', fontWeight: '500',
+              background: tab === key ? S.accent : S.card,
+              color: tab === key ? 'white' : S.muted,
+            }}>
+              {label}
+              <span style={{
+                marginLeft: '6px', fontSize: '11px', fontWeight: '700',
+                background: tab === key ? 'rgba(255,255,255,0.2)' : S.faint,
+                color: tab === key ? 'white' : S.muted,
+                padding: '1px 6px', borderRadius: '10px',
+              }}>
+                {counts[key]}
+              </span>
+            </button>
+          ))}
+          <button onClick={load} style={{ marginLeft: 'auto', padding: '8px 14px', borderRadius: '8px', border: `1px solid ${S.border}`, background: 'transparent', color: S.muted, fontSize: '12px', cursor: 'pointer' }}>
+            ↺ Yenile
+          </button>
+        </div>
+
+        {/* Content */}
         {loading ? (
-          <div style={{ color: S.muted }}>Yükleniyor...</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ color: S.muted, fontSize: '13px' }}>Bu kategoride şablon yok.</div>
+          <div style={{ color: S.muted, fontSize: '13px', padding: '2rem 0' }}>Yükleniyor...</div>
+        ) : visible.length === 0 ? (
+          <div style={{ color: S.muted, fontSize: '13px', padding: '2rem 0', textAlign: 'center' }}>
+            Bu kategoride şablon yok.
+          </div>
         ) : (
-          filtered.map(t => {
+          visible.map(t => {
             const expanded = expandedId === t.id
             return (
-              <div key={t.id} style={{ background: S.card, border: `1px solid ${S.border}`,
-                borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
+              <div key={t.id} style={{
+                background: S.card, border: `1px solid ${S.border}`,
+                borderRadius: '10px', padding: '14px 16px', marginBottom: '10px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: S.text, marginBottom: '3px' }}>
-                      {t.country} · {t.visa_type} · {t.occupation}
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: S.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {t.country} · {t.visa_type} · {t.occupation || '—'}
                     </div>
-                    <div style={{ fontSize: '11px', color: S.muted }}>
-                      {t.companies?.name ?? 'Firma bilinmiyor'} · {(t.docs || []).length} evrak ·{' '}
-                      {new Date(t.created_at).toLocaleDateString('tr-TR')}
-                      {t.is_global && <span style={{ marginLeft: '8px', color: S.accent, fontWeight: '600' }}>🌐 Global</span>}
+                    <div style={{ fontSize: '12px', color: S.muted, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <span>🏢 {t.companies?.name ?? 'Firma bilinmiyor'}</span>
+                      <span>📄 {(t.docs || []).length} evrak</span>
+                      <span>📅 {new Date(t.created_at).toLocaleDateString('tr-TR')}</span>
+                      {t.is_global && <span style={{ color: S.accent, fontWeight: '600' }}>🌐 Global</span>}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '5px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '5px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
                     {t.status === 'pending' && (
                       <>
                         <button onClick={() => patch(t.id, { status: 'approved' })}
-                          style={{ fontSize: '11px', padding: '5px 11px', background: '#22c55e', color: 'white',
-                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+                          style={{ fontSize: '11px', padding: '5px 12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                           ✓ Onayla
                         </button>
                         <button onClick={() => patch(t.id, { status: 'rejected' })}
-                          style={{ fontSize: '11px', padding: '5px 11px', background: '#ef4444', color: 'white',
-                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+                          style={{ fontSize: '11px', padding: '5px 12px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                           ✕ Reddet
                         </button>
                         <button onClick={() => patch(t.id, { status: 'approved', is_global: true })}
-                          style={{ fontSize: '11px', padding: '5px 11px', background: S.accent, color: 'white',
-                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+                          style={{ fontSize: '11px', padding: '5px 12px', background: S.accent, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                           🌐 Global Yap
                         </button>
                       </>
                     )}
+
                     {t.status === 'approved' && (
                       t.is_global
                         ? <button onClick={() => patch(t.id, { is_global: false })}
-                            style={{ fontSize: '11px', padding: '5px 11px', background: '#475569', color: 'white',
-                              border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                            style={{ fontSize: '11px', padding: '5px 12px', background: S.faint, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                             Global Kaldır
                           </button>
                         : <button onClick={() => patch(t.id, { is_global: true })}
-                            style={{ fontSize: '11px', padding: '5px 11px', background: S.accent, color: 'white',
-                              border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+                            style={{ fontSize: '11px', padding: '5px 12px', background: S.accent, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                             🌐 Global Yap
                           </button>
                     )}
+
                     {t.status === 'rejected' && (
                       <button onClick={() => patch(t.id, { status: 'pending' })}
-                        style={{ fontSize: '11px', padding: '5px 11px', background: '#475569', color: 'white',
-                          border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                        style={{ fontSize: '11px', padding: '5px 12px', background: S.faint, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                         Yeniden İncele
                       </button>
                     )}
+
                     <button onClick={() => setExpandedId(expanded ? null : t.id)}
-                      style={{ fontSize: '11px', padding: '5px 8px', background: '#334155', color: S.muted,
-                        border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                      style={{ fontSize: '11px', padding: '5px 9px', background: '#334155', color: S.muted, border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                       {expanded ? '▲' : '▼'}
                     </button>
                   </div>
                 </div>
 
+                {/* Expanded doc list */}
                 {expanded && (
                   <div style={{ marginTop: '12px', borderTop: `1px solid ${S.border}`, paddingTop: '10px' }}>
                     {(t.docs || []).length === 0 ? (
                       <div style={{ fontSize: '12px', color: S.muted }}>Evrak eklenmemiş.</div>
                     ) : (t.docs || []).map((d, i) => (
-                      <div key={i} style={{ display: 'flex', gap: '8px', padding: '5px 0',
-                        borderBottom: i < t.docs.length - 1 ? `1px solid ${S.border}` : 'none' }}>
-                        <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '4px', flexShrink: 0,
+                      <div key={i} style={{
+                        display: 'flex', gap: '10px', padding: '5px 0',
+                        borderBottom: i < t.docs.length - 1 ? `1px solid ${S.border}` : 'none',
+                      }}>
+                        <span style={{
+                          fontSize: '10px', padding: '2px 8px', borderRadius: '4px', flexShrink: 0,
                           marginTop: '2px', fontWeight: '600', background: '#0f172a',
-                          color: DELIVERY_COLORS[d.delivery_type] || S.muted,
-                          border: `1px solid ${DELIVERY_COLORS[d.delivery_type] || S.border}` }}>
+                          color: DELIVERY_COLORS[d.delivery_type] ?? S.muted,
+                          border: `1px solid ${DELIVERY_COLORS[d.delivery_type] ?? S.border}`,
+                        }}>
                           {d.delivery_type}
                         </span>
                         <div>
                           <div style={{ fontSize: '12px', color: S.text, fontWeight: '500' }}>{d.doc_name}</div>
-                          {d.description && <div style={{ fontSize: '11px', color: S.muted, marginTop: '1px' }}>{d.description}</div>}
+                          {d.description && (
+                            <div style={{ fontSize: '11px', color: S.muted, marginTop: '1px' }}>{d.description}</div>
+                          )}
                         </div>
                       </div>
                     ))}
