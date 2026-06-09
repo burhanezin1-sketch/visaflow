@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { logAction } from '@/lib/activityLog'
 
 type Doc = { doc_name: string; delivery_type: string; description: string }
 type Template = {
@@ -38,6 +39,8 @@ export default function SablonlarPage() {
   const [globalTpls, setGlobalTpls] = useState<Template[]>([])
   const [myTpls, setMyTpls]         = useState<Template[]>([])
   const [companyId, setCompanyId]   = useState<string | null>(null)
+  const [userId, setUserId]         = useState<string | null>(null)
+  const [userName, setUserName]     = useState('')
   const [loading, setLoading]       = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -52,9 +55,11 @@ export default function SablonlarPage() {
   async function init() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data: ud } = await supabase.from('users').select('company_id').eq('id', user.id).single()
+    setUserId(user.id)
+    const { data: ud } = await supabase.from('users').select('company_id, full_name').eq('id', user.id).single()
     const cid = ud?.company_id ?? null
     setCompanyId(cid)
+    setUserName(ud?.full_name || user.email || 'Bilinmeyen')
 
     const { data } = await supabase
       .from('visa_templates').select('*').order('created_at', { ascending: false })
@@ -92,6 +97,15 @@ export default function SablonlarPage() {
         visa_type: form.visa_type, occupation: form.occupation,
         docs: validDocs, status: 'pending', is_global: false,
       })
+      logAction(
+        companyId,
+        userId,
+        userName,
+        `${userName} tarafından ${form.country} + ${form.visa_type} + ${form.occupation} şablonu oluşturuldu`,
+        'visa_template',
+        null,
+        `${form.country} + ${form.visa_type} + ${form.occupation}`
+      )
     }
     setSaving(false)
     setShowModal(false)

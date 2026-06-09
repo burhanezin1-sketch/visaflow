@@ -300,6 +300,63 @@ export default function MusteriDetayPage() {
     return callDocAction(docId, docName, 'elden', `Evrak elden teslim: ${docName}`)
   }
 
+  async function evraklariYenile() {
+    if (!application || !companyId) return
+    setEvrakHata(null)
+
+    const country = application.country
+    const visa_type = application.visa_type
+    const occupation = application.occupation || ''
+
+    const { data: ownTpl } = await supabase
+      .from('visa_templates')
+      .select('docs')
+      .eq('company_id', companyId)
+      .eq('status', 'approved')
+      .ilike('country', country)
+      .ilike('visa_type', visa_type)
+      .ilike('occupation', occupation)
+      .limit(1)
+      .maybeSingle()
+
+    let matchedDocs: any[] | null = null
+    if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
+      matchedDocs = ownTpl.docs
+    } else {
+      const { data: globalTpl } = await supabase
+        .from('visa_templates')
+        .select('docs')
+        .eq('is_global', true)
+        .eq('status', 'approved')
+        .ilike('country', country)
+        .ilike('visa_type', visa_type)
+        .ilike('occupation', occupation)
+        .limit(1)
+        .maybeSingle()
+
+      if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
+        matchedDocs = globalTpl.docs
+      }
+    }
+
+    if (!matchedDocs) {
+      setEvrakHata('Bu kombinasyon için onaylı şablon bulunamadı.')
+      return
+    }
+
+    await supabase.from('user_submitted_docs').insert(
+      matchedDocs.map((d: any) => ({
+        application_id: application.id,
+        doc_name: d.doc_name,
+        delivery_type: d.delivery_type,
+        description: d.description || '',
+        status: 'pending',
+      }))
+    )
+
+    await fetchAll()
+  }
+
   async function generateDocList() {
     if (!application) return
     setEvrakHata(null)
@@ -525,12 +582,20 @@ export default function MusteriDetayPage() {
                   <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
                     <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '1rem' }}>Evrak listesi henüz oluşturulmamış.</p>
                     {application?.country && application?.visa_type && (
-                      <button
-                        onClick={generateDocList}
-                        style={{ padding: '9px 18px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}
-                      >
-                        📋 Evrak Listesini Oluştur
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          onClick={evraklariYenile}
+                          style={{ padding: '9px 18px', background: '#1a5fa5', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}
+                        >
+                          🔄 Evrakları Yenile (Şablondan)
+                        </button>
+                        <button
+                          onClick={generateDocList}
+                          style={{ padding: '9px 18px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}
+                        >
+                          📋 Evrak Listesini Oluştur
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -641,15 +706,23 @@ export default function MusteriDetayPage() {
                       )
                     })}
 
-                    <button
-                      onClick={() => {
-                        setActiveTab('wp')
-                        setNewMessage(`Sayın ${client.full_name}, eksik evraklarınızı portal linkiniz üzerinden yüklemenizi rica ederiz.`)
-                      }}
-                      style={{ width: '100%', marginTop: '12px', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}
-                    >
-                      📎 Evrak Hatırlatması Gönder
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                      <button
+                        onClick={evraklariYenile}
+                        style={{ flex: 1, padding: '10px', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}
+                      >
+                        🔄 Evrakları Yenile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab('wp')
+                          setNewMessage(`Sayın ${client.full_name}, eksik evraklarınızı portal linkiniz üzerinden yüklemenizi rica ederiz.`)
+                        }}
+                        style={{ flex: 1, padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}
+                      >
+                        📎 Evrak Hatırlatması Gönder
+                      </button>
+                    </div>
                   </>
                 )}
               </div>

@@ -1,12 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const adminClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 type Doc = { doc_name: string; delivery_type: string; description: string }
 type Template = {
@@ -25,11 +19,9 @@ type Template = {
 const DELIVERY_COLORS: Record<string, string> = {
   digital: '#22c55e', physical: '#ef4444', firma: '#6366f1',
 }
-
 const S = {
   bg: '#0f172a', card: '#1e293b', border: '#334155',
   text: 'white', muted: '#94a3b8', accent: '#6366f1',
-  green: '#22c55e', red: '#ef4444',
 }
 
 export default function SuperadminSablonlar() {
@@ -40,43 +32,49 @@ export default function SuperadminSablonlar() {
 
   async function load() {
     setLoading(true)
-    const { data } = await adminClient
-      .from('visa_templates')
-      .select('*, companies(name)')
-      .order('created_at', { ascending: false })
-    setTemplates((data || []) as Template[])
+    const res = await fetch('/api/superadmin/templates')
+    const json = await res.json()
+    setTemplates(json.templates || [])
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
 
-  async function patch(id: string, update: Partial<Template>) {
-    await adminClient.from('visa_templates').update(update).eq('id', id)
+  async function patch(id: string, update: object) {
+    await fetch('/api/superadmin/templates', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...update }),
+    })
     load()
   }
 
+  const counts = {
+    pending:  templates.filter(t => t.status === 'pending').length,
+    approved: templates.filter(t => t.status === 'approved').length,
+    rejected: templates.filter(t => t.status === 'rejected').length,
+  }
   const filtered = templates.filter(t => t.status === tab)
 
   const tabs: { key: typeof tab; label: string }[] = [
-    { key: 'pending',  label: `İncelemede (${templates.filter(t => t.status === 'pending').length})` },
-    { key: 'approved', label: `Onaylı (${templates.filter(t => t.status === 'approved').length})` },
-    { key: 'rejected', label: `Reddedildi (${templates.filter(t => t.status === 'rejected').length})` },
+    { key: 'pending',  label: `Bekleyen (${counts.pending})` },
+    { key: 'approved', label: `Onaylı (${counts.approved})` },
+    { key: 'rejected', label: `Reddedildi (${counts.rejected})` },
   ]
 
   return (
     <div style={{ minHeight: '100vh', background: S.bg, padding: '2rem', color: S.text }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-
-        <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>📋 Şablon Yönetimi</div>
+      <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+        <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '6px' }}>📋 Şablon Yönetimi</div>
         <div style={{ fontSize: '13px', color: S.muted, marginBottom: '24px' }}>
-          Firmalar tarafından gönderilen şablonları incele, onayla veya global yap.
+          Firmalar tarafından gönderilen evrak şablonlarını incele ve onayla.
         </div>
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                 fontSize: '13px', fontWeight: '500',
                 background: tab === t.key ? S.accent : S.card,
                 color: tab === t.key ? 'white' : S.muted }}>
@@ -96,7 +94,6 @@ export default function SuperadminSablonlar() {
               <div key={t.id} style={{ background: S.card, border: `1px solid ${S.border}`,
                 borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
 
-                {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '13px', fontWeight: '600', color: S.text, marginBottom: '3px' }}>
@@ -105,46 +102,46 @@ export default function SuperadminSablonlar() {
                     <div style={{ fontSize: '11px', color: S.muted }}>
                       {t.companies?.name ?? 'Firma bilinmiyor'} · {(t.docs || []).length} evrak ·{' '}
                       {new Date(t.created_at).toLocaleDateString('tr-TR')}
-                      {t.is_global && (
-                        <span style={{ marginLeft: '8px', color: S.accent, fontWeight: '600' }}>🌐 Global</span>
-                      )}
+                      {t.is_global && <span style={{ marginLeft: '8px', color: S.accent, fontWeight: '600' }}>🌐 Global</span>}
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div style={{ display: 'flex', gap: '5px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {t.status === 'pending' && (
                       <>
                         <button onClick={() => patch(t.id, { status: 'approved' })}
-                          style={{ fontSize: '11px', padding: '5px 10px', background: S.green, color: 'white',
+                          style={{ fontSize: '11px', padding: '5px 11px', background: '#22c55e', color: 'white',
                             border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                           ✓ Onayla
                         </button>
                         <button onClick={() => patch(t.id, { status: 'rejected' })}
-                          style={{ fontSize: '11px', padding: '5px 10px', background: S.red, color: 'white',
+                          style={{ fontSize: '11px', padding: '5px 11px', background: '#ef4444', color: 'white',
                             border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                           ✕ Reddet
+                        </button>
+                        <button onClick={() => patch(t.id, { status: 'approved', is_global: true })}
+                          style={{ fontSize: '11px', padding: '5px 11px', background: S.accent, color: 'white',
+                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+                          🌐 Global Yap
                         </button>
                       </>
                     )}
                     {t.status === 'approved' && (
-                      t.is_global ? (
-                        <button onClick={() => patch(t.id, { is_global: false })}
-                          style={{ fontSize: '11px', padding: '5px 10px', background: '#475569', color: 'white',
-                            border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                          Global Kaldır
-                        </button>
-                      ) : (
-                        <button onClick={() => patch(t.id, { is_global: true })}
-                          style={{ fontSize: '11px', padding: '5px 10px', background: S.accent, color: 'white',
-                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
-                          🌐 Global Yap
-                        </button>
-                      )
+                      t.is_global
+                        ? <button onClick={() => patch(t.id, { is_global: false })}
+                            style={{ fontSize: '11px', padding: '5px 11px', background: '#475569', color: 'white',
+                              border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                            Global Kaldır
+                          </button>
+                        : <button onClick={() => patch(t.id, { is_global: true })}
+                            style={{ fontSize: '11px', padding: '5px 11px', background: S.accent, color: 'white',
+                              border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+                            🌐 Global Yap
+                          </button>
                     )}
                     {t.status === 'rejected' && (
                       <button onClick={() => patch(t.id, { status: 'pending' })}
-                        style={{ fontSize: '11px', padding: '5px 10px', background: '#475569', color: 'white',
+                        style={{ fontSize: '11px', padding: '5px 11px', background: '#475569', color: 'white',
                           border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                         Yeniden İncele
                       </button>
@@ -157,7 +154,6 @@ export default function SuperadminSablonlar() {
                   </div>
                 </div>
 
-                {/* Evrak listesi */}
                 {expanded && (
                   <div style={{ marginTop: '12px', borderTop: `1px solid ${S.border}`, paddingTop: '10px' }}>
                     {(t.docs || []).length === 0 ? (
@@ -173,9 +169,7 @@ export default function SuperadminSablonlar() {
                         </span>
                         <div>
                           <div style={{ fontSize: '12px', color: S.text, fontWeight: '500' }}>{d.doc_name}</div>
-                          {d.description && (
-                            <div style={{ fontSize: '11px', color: S.muted, marginTop: '1px' }}>{d.description}</div>
-                          )}
+                          {d.description && <div style={{ fontSize: '11px', color: S.muted, marginTop: '1px' }}>{d.description}</div>}
                         </div>
                       </div>
                     ))}

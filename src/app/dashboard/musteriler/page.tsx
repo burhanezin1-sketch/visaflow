@@ -8,7 +8,6 @@ import { useCompany } from '@/lib/useCompany'
 import { checkApplicationLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
-import { useVisaOptions } from '@/lib/useVisaOptions'
 
 function formatPrice(price: number, currency: string = 'TRY') {
   const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -16,6 +15,11 @@ function formatPrice(price: number, currency: string = 'TRY') {
     ? `${price.toLocaleString('tr-TR')}${sym.TRY}`
     : `${sym[currency] || currency}${price.toLocaleString('en-US')}`
 }
+
+const toTitleCase = (str: string) =>
+  str.trim().replace(/\w\S*/g, txt =>
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  )
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -41,17 +45,15 @@ export default function MusterilerPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [prices, setPrices] = useState<any[]>([])
-  const { countries, visaTypesFor } = useVisaOptions()
   const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', notes: '' })
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
-  const [countryOpen, setCountryOpen] = useState(false)
-  const [visaOpen, setVisaOpen] = useState(false)
-  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
-  const [visaDropPos, setVisaDropPos] = useState({ top: 0, left: 0, width: 0 })
   const [activeTab, setActiveTab] = useState<'tumu' | 'benimkiler'>('tumu')
   const [currentUserId, setCurrentUserId] = useState('')
+  const [noTemplateModal, setNoTemplateModal] = useState(false)
+  const [savedClientId, setSavedClientId] = useState<string | null>(null)
+  const [globalToast, setGlobalToast] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -85,7 +87,6 @@ export default function MusterilerPage() {
       .eq('company_id', companyId)
     setPrices(data || [])
   }
-
 
   useEffect(() => {
     let result = clients
@@ -140,8 +141,6 @@ export default function MusterilerPage() {
       .single()
 
     if (newClient) {
-      console.log('[saveClient] form:', { country: form.country, visa_type: form.visa_type, occupation: form.occupation })
-
       const { data: newApp, error: appInsertError } = await supabase
         .from('applications')
         .insert({
@@ -155,9 +154,6 @@ export default function MusterilerPage() {
         .select()
         .single()
 
-      console.log('[saveClient] applications INSERT → data:', newApp?.id, '| error:', appInsertError?.message)
-
-      // RLS SELECT sonrası null dönerse yeniden çek (INSERT başarılı ama SELECT kısıtlı olabilir)
       let resolvedApp = newApp
       if (!resolvedApp && !appInsertError) {
         const { data: refetched } = await supabase
@@ -167,37 +163,42 @@ export default function MusterilerPage() {
           .order('created_at', { ascending: false })
           .maybeSingle()
         resolvedApp = refetched
-        console.log('[saveClient] applications refetch → id:', resolvedApp?.id)
       }
 
-      // Şablon arama: 1) firma şablonu 2) global şablon
       let matchedDocs: { doc_name: string; delivery_type: string; description?: string }[] | null = null
-      if (resolvedApp && form.country && form.visa_type) {
-        const lookup = { country: form.country, visa_type: form.visa_type, occupation: form.occupation || '', status: 'approved' as const }
+      let usedGlobal = false
 
-        // 1. Firmaya ait onaylı şablon
+      if (resolvedApp && form.country && form.visa_type) {
+        // 1. Firmaya ait onaylı şablon (ILIKE ile büyük/küçük harf duyarsız)
         const { data: ownTpl } = await supabase
           .from('visa_templates')
           .select('docs')
-          .match({ ...lookup, company_id: companyId })
+          .eq('company_id', companyId)
+          .eq('status', 'approved')
+          .ilike('country', form.country)
+          .ilike('visa_type', form.visa_type)
+          .ilike('occupation', form.occupation || '')
           .limit(1)
           .maybeSingle()
 
         if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
           matchedDocs = ownTpl.docs
-          console.log('[şablon] firma şablonu bulundu:', matchedDocs.length, 'evrak')
         } else {
           // 2. Global onaylı şablon
           const { data: globalTpl } = await supabase
             .from('visa_templates')
             .select('docs')
-            .match({ ...lookup, is_global: true })
+            .eq('is_global', true)
+            .eq('status', 'approved')
+            .ilike('country', form.country)
+            .ilike('visa_type', form.visa_type)
+            .ilike('occupation', form.occupation || '')
             .limit(1)
             .maybeSingle()
 
           if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
             matchedDocs = globalTpl.docs
-            console.log('[şablon] global şablon bulundu:', matchedDocs.length, 'evrak')
+            usedGlobal = true
           }
         }
 
@@ -211,31 +212,6 @@ export default function MusterilerPage() {
               status: 'pending',
             }))
           )
-        } else {
-          console.log('[şablon] eşleşen şablon yok, webhook çağrılacak')
-        }
-      }
-
-      // n8n webhook: şablon yoksa AI üretimi
-      if (!matchedDocs && resolvedApp && form.country && form.visa_type) {
-        console.log('[webhook] /api/generate-visa-docs çağrılıyor')
-        try {
-          const res = await fetch('/api/generate-visa-docs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              application_id: resolvedApp.id,
-              country: form.country,
-              visa_type: form.visa_type,
-              occupation: form.occupation || '',
-              notes: form.notes || '',
-            }),
-          })
-          console.log('[webhook] status:', res.status)
-          const body = await res.text()
-          console.log('[webhook] body:', body)
-        } catch (webhookErr) {
-          console.warn('[webhook] ulaşılamadı:', webhookErr)
         }
       }
 
@@ -252,10 +228,23 @@ export default function MusterilerPage() {
       const { data: userData } = await supabase.from('users').select('full_name').eq('id', user?.id).single()
       logAction(companyId, user?.id, userData?.full_name || 'Bilinmeyen', 'Yeni müşteri eklendi', 'client', newClient.id, newClient.full_name)
 
+      const clientId = newClient.id
+      const showNoTemplate = !matchedDocs && resolvedApp && !!(form.country && form.visa_type)
+
       await fetchData()
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', notes: '' })
-      router.push(`/dashboard/musteriler/${newClient.id}`)
+
+      if (showNoTemplate) {
+        setSavedClientId(clientId)
+        setNoTemplateModal(true)
+      } else {
+        if (usedGlobal) {
+          setGlobalToast(true)
+          setTimeout(() => setGlobalToast(false), 3000)
+        }
+        router.push(`/dashboard/musteriler/${clientId}`)
+      }
     }
     setSaving(false)
   }
@@ -266,20 +255,22 @@ export default function MusterilerPage() {
     </div>
   )
 
-  const visaTypes = visaTypesFor(form.country)
-
   const displayed = activeTab === 'benimkiler'
     ? filtered.filter(c => c.danisan_id === currentUserId)
     : filtered
 
   const benimkilerCount = clients.filter(c => c.danisan_id === currentUserId).length
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px',
+    fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Müşteriler" />
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
         <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
-          {/* Sekmeler */}
           <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f4', flexWrap: 'wrap' }}>
             {([
               { key: 'tumu', label: 'Tüm Müşteriler', count: clients.length },
@@ -309,7 +300,6 @@ export default function MusterilerPage() {
                 </span>
               </button>
             ))}
-            {/* Sağ taraf: arama + filtreler + buton */}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center', padding: '6px 0.75rem', flexWrap: 'wrap' }}>
               {!isMobile && (
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '6px 10px', border: '1.5px solid #e2e2e8', borderRadius: '7px', fontSize: '12px', outline: 'none', width: '130px' }} />
@@ -330,48 +320,59 @@ export default function MusterilerPage() {
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
-            <thead>
-              <tr>
-                {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Meslek', 'Durum', 'Tarih'].map(h => (
-                  <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {displayed.length === 0 && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
+              <thead>
                 <tr>
-                  <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
-                    {activeTab === 'benimkiler' ? 'Size atanmış müşteri yok.' : 'Henüz müşteri yok.'}
-                  </td>
+                  {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Meslek', 'Durum', 'Tarih'].map(h => (
+                    <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
+                  ))}
                 </tr>
-              )}
-              {displayed.map(c => {
-                const app = c.applications?.[0]
-                const s = statusMap[app?.status] || statusMap.missing
-                return (
-                  <tr key={c.id} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)} style={{ cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f7')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{c.full_name}</td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{c.phone}</td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.country || '-'}</td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.visa_type || '-'}</td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{occupationLabels[app?.occupation] || '-'}</td>
-                    <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
-                      <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>{s.label}</span>
-                    </td>
-                    <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid #f0f0f4' }}>
-                      {new Date(c.created_at).toLocaleDateString('tr-TR')}
+              </thead>
+              <tbody>
+                {displayed.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
+                      {activeTab === 'benimkiler' ? 'Size atanmış müşteri yok.' : 'Henüz müşteri yok.'}
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                )}
+                {displayed.map(c => {
+                  const app = c.applications?.[0]
+                  const s = statusMap[app?.status] || statusMap.missing
+                  return (
+                    <tr key={c.id} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)} style={{ cursor: 'pointer' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f7')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{c.full_name}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{c.phone}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.country || '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.visa_type || '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{occupationLabels[app?.occupation] || app?.occupation || '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
+                        <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>{s.label}</span>
+                      </td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid #f0f0f4' }}>
+                        {new Date(c.created_at).toLocaleDateString('tr-TR')}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+
+      {globalToast && (
+        <div style={{
+          position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+          background: '#1a7a45', color: 'white', padding: '10px 20px', borderRadius: '8px',
+          fontSize: '13px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          whiteSpace: 'nowrap',
+        }}>
+          ✓ Global şablon kullanıldı
+        </div>
+      )}
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
@@ -380,57 +381,49 @@ export default function MusterilerPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ad</label>
-                <input value={form.ad} onChange={e => setForm({...form, ad: e.target.value})} placeholder="Ahmet" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                <input value={form.ad} onChange={e => setForm({...form, ad: e.target.value})} placeholder="Ahmet" style={inputStyle} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Soyad</label>
-                <input value={form.soyad} onChange={e => setForm({...form, soyad: e.target.value})} placeholder="Yılmaz" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                <input value={form.soyad} onChange={e => setForm({...form, soyad: e.target.value})} placeholder="Yılmaz" style={inputStyle} />
               </div>
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Telefon</label>
-              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+90 5xx xxx xx xx" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+90 5xx xxx xx xx" style={inputStyle} />
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>E-posta</label>
-              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="ornek@email.com" style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="ornek@email.com" style={inputStyle} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ülke</label>
-                <div style={{ position: 'relative' }}>
-                  <div onClick={(e) => { const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); setDropPos({ top: r.bottom + 4, left: r.left, width: r.width }); setCountryOpen(!countryOpen); setVisaOpen(false) }} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{form.country || 'Seçiniz'}</span>
-                    <span style={{ color: '#9aaabb', fontSize: '10px', flexShrink: 0, marginLeft: '4px' }}>▾</span>
-                  </div>
-                </div>
+                <input
+                  value={form.country}
+                  onChange={e => setForm({...form, country: toTitleCase(e.target.value)})}
+                  placeholder="ör. Fransa"
+                  style={inputStyle}
+                />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Tipi</label>
-                <div style={{ position: 'relative' }}>
-                  <div onClick={(e) => { const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); setVisaDropPos({ top: r.bottom + 4, left: r.left, width: r.width }); setVisaOpen(!visaOpen); setCountryOpen(false) }} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{form.visa_type || 'Seçiniz'}</span>
-                    <span style={{ color: '#9aaabb', fontSize: '10px', flexShrink: 0, marginLeft: '4px' }}>▾</span>
-                  </div>
-                </div>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Türü</label>
+                <input
+                  value={form.visa_type}
+                  onChange={e => setForm({...form, visa_type: toTitleCase(e.target.value)})}
+                  placeholder="ör. Turist Vizesi"
+                  style={inputStyle}
+                />
               </div>
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Meslek</label>
-              <select
+              <input
                 value={form.occupation}
-                onChange={e => setForm({...form, occupation: e.target.value})}
-                style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit', color: form.occupation ? '#0d1f35' : '#9aaabb' }}
-              >
-                <option value="">Meslek Seçin (opsiyonel)</option>
-                <option value="calisan">Çalışan</option>
-                <option value="sirket_sahibi">İşveren / Serbest Meslek</option>
-                <option value="devlet_memuru">Devlet Memuru</option>
-                <option value="ogrenci">Öğrenci</option>
-                <option value="emekli">Emekli</option>
-                <option value="ev_hanimi">Çalışmıyor</option>
-                <option value="ev_hanimi_meslek">Ev Hanımı</option>
-              </select>
+                onChange={e => setForm({...form, occupation: toTitleCase(e.target.value)})}
+                placeholder="ör. Çalışan (opsiyonel)"
+                style={inputStyle}
+              />
               {form.visa_type === 'Resmi Vize' && (
                 <div style={{ marginTop: '6px', fontSize: '11px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '6px 10px', lineHeight: '1.5' }}>
                   ⚠️ Resmi vize yalnızca devlet görevlileri içindir. Hususi (Yeşil) veya Hizmet (Gri) pasaport sahipleri Schengen ülkelerine 90 güne kadar vizesiz seyahat edebilir.
@@ -472,29 +465,37 @@ export default function MusterilerPage() {
         </div>
       )}
 
-      {countryOpen && (
-        <>
-          <div onClick={() => setCountryOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
-          <div style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, maxHeight: '220px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-            {countries.map(c => (
-              <div key={c} onClick={() => { const firstVisaType = visaTypesFor(c)[0] || ''; setForm({...form, country: c, visa_type: firstVisaType}); setCountryOpen(false) }} style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', background: form.country === c ? '#eef4fb' : 'white', color: form.country === c ? '#1a5fa5' : '#0d1f35' }}>
-                {c}
-              </div>
-            ))}
+      {noTemplateModal && savedClientId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)', textAlign: 'center' }}>
+            <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', marginBottom: '8px' }}>Şablon Bulunamadı</h3>
+            <p style={{ fontSize: '13px', color: '#5a6a7a', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+              Bu kombinasyon için henüz şablon oluşturulmamış.<br />
+              Müşteri kaydedildi, evrak listesi şimdilik boş.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={() => router.push('/dashboard/sablonlar')}
+                style={{ width: '100%', padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                + Şablon Oluştur
+              </button>
+              <button
+                onClick={() => router.push('/dashboard/sablonlar?tab=global')}
+                style={{ width: '100%', padding: '10px', background: '#f0f4ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                🌐 Global Şablonlara Bak
+              </button>
+              <button
+                onClick={() => { setNoTemplateModal(false); router.push(`/dashboard/musteriler/${savedClientId}`) }}
+                style={{ width: '100%', padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Müşteri Profiline Git →
+              </button>
+            </div>
           </div>
-        </>
-      )}
-      {visaOpen && (
-        <>
-          <div onClick={() => setVisaOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
-          <div style={{ position: 'fixed', top: visaDropPos.top, left: visaDropPos.left, width: visaDropPos.width, maxHeight: '180px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-            {visaTypes.map(v => (
-              <div key={v} onClick={() => { setForm({...form, visa_type: v}); setVisaOpen(false) }} style={{ padding: '8px 10px', fontSize: '13px', cursor: 'pointer', background: form.visa_type === v ? '#eef4fb' : 'white', color: form.visa_type === v ? '#1a5fa5' : '#0d1f35' }}>
-                {v}
-              </div>
-            ))}
-          </div>
-        </>
+        </div>
       )}
     </div>
   )
