@@ -334,6 +334,16 @@ export default function SuperAdminDashboard() {
             })}
           </nav>
 
+          {/* Şablonlar link */}
+          <div style={{ borderTop: `1px solid ${S.border}`, padding: '0.5rem 0' }}>
+            <button
+              onClick={() => router.push('/superadmin/sablonlar')}
+              style={{ width: '100%', padding: '9px 1rem', display: 'block', background: 'transparent', borderLeft: '3px solid transparent', color: S.muted, fontSize: '13px', fontWeight: '400', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            >
+              📋 Şablonlar
+            </button>
+          </div>
+
           {/* Logout */}
           <div style={{ padding: '1rem', borderTop: `1px solid ${S.border}` }}>
             <button onClick={logout} style={{ width: '100%', padding: '8px', background: 'transparent', color: S.muted, border: `1px solid ${S.border}`, borderRadius: '7px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>

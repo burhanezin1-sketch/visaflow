@@ -16,10 +16,9 @@ function formatPrice(price: number, currency: string = 'TRY') {
     : `${sym[currency] || currency}${price.toLocaleString('en-US')}`
 }
 
-const toTitleCase = (str: string) =>
-  str.trim().replace(/\w\S*/g, txt =>
-    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
-  )
+const toTitleCase = (str: string) => {
+  return str.replace(/(?:^|\s)\S/g, (char) => char.toUpperCase())
+}
 
 const statusMap: any = {
   missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
@@ -381,11 +380,11 @@ export default function MusterilerPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ad</label>
-                <input value={form.ad} onChange={e => setForm({...form, ad: e.target.value})} placeholder="Ahmet" style={inputStyle} />
+                <input value={form.ad} onChange={e => setForm({...form, ad: toTitleCase(e.target.value)})} placeholder="Ahmet" style={inputStyle} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Soyad</label>
-                <input value={form.soyad} onChange={e => setForm({...form, soyad: e.target.value})} placeholder="Yılmaz" style={inputStyle} />
+                <input value={form.soyad} onChange={e => setForm({...form, soyad: toTitleCase(e.target.value)})} placeholder="Yılmaz" style={inputStyle} />
               </div>
             </div>
             <div style={{ marginBottom: '10px' }}>
