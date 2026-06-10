@@ -20,22 +20,17 @@ const S = {
   bg: '#0f172a', card: '#1e293b', border: '#334155',
   text: 'white', muted: '#94a3b8', faint: '#475569', accent: '#6366f1',
 }
-
 const DELIVERY_COLORS: Record<string, string> = {
   digital: '#22c55e', physical: '#ef4444', firma: '#6366f1',
 }
 
-const TAB_LABELS: { key: Template['status']; label: string }[] = [
-  { key: 'pending',  label: 'Bekleyen' },
-  { key: 'approved', label: 'Onaylı' },
-  { key: 'rejected', label: 'Reddedildi' },
-]
+type TabKey = 'sablonlar' | 'global'
 
 export default function SuperadminSablonlar() {
   const [templates, setTemplates]   = useState<Template[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
-  const [tab, setTab]               = useState<Template['status']>('pending')
+  const [tab, setTab]               = useState<TabKey>('sablonlar')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   async function load() {
@@ -74,26 +69,29 @@ export default function SuperadminSablonlar() {
     load()
   }
 
-  const counts = {
-    pending:  templates.filter(t => t.status === 'pending').length,
-    approved: templates.filter(t => t.status === 'approved').length,
-    rejected: templates.filter(t => t.status === 'rejected').length,
-  }
-  const visible = templates.filter(t => t.status === tab)
+  // Tab 1: firma şablonları (global olmayan)
+  const firmaTpls  = templates.filter(t => !t.is_global)
+  // Tab 2: global şablonlar
+  const globalTpls = templates.filter(t => t.is_global)
+
+  const visible = tab === 'sablonlar' ? firmaTpls : globalTpls
+
+  const tabs: { key: TabKey; label: string; count: number }[] = [
+    { key: 'sablonlar', label: 'Şablonlar',        count: firmaTpls.length  },
+    { key: 'global',    label: 'Global Şablonlar', count: globalTpls.length },
+  ]
 
   return (
     <div style={{ minHeight: '100vh', background: S.bg, padding: '2rem', color: S.text, fontFamily: 'system-ui' }}>
       <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
-        {/* Header */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>📋 Şablon Yönetimi</div>
           <div style={{ fontSize: '13px', color: S.muted }}>
-            Firmalar tarafından gönderilen evrak şablonlarını incele, onayla veya reddet.
+            Firmaların evrak şablonlarını incele ve global olarak işaretle.
           </div>
         </div>
 
-        {/* Error banner */}
         {error && (
           <div style={{ background: '#450a0a', border: '1px solid #7f1d1d', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#fca5a5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>⚠️ {error}</span>
@@ -105,21 +103,21 @@ export default function SuperadminSablonlar() {
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}>
-          {TAB_LABELS.map(({ key, label }) => (
-            <button key={key} onClick={() => setTab(key)} style={{
+          {tabs.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer',
               fontSize: '13px', fontWeight: '500',
-              background: tab === key ? S.accent : S.card,
-              color: tab === key ? 'white' : S.muted,
+              background: tab === t.key ? S.accent : S.card,
+              color: tab === t.key ? 'white' : S.muted,
             }}>
-              {label}
+              {t.label}
               <span style={{
                 marginLeft: '6px', fontSize: '11px', fontWeight: '700',
-                background: tab === key ? 'rgba(255,255,255,0.2)' : S.faint,
-                color: tab === key ? 'white' : S.muted,
+                background: tab === t.key ? 'rgba(255,255,255,0.2)' : S.faint,
+                color: tab === t.key ? 'white' : S.muted,
                 padding: '1px 6px', borderRadius: '10px',
               }}>
-                {counts[key]}
+                {t.count}
               </span>
             </button>
           ))}
@@ -133,7 +131,7 @@ export default function SuperadminSablonlar() {
           <div style={{ color: S.muted, fontSize: '13px', padding: '2rem 0' }}>Yükleniyor...</div>
         ) : visible.length === 0 ? (
           <div style={{ color: S.muted, fontSize: '13px', padding: '2rem 0', textAlign: 'center' }}>
-            Bu kategoride şablon yok.
+            {tab === 'global' ? 'Henüz global şablon yok.' : 'Firma şablonu bulunamadı.'}
           </div>
         ) : (
           visible.map(t => {
@@ -145,7 +143,6 @@ export default function SuperadminSablonlar() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
 
-                  {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: S.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {t.country} · {t.visa_type} · {t.occupation || '—'}
@@ -158,9 +155,7 @@ export default function SuperadminSablonlar() {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: '5px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    {/* Sadece global yönetimi — onay/ret kaldırıldı */}
+                  <div style={{ display: 'flex', gap: '5px', flexShrink: 0, alignItems: 'center' }}>
                     {t.is_global
                       ? <button onClick={() => patch(t.id, { is_global: false })}
                           style={{ fontSize: '11px', padding: '5px 12px', background: S.faint, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
@@ -171,7 +166,6 @@ export default function SuperadminSablonlar() {
                           🌐 Global Yap
                         </button>
                     }
-
                     <button onClick={() => setExpandedId(expanded ? null : t.id)}
                       style={{ fontSize: '11px', padding: '5px 9px', background: '#334155', color: S.muted, border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                       {expanded ? '▲' : '▼'}
@@ -179,7 +173,6 @@ export default function SuperadminSablonlar() {
                   </div>
                 </div>
 
-                {/* Expanded doc list */}
                 {expanded && (
                   <div style={{ marginTop: '12px', borderTop: `1px solid ${S.border}`, paddingTop: '10px' }}>
                     {(t.docs || []).length === 0 ? (

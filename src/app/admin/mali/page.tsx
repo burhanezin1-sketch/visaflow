@@ -59,24 +59,32 @@ export default function MaliPage() {
   const hasForeign = Object.keys(currencyBreakdown).some(c => c !== 'TRY')
   const rates = fxRates || { EUR_TRY: 0, USD_TRY: 0 }
 
-  const toplamCiroTRY = Object.entries(currencyBreakdown).reduce((sum, [cur, b]) => sum + amountToTRY(b.total, cur, rates), 0)
-  const tahsilEdilenTRY = Object.entries(currencyBreakdown).reduce((sum, [cur, b]) => sum + amountToTRY(b.collected, cur, rates), 0)
-  const tahsilEdilmemisTRY = toplamCiroTRY - tahsilEdilenTRY
+  // Yalnızca kur verisi mevcut olan para birimlerini TL'ye çevir
+  const hasEUR = (currencyBreakdown['EUR']?.total ?? 0) > 0
+  const hasUSD = (currencyBreakdown['USD']?.total ?? 0) > 0
+  const ratesOk = (!hasEUR || rates.EUR_TRY > 0) && (!hasUSD || rates.USD_TRY > 0)
+
+  const toplamCiroTRY      = ratesOk ? Object.entries(currencyBreakdown).reduce((sum, [cur, b]) => sum + amountToTRY(b.total,     cur, rates), 0) : null
+  const tahsilEdilenTRY    = ratesOk ? Object.entries(currencyBreakdown).reduce((sum, [cur, b]) => sum + amountToTRY(b.collected, cur, rates), 0) : null
+  const tahsilEdilmemisTRY = (toplamCiroTRY != null && tahsilEdilenTRY != null) ? toplamCiroTRY - tahsilEdilenTRY : null
 
   const multiLineRemaining = () => {
-    if (!hasForeign) return `${tahsilEdilmemisTRY.toLocaleString('tr-TR')} ₺`
+    if (!hasForeign) return `${(tahsilEdilmemisTRY ?? 0).toLocaleString('tr-TR')} ₺`
     return CUR_ORDER
       .filter(c => ((currencyBreakdown[c]?.total ?? 0) - (currencyBreakdown[c]?.collected ?? 0)) > 0)
       .map(c => {
         const rem = (currencyBreakdown[c]?.total ?? 0) - (currencyBreakdown[c]?.collected ?? 0)
         return `${CUR_SYM[c]} ${rem.toLocaleString('tr-TR')}`
       })
-      .join('\n') || `${tahsilEdilmemisTRY.toLocaleString('tr-TR')} ₺`
+      .join('\n') || `${(tahsilEdilmemisTRY ?? 0).toLocaleString('tr-TR')} ₺`
   }
 
   const bekleyenler = payments.filter(p => p.total_amount - p.paid_amount > 0)
   const fmtTRY = (n: number) => `~${n.toLocaleString('tr-TR')} ₺`
   const rateNote = fmtRateNote(rates)
+
+  // TL karşılığı yalnızca kur verisi geçerliyse göster
+  const tryValOf = (n: number | null) => (n != null ? fmtTRY(n) : null)
 
   const multiLine = (key: 'total' | 'collected') => {
     if (!hasForeign) {
@@ -98,9 +106,9 @@ export default function MaliPage() {
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: isMobile ? '8px' : '12px', marginBottom: hasForeign ? '0.5rem' : isMobile ? '0.75rem' : '1.5rem' }}>
           {[
-            { label: 'Toplam Ciro', value: multiLine('total'), tryVal: hasForeign ? fmtTRY(toplamCiroTRY) : null, color: '#0d1f35' },
-            { label: 'Tahsil Edilen', value: multiLine('collected'), tryVal: hasForeign ? fmtTRY(tahsilEdilenTRY) : null, color: '#1a7a45' },
-            { label: 'Tahsil Edilmemiş', value: multiLineRemaining(), tryVal: hasForeign ? fmtTRY(tahsilEdilmemisTRY) : null, color: '#c0392b' },
+            { label: 'Toplam Ciro',       value: multiLine('total'),      tryVal: hasForeign ? tryValOf(toplamCiroTRY)      : null, color: '#0d1f35' },
+            { label: 'Tahsil Edilen',     value: multiLine('collected'),  tryVal: hasForeign ? tryValOf(tahsilEdilenTRY)    : null, color: '#1a7a45' },
+            { label: 'Tahsil Edilmemiş',  value: multiLineRemaining(),    tryVal: hasForeign ? tryValOf(tahsilEdilmemisTRY) : null, color: '#c0392b' },
           ].map((s, i) => (
             <div key={i} style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: isMobile ? '10px' : '12px', padding: isMobile ? '0.75rem' : '1.25rem' }}>
               <div style={{ fontSize: '9px', fontWeight: '700', color: '#9aaabb', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.7px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</div>
@@ -114,6 +122,12 @@ export default function MaliPage() {
             </div>
           ))}
         </div>
+
+        {hasForeign && !ratesOk && (
+          <div style={{ marginBottom: isMobile ? '0.75rem' : '1.5rem', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '8px', padding: '8px 12px', fontSize: '11px', color: '#92600a' }}>
+            ⚠️ Döviz kuru alınamadı — TL karşılıkları hesaplanamıyor. Sayfayı yenilemeyi deneyin.
+          </div>
+        )}
 
         {rateNote && (
           <div style={{ marginBottom: isMobile ? '0.75rem' : '1.5rem', fontSize: '11px', color: '#9aaabb', textAlign: 'right' }}>
