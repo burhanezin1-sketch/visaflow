@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
-import { useVisaOptions } from '@/lib/useVisaOptions'
 import { fetchFxRates, amountToTRY, fmtRateNote, type FxRates } from '@/lib/fxRates'
 
 const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -14,6 +13,9 @@ function formatPrice(price: number, currency: string = 'TRY') {
   if (currency === 'TRY') return `${price.toLocaleString('tr-TR')}${sym}`
   return `${sym}${price.toLocaleString('en-US')}`
 }
+
+const toTitleCase = (str: string) =>
+  str.replace(/(?:^|\s)\S/g, c => c.toUpperCase())
 
 export default function FiyatlarPage() {
   const { companyId, loading: companyLoading } = useCompany()
@@ -26,11 +28,6 @@ export default function FiyatlarPage() {
   const [form, setForm] = useState({ country: '', visa_type: '', price: '', currency: 'TRY' })
   const [saving, setSaving] = useState(false)
   const [updateToast, setUpdateToast] = useState<string | null>(null)
-  const [countryOpen, setCountryOpen] = useState(false)
-  const [visaOpen, setVisaOpen] = useState(false)
-  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
-  const [visaDropPos, setVisaDropPos] = useState({ top: 0, left: 0, width: 0 })
-  const { countries, visaTypesFor } = useVisaOptions()
 
   useEffect(() => {
     if (!companyId) return
@@ -48,10 +45,8 @@ export default function FiyatlarPage() {
     setLoading(false)
   }
 
-  const visaTypes = visaTypesFor(form.country)
   const rates = fxRates || { EUR_TRY: 0, USD_TRY: 0 }
 
-  // Anlık TL karşılığı
   function tryEquivalent(price: number, currency: string): string | null {
     if (currency === 'TRY' || !fxRates) return null
     const tryVal = amountToTRY(price, currency, rates)
@@ -89,12 +84,11 @@ export default function FiyatlarPage() {
         .from('applications')
         .select('id')
         .eq('company_id', companyId)
-        .eq('country', form.country)
-        .eq('visa_type', form.visa_type)
+        .ilike('country', form.country)
+        .ilike('visa_type', form.visa_type)
 
       if (matchingApps && matchingApps.length > 0) {
         const appIds = matchingApps.map((a: any) => a.id)
-
         const { data: existingPayments } = await supabase
           .from('payments')
           .select('id, total_amount, paid_amount')
@@ -122,11 +116,10 @@ export default function FiyatlarPage() {
     setForm({ country: '', visa_type: '', price: '', currency: 'TRY' })
     fetchData()
 
-    if (updatedCount > 0) {
-      setUpdateToast(`✓ Fiyat güncellendi — ${updatedCount} müşterinin ödemesi otomatik güncellendi`)
-    } else {
-      setUpdateToast('✓ Fiyat kaydedildi')
-    }
+    const msg = updatedCount > 0
+      ? `✓ Fiyat güncellendi — ${updatedCount} müşterinin ödemesi otomatik güncellendi`
+      : '✓ Fiyat kaydedildi'
+    setUpdateToast(msg)
     setTimeout(() => setUpdateToast(null), 4000)
   }
 
@@ -138,9 +131,7 @@ export default function FiyatlarPage() {
 
   function openAdd() {
     setEditItem(null)
-    const firstCountry = countries[0] || ''
-    const firstVisa = visaTypesFor(firstCountry)[0] || ''
-    setForm({ country: firstCountry, visa_type: firstVisa, price: '', currency: 'TRY' })
+    setForm({ country: '', visa_type: '', price: '', currency: 'TRY' })
     setShowModal(true)
   }
 
@@ -158,24 +149,37 @@ export default function FiyatlarPage() {
 
   const rateNote = fmtRateNote(rates)
   const formPrice = parseFloat(form.price)
-  const formTRY = !isNaN(formPrice) && form.currency !== 'TRY'
+  const formTRY = !isNaN(formPrice) && form.price !== '' && form.currency !== 'TRY'
     ? tryEquivalent(formPrice, form.currency)
     : null
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '10px', border: '1.5px solid #e2e2e8',
+    borderRadius: '8px', fontSize: '13px', outline: 'none',
+    boxSizing: 'border-box', fontFamily: 'inherit',
+  }
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: '10px', fontWeight: '600',
+    color: '#9aaabb', marginBottom: '5px',
+    textTransform: 'uppercase', letterSpacing: '0.8px',
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
       {/* Toast */}
       {updateToast && (
         <div style={{
           position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
           background: '#1a7a45', color: 'white', padding: '10px 20px', borderRadius: '8px',
-          fontSize: '13px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          maxWidth: '90vw', textAlign: 'center',
+          fontSize: '13px', fontWeight: '500', zIndex: 10000,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', maxWidth: '90vw', textAlign: 'center',
         }}>
           {updateToast}
         </div>
       )}
 
+      {/* Header */}
       <div style={{ background: 'white', borderBottom: '1px solid #e8e4da', padding: isMobile ? '0.75rem 1rem' : '0.875rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
           <h2 style={{ fontSize: isMobile ? '15px' : '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Hizmet Fiyatları</h2>
@@ -186,6 +190,7 @@ export default function FiyatlarPage() {
         </button>
       </div>
 
+      {/* Table */}
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
         <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
@@ -232,6 +237,7 @@ export default function FiyatlarPage() {
         </div>
       </div>
 
+      {/* Modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
           <div style={{ background: 'white', borderRadius: isMobile ? '16px 16px 0 0' : '16px', padding: isMobile ? '1.25rem' : '2rem', width: isMobile ? '100%' : '380px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
@@ -240,38 +246,38 @@ export default function FiyatlarPage() {
             </h3>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ülke</label>
-              <div style={{ position: 'relative' }}>
-                <div onClick={(e) => { const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); setDropPos({ top: r.bottom + 4, left: r.left, width: r.width }); setCountryOpen(!countryOpen); setVisaOpen(false) }} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
-                  <span>{form.country || 'Seçiniz'}</span>
-                  <span style={{ color: '#9aaabb', fontSize: '10px' }}>▾</span>
-                </div>
-              </div>
+              <label style={labelStyle}>Ülke</label>
+              <input
+                value={form.country}
+                onChange={e => setForm({ ...form, country: toTitleCase(e.target.value) })}
+                placeholder="ör. Fransa"
+                style={inputStyle}
+              />
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Tipi</label>
-              <div style={{ position: 'relative' }}>
-                <div onClick={(e) => { const r = (e.currentTarget as HTMLDivElement).getBoundingClientRect(); setVisaDropPos({ top: r.bottom + 4, left: r.left, width: r.width }); setVisaOpen(!visaOpen); setCountryOpen(false) }} style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
-                  <span>{form.visa_type || 'Seçiniz'}</span>
-                  <span style={{ color: '#9aaabb', fontSize: '10px' }}>▾</span>
-                </div>
-              </div>
+              <label style={labelStyle}>Vize Tipi</label>
+              <input
+                value={form.visa_type}
+                onChange={e => setForm({ ...form, visa_type: toTitleCase(e.target.value) })}
+                placeholder="ör. Turist Vizesi"
+                style={inputStyle}
+              />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', marginBottom: formTRY ? '6px' : '1.25rem', alignItems: 'end' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Fiyat</label>
+                <label style={labelStyle}>Fiyat</label>
                 <input
                   type="number"
                   value={form.price}
                   onChange={e => setForm({ ...form, price: e.target.value })}
                   placeholder="8500"
-                  style={{ width: '100%', padding: '10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  style={inputStyle}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Birim</label>
+                <label style={labelStyle}>Birim</label>
                 <select
                   value={form.currency}
                   onChange={e => setForm({ ...form, currency: e.target.value })}
@@ -284,7 +290,6 @@ export default function FiyatlarPage() {
               </div>
             </div>
 
-            {/* TL karşılığı önizleme */}
             {formTRY && (
               <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '7px', padding: '7px 12px', marginBottom: '1.25rem', fontSize: '12px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between' }}>
                 <span>Anlık TL karşılığı</span>
@@ -299,38 +304,15 @@ export default function FiyatlarPage() {
             )}
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { setShowModal(false); setEditItem(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-              <button onClick={save} disabled={saving} style={{ flex: 2, padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>
+              <button onClick={() => { setShowModal(false); setEditItem(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                İptal
+              </button>
+              <button onClick={save} disabled={saving || !form.country || !form.visa_type || !form.price} style={{ flex: 2, padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: saving || !form.country || !form.visa_type || !form.price ? 0.7 : 1 }}>
                 {saving ? 'Kaydediliyor...' : editItem ? 'Güncelle' : 'Kaydet'}
               </button>
             </div>
           </div>
         </div>
-      )}
-
-      {countryOpen && (
-        <>
-          <div onClick={() => setCountryOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
-          <div style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, maxHeight: '220px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-            {countries.map(c => (
-              <div key={c} onClick={() => { const firstVisa = visaTypesFor(c)[0] || ''; setForm({ ...form, country: c, visa_type: firstVisa }); setCountryOpen(false) }} style={{ padding: '9px 12px', fontSize: '13px', cursor: 'pointer', background: form.country === c ? '#eef4fb' : 'white', color: form.country === c ? '#1a5fa5' : '#0d1f35' }}>
-                {c}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-      {visaOpen && (
-        <>
-          <div onClick={() => setVisaOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998 }} />
-          <div style={{ position: 'fixed', top: visaDropPos.top, left: visaDropPos.left, width: visaDropPos.width, maxHeight: '180px', overflowY: 'scroll', background: 'white', border: '1.5px solid #e2e2e8', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
-            {visaTypes.map(v => (
-              <div key={v} onClick={() => { setForm({ ...form, visa_type: v }); setVisaOpen(false) }} style={{ padding: '9px 12px', fontSize: '13px', cursor: 'pointer', background: form.visa_type === v ? '#eef4fb' : 'white', color: form.visa_type === v ? '#1a5fa5' : '#0d1f35' }}>
-                {v}
-              </div>
-            ))}
-          </div>
-        </>
       )}
     </div>
   )
