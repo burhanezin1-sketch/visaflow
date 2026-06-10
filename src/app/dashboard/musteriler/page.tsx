@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
@@ -56,6 +56,8 @@ export default function MusterilerPage() {
   const [globalToast, setGlobalToast] = useState(false)
   const [pendingOwnToast, setPendingOwnToast] = useState(false)
   const [similarTemplates, setSimilarTemplates] = useState<any[]>([])
+  const [usingSimilar, setUsingSimilar] = useState(false)
+  const isSavingRef = useRef(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -103,7 +105,8 @@ export default function MusterilerPage() {
   }, [form.country, form.visa_type, prices])
 
   async function saveClient() {
-    if (!form.ad || !form.soyad || !companyId) return
+    if (isSavingRef.current || !form.ad || !form.soyad || !companyId) return
+    isSavingRef.current = true
     setLimitError(null)
     setSaving(true)
 
@@ -230,6 +233,8 @@ export default function MusterilerPage() {
         }
 
         if (matchedDocs) {
+          // Önce varsa eskiyi temizle (çift kayıt önlemi)
+          await supabase.from('user_submitted_docs').delete().eq('application_id', resolvedApp!.id)
           await supabase.from('user_submitted_docs').insert(
             matchedDocs.map(d => ({
               application_id: resolvedApp!.id,
@@ -289,11 +294,15 @@ export default function MusterilerPage() {
         router.push(`/dashboard/musteriler/${clientId}`)
       }
     }
+    isSavingRef.current = false
     setSaving(false)
   }
 
   async function useSimilarTemplate(tpl: any) {
-    if (!savedAppId) return
+    if (!savedAppId || usingSimilar) return
+    setUsingSimilar(true)
+    // Önce varsa eskiyi temizle (çift kayıt önlemi)
+    await supabase.from('user_submitted_docs').delete().eq('application_id', savedAppId)
     await supabase.from('user_submitted_docs').insert(
       (tpl.docs || []).map((d: any) => ({
         application_id: savedAppId,
@@ -305,6 +314,7 @@ export default function MusterilerPage() {
     )
     setNoTemplateModal(false)
     setSimilarTemplates([])
+    setUsingSimilar(false)
     router.push(`/dashboard/musteriler/${savedClientId}`)
   }
 
@@ -567,9 +577,10 @@ export default function MusterilerPage() {
                     </div>
                     <button
                       onClick={() => useSimilarTemplate(tpl)}
-                      style={{ flexShrink: 0, padding: '6px 12px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      disabled={usingSimilar}
+                      style={{ flexShrink: 0, padding: '6px 12px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '500', cursor: usingSimilar ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: usingSimilar ? 0.6 : 1 }}
                     >
-                      Bu Şablonu Kullan
+                      {usingSimilar ? '...' : 'Bu Şablonu Kullan'}
                     </button>
                   </div>
                 ))}

@@ -95,7 +95,7 @@ export default function SablonlarPage() {
       await supabase.from('visa_templates').insert({
         company_id: companyId, country: form.country,
         visa_type: form.visa_type, occupation: form.occupation,
-        docs: validDocs, status: 'pending', is_global: false,
+        docs: validDocs, status: 'approved', is_global: false,
       })
       logAction(
         companyId,
@@ -237,7 +237,7 @@ export default function SablonlarPage() {
                 ? <div style={{ fontSize: '12px', color: '#9aaabb' }}>Henüz şablon oluşturmadınız.</div>
                 : myTpls.map(t => (
                   <Card key={t.id} t={t} actions={
-                    t.status === 'pending' ? (
+                    !t.is_global ? (
                       <>
                         <button onClick={() => openEdit(t)}
                           style={{ fontSize: '11px', padding: '4px 8px', background: '#f5f5f7', color: '#0d1f35',

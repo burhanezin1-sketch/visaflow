@@ -344,6 +344,8 @@ export default function MusteriDetayPage() {
       return
     }
 
+    // Mevcut evrakları temizle, sonra yeniden yaz
+    await supabase.from('user_submitted_docs').delete().eq('application_id', application.id)
     await supabase.from('user_submitted_docs').insert(
       matchedDocs.map((d: any) => ({
         application_id: application.id,
