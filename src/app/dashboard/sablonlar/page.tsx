@@ -161,8 +161,8 @@ export default function SablonlarPage() {
     const expanded = expandedId === t.id
     const st = STATUS[t.status]
     return (
-      <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '10px',
-        padding: '12px 14px', marginBottom: '10px' }}>
+      <div style={{ background: '#f7f9fd', border: '1px solid rgba(188,204,226,0.5)', borderRadius: '12px',
+        padding: '12px 14px', marginBottom: '10px', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#0d1f35', marginBottom: '2px' }}>
@@ -193,14 +193,15 @@ export default function SablonlarPage() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8',
-    borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+    width: '100%', padding: '9px 10px', border: '1.5px solid rgba(188,204,226,0.6)',
+    borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+    background: '#f7f9fd',
   }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Şablon Kütüphanesi" />
-      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e9eef6' }}>
         {loading ? <div style={{ color: '#9aaabb', fontSize: '13px' }}>Yükleniyor...</div> : (
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.5rem' }}>
 
@@ -264,8 +265,8 @@ export default function SablonlarPage() {
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: '14px', width: '100%', maxWidth: '560px',
-            maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem' }}>
+          <div style={{ background: '#f7f9fd', borderRadius: '16px', width: '100%', maxWidth: '560px',
+            maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', boxShadow: '0 16px 48px rgba(15,23,42,0.15)' }}>
             <div style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', marginBottom: '16px' }}>
               {editTpl ? 'Şablonu Düzenle' : 'Yeni Şablon Oluştur'}
             </div>
@@ -290,7 +291,7 @@ export default function SablonlarPage() {
             </div>
 
             {form.docs.map((d, i) => (
-              <div key={i} style={{ background: '#faf8f3', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
+              <div key={i} style={{ background: '#e9eef6', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
                 <input placeholder="Evrak adı *" value={d.doc_name}
                   onChange={e => updateDoc(i, 'doc_name', e.target.value)}
                   style={{ ...inputStyle, marginBottom: '6px' }} />

@@ -17,8 +17,8 @@ type Template = {
 }
 
 const S = {
-  bg: '#0f172a', card: '#1e293b', border: '#334155',
-  text: 'white', muted: '#94a3b8', faint: '#475569', accent: '#6366f1',
+  bg: '#080f1c', card: '#111d30', border: 'rgba(71,107,160,0.35)',
+  text: 'white', muted: '#94a3b8', faint: '#475569', accent: '#5b6ff5',
 }
 const DELIVERY_COLORS: Record<string, string> = {
   digital: '#22c55e', physical: '#ef4444', firma: '#6366f1',
@@ -139,7 +139,8 @@ export default function SuperadminSablonlar() {
             return (
               <div key={t.id} style={{
                 background: S.card, border: `1px solid ${S.border}`,
-                borderRadius: '10px', padding: '14px 16px', marginBottom: '10px',
+                borderRadius: '12px', padding: '14px 16px', marginBottom: '10px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
 

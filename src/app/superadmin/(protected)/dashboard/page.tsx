@@ -21,11 +21,11 @@ const statusLabels: Record<string, string> = {
 }
 
 const S = {
-  bg: '#0f172a',
-  sidebar: '#1e293b',
-  card: '#1e293b',
-  border: '#334155',
-  accent: '#6366f1',
+  bg: '#080f1c',
+  sidebar: '#0d1728',
+  card: '#111d30',
+  border: 'rgba(71,107,160,0.3)',
+  accent: '#5b6ff5',
   text: 'white',
   muted: '#94a3b8',
   faint: '#475569',

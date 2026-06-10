@@ -24,7 +24,7 @@ export default async function DashboardLayout({
       <div style={{
         display: 'flex',
         minHeight: '100vh',
-        background: '#f5f5f7',
+        background: '#e9eef6',
         fontFamily: "'Outfit', 'system-ui', sans-serif",
       }}>
         <Sidebar />

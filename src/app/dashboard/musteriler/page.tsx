@@ -306,16 +306,17 @@ export default function MusterilerPage() {
   const benimkilerCount = clients.filter(c => c.danisan_id === currentUserId).length
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px',
+    width: '100%', padding: '9px 10px', border: '1.5px solid rgba(188,204,226,0.7)', borderRadius: '10px',
     fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+    background: '#f7f9fd',
   }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Müşteriler" />
-      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#f5f5f7' }}>
-        <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f4', flexWrap: 'wrap' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e9eef6' }}>
+        <div style={{ background: '#f7f9fd', border: '1px solid rgba(188,204,226,0.5)', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(188,204,226,0.35)', flexWrap: 'wrap' }}>
             {([
               { key: 'tumu', label: 'Tüm Müşteriler', count: clients.length },
               { key: 'benimkiler', label: 'Müşterilerim', count: benimkilerCount },
@@ -368,7 +369,7 @@ export default function MusterilerPage() {
               <thead>
                 <tr>
                   {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Meslek', 'Durum', 'Tarih'].map(h => (
-                    <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
+                    <th key={h} style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid rgba(188,204,226,0.35)', background: '#eef2f9' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -385,17 +386,17 @@ export default function MusterilerPage() {
                   const s = statusMap[app?.status] || statusMap.missing
                   return (
                     <tr key={c.id} onClick={() => router.push(`/dashboard/musteriler/${c.id}`)} style={{ cursor: 'pointer' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f7')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{c.full_name}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{c.phone}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.country || '-'}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4' }}>{app?.visa_type || '-'}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{occupationLabels[app?.occupation] || app?.occupation || '-'}</td>
-                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0f0f4' }}>
+                      onMouseEnter={e => (e.currentTarget.style.background = '#edf1f9')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{c.full_name}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid rgba(188,204,226,0.35)', color: '#5a6a7a' }}>{c.phone}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{app?.country || '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{app?.visa_type || '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid rgba(188,204,226,0.35)', color: '#5a6a7a' }}>{occupationLabels[app?.occupation] || app?.occupation || '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>
                         <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>{s.label}</span>
                       </td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid #f0f0f4' }}>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>
                         {new Date(c.created_at).toLocaleDateString('tr-TR')}
                       </td>
                     </tr>
@@ -420,8 +421,8 @@ export default function MusterilerPage() {
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
-            <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '1.5rem', color: '#0d1f35' }}>Yeni Müşteri Ekle</h3>
+          <div style={{ background: '#f7f9fd', borderRadius: '18px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 16px 48px rgba(15,23,42,0.15)' }}>
+            <h3 style={{ fontSize: '17px', fontWeight: '500', marginBottom: '1.5rem', color: '#1e293b' }}>Yeni Müşteri Ekle</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ad</label>
