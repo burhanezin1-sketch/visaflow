@@ -312,7 +312,7 @@ export default function MusteriDetayPage() {
       .from('visa_templates')
       .select('docs')
       .eq('company_id', companyId)
-      .eq('status', 'approved')
+      .neq('status', 'rejected')
       .ilike('country', country)
       .ilike('visa_type', visa_type)
       .ilike('occupation', occupation)

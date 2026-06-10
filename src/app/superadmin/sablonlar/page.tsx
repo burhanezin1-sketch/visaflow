@@ -160,41 +160,17 @@ export default function SuperadminSablonlar() {
 
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: '5px', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    {t.status === 'pending' && (
-                      <>
-                        <button onClick={() => patch(t.id, { status: 'approved' })}
-                          style={{ fontSize: '11px', padding: '5px 12px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
-                          ✓ Onayla
+                    {/* Sadece global yönetimi — onay/ret kaldırıldı */}
+                    {t.is_global
+                      ? <button onClick={() => patch(t.id, { is_global: false })}
+                          style={{ fontSize: '11px', padding: '5px 12px', background: S.faint, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                          Global Kaldır
                         </button>
-                        <button onClick={() => patch(t.id, { status: 'rejected' })}
-                          style={{ fontSize: '11px', padding: '5px 12px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
-                          ✕ Reddet
-                        </button>
-                        <button onClick={() => patch(t.id, { status: 'approved', is_global: true })}
+                      : <button onClick={() => patch(t.id, { status: 'approved', is_global: true })}
                           style={{ fontSize: '11px', padding: '5px 12px', background: S.accent, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                           🌐 Global Yap
                         </button>
-                      </>
-                    )}
-
-                    {t.status === 'approved' && (
-                      t.is_global
-                        ? <button onClick={() => patch(t.id, { is_global: false })}
-                            style={{ fontSize: '11px', padding: '5px 12px', background: S.faint, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                            Global Kaldır
-                          </button>
-                        : <button onClick={() => patch(t.id, { is_global: true })}
-                            style={{ fontSize: '11px', padding: '5px 12px', background: S.accent, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
-                            🌐 Global Yap
-                          </button>
-                    )}
-
-                    {t.status === 'rejected' && (
-                      <button onClick={() => patch(t.id, { status: 'pending' })}
-                        style={{ fontSize: '11px', padding: '5px 12px', background: S.faint, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                        Yeniden İncele
-                      </button>
-                    )}
+                    }
 
                     <button onClick={() => setExpandedId(expanded ? null : t.id)}
                       style={{ fontSize: '11px', padding: '5px 9px', background: '#334155', color: S.muted, border: 'none', borderRadius: '6px', cursor: 'pointer' }}>

@@ -54,7 +54,6 @@ export default function MusterilerPage() {
   const [savedClientId, setSavedClientId] = useState<string | null>(null)
   const [savedAppId, setSavedAppId] = useState<string | null>(null)
   const [globalToast, setGlobalToast] = useState(false)
-  const [pendingOwnToast, setPendingOwnToast] = useState(false)
   const [similarTemplates, setSimilarTemplates] = useState<any[]>([])
   const [usingSimilar, setUsingSimilar] = useState(false)
   const isSavingRef = useRef(false)
@@ -172,68 +171,48 @@ export default function MusterilerPage() {
 
       let matchedDocs: { doc_name: string; delivery_type: string; description?: string }[] | null = null
       let usedGlobal = false
-      let hasPendingOwn = false
 
       if (resolvedApp && form.country && form.visa_type) {
         console.log('[sablon ara]', { country: form.country, visa_type: form.visa_type, occupation: form.occupation, companyId })
 
-        // a. Firma kendi approved şablonu
-        const { data: ownApproved, error: ownApprovedErr } = await supabase
+        // 1. Firma kendi şablonu — status fark etmez (rejected hariç)
+        const { data: ownTpl, error: ownErr } = await supabase
           .from('visa_templates')
           .select('docs')
           .eq('company_id', companyId)
-          .eq('status', 'approved')
+          .neq('status', 'rejected')
           .ilike('country', form.country)
           .ilike('visa_type', form.visa_type)
           .ilike('occupation', form.occupation || '')
           .limit(1)
           .maybeSingle()
 
-        console.log('[sablon] firma approved:', ownApproved, '| err:', ownApprovedErr?.message)
+        console.log('[sablon] firma:', ownTpl, '| err:', ownErr?.message)
 
-        if (ownApproved?.docs && Array.isArray(ownApproved.docs) && ownApproved.docs.length > 0) {
-          matchedDocs = ownApproved.docs
+        if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
+          matchedDocs = ownTpl.docs
         } else {
-          // b. Firma kendi pending şablonu — superadmin onayı bekleniyor
-          const { data: ownPending, error: ownPendingErr } = await supabase
+          // 2. Global onaylı şablon
+          const { data: globalTpl, error: globalErr } = await supabase
             .from('visa_templates')
-            .select('id, country, visa_type, occupation')
-            .eq('company_id', companyId)
-            .eq('status', 'pending')
+            .select('docs')
+            .eq('is_global', true)
+            .eq('status', 'approved')
             .ilike('country', form.country)
             .ilike('visa_type', form.visa_type)
             .ilike('occupation', form.occupation || '')
             .limit(1)
             .maybeSingle()
 
-          console.log('[sablon] firma pending:', ownPending, '| err:', ownPendingErr?.message)
+          console.log('[sablon] global:', globalTpl, '| err:', globalErr?.message)
 
-          if (ownPending) {
-            hasPendingOwn = true
-          } else {
-            // c. Global onaylı şablon
-            const { data: globalTpl, error: globalErr } = await supabase
-              .from('visa_templates')
-              .select('docs')
-              .eq('is_global', true)
-              .eq('status', 'approved')
-              .ilike('country', form.country)
-              .ilike('visa_type', form.visa_type)
-              .ilike('occupation', form.occupation || '')
-              .limit(1)
-              .maybeSingle()
-
-            console.log('[sablon] global approved:', globalTpl, '| err:', globalErr?.message)
-
-            if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
-              matchedDocs = globalTpl.docs
-              usedGlobal = true
-            }
+          if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
+            matchedDocs = globalTpl.docs
+            usedGlobal = true
           }
         }
 
         if (matchedDocs) {
-          // Önce varsa eskiyi temizle (çift kayıt önlemi)
           await supabase.from('user_submitted_docs').delete().eq('application_id', resolvedApp!.id)
           await supabase.from('user_submitted_docs').insert(
             matchedDocs.map(d => ({
@@ -246,11 +225,11 @@ export default function MusterilerPage() {
           )
         }
 
-        // d. Hiçbiri yoksa benzer şablonları getir (sadece ülke eşleşmesi)
-        if (!matchedDocs && !hasPendingOwn) {
+        // 3. Hiçbiri yoksa benzer şablonları getir (sadece ülke eşleşmesi)
+        if (!matchedDocs) {
           const { data: similar } = await supabase
             .from('visa_templates')
-            .select('visa_type, occupation, docs, status, company_id, is_global')
+            .select('country, visa_type, occupation, docs, is_global')
             .ilike('country', form.country)
             .eq('status', 'approved')
             .limit(6)
@@ -278,11 +257,7 @@ export default function MusterilerPage() {
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', notes: '' })
 
-      if (hasPendingOwn) {
-        setPendingOwnToast(true)
-        setTimeout(() => setPendingOwnToast(false), 4000)
-        router.push(`/dashboard/musteriler/${clientId}`)
-      } else if (!matchedDocs && resolvedApp && !!(form.country && form.visa_type)) {
+      if (!matchedDocs && resolvedApp && !!(form.country && form.visa_type)) {
         setSavedClientId(clientId)
         setSavedAppId(appId)
         setNoTemplateModal(true)
@@ -432,17 +407,6 @@ export default function MusterilerPage() {
         </div>
       </div>
 
-      {pendingOwnToast && (
-        <div style={{
-          position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
-          background: '#92600a', color: 'white', padding: '10px 20px', borderRadius: '8px',
-          fontSize: '13px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          whiteSpace: 'nowrap',
-        }}>
-          ⏳ Şablonunuz superadmin onayı bekliyor — evrak listesi onaydan sonra oluşturulacak
-        </div>
-      )}
-
       {globalToast && (
         <div style={{
           position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
@@ -568,7 +532,7 @@ export default function MusterilerPage() {
                   <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', marginBottom: '6px', gap: '8px' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {tpl.visa_type}
+                        {tpl.country} · {tpl.visa_type}
                       </div>
                       <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>
                         {tpl.occupation || 'Meslek belirtilmemiş'} · {(tpl.docs || []).length} evrak
