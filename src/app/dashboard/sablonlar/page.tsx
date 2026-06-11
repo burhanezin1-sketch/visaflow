@@ -114,7 +114,11 @@ export default function SablonlarPage() {
 
   async function del(id: string) {
     if (!confirm('Bu şablonu silmek istediğinize emin misiniz?')) return
-    await supabase.from('visa_templates').delete().eq('id', id)
+    const { error } = await supabase.from('visa_templates').delete().eq('id', id)
+    if (error) {
+      alert('Silme başarısız: ' + error.message)
+      return
+    }
     init()
   }
 

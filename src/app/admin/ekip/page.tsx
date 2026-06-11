@@ -195,30 +195,30 @@ export default function EkipPage() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <div style={{ background: 'white', borderBottom: '1px solid #e8e4da', padding: '0.875rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <h2 style={{ fontSize: '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Ekip Performansı</h2>
-        <button onClick={() => setShowModal(true)} style={{ padding: '7px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+        <button onClick={() => setShowModal(true)} style={{ padding: '7px 14px', fontSize: '12px', fontWeight: '500', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'opacity 0.2s' }}>
           + Danışman Ekle
         </button>
       </div>
 
-      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+      <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, background: '#e4eaf5' }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: '12px', marginBottom: '1.5rem' }}>
-          <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
+          <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}>
             <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Toplam Danışman</div>
             <div style={{ fontSize: '26px', fontWeight: '500', color: '#0d1f35' }}>{users.length}</div>
           </div>
-          <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
+          <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}>
             <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>En Yüksek Ciro</div>
             <div style={{ fontSize: '15px', fontWeight: '600', color: '#0d1f35' }}>{topDanisan?.full_name || '—'}</div>
             <div style={{ fontSize: '12px', color: '#1a7a45', marginTop: '4px' }}>{(topDanisan?.toplam_ciro || 0).toLocaleString('tr-TR')}₺</div>
           </div>
-          <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
+          <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}>
             <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Toplam Ekip Cirosu</div>
             <div style={{ fontSize: '20px', fontWeight: '600', color: '#1a7a45' }}>{toplamCiro.toLocaleString('tr-TR')}₺</div>
           </div>
         </div>
 
-        <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.25rem' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f0ede6' }}>
+        <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '12px', overflow: 'hidden', marginBottom: '1.25rem' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Danışman Listesi</h3>
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -226,7 +226,7 @@ export default function EkipPage() {
               <thead>
                 <tr>
                   {['Ad Soyad', 'Email', 'Rol', 'Müşteri', 'Tamamlanan', 'Ciro', ''].map(h => (
-                    <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
+                    <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid rgba(188,204,226,0.3)', background: '#e4eaf5' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -235,17 +235,17 @@ export default function EkipPage() {
                   const s = stats.find(st => st.danisan_id === u.id)
                   return (
                     <tr key={u.id}>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0ede6' }}>{u.full_name}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>{u.email}</td>
-                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
-                        <span style={{ background: u.role === 'admin' ? '#eef4fb' : '#faf8f3', color: u.role === 'admin' ? '#1a5fa5' : '#5a6a7a', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e8e4da' }}>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{u.full_name}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{u.email}</td>
+                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
+                        <span style={{ background: u.role === 'admin' ? '#eef4fb' : '#faf8f3', color: u.role === 'admin' ? '#1a5fa5' : '#5a6a7a', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '20px', border: '1px solid rgba(188,204,226,0.45)' }}>
                           {u.role === 'admin' ? 'Admin' : 'Danışman'}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6' }}>{s?.musteri_sayisi ?? 0}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', color: '#1a7a45', borderBottom: '1px solid #f0ede6' }}>{s?.tamamlanan ?? 0}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0ede6' }}>{(s?.toplam_ciro ?? 0).toLocaleString('tr-TR')}₺</td>
-                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid #f0ede6' }}>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{s?.musteri_sayisi ?? 0}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', color: '#1a7a45', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{s?.tamamlanan ?? 0}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{(s?.toplam_ciro ?? 0).toLocaleString('tr-TR')}₺</td>
+                      <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
                         <button onClick={() => danismanSil(u.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5b8b0', borderRadius: '6px', cursor: 'pointer' }}>Sil</button>
                       </td>
                     </tr>
@@ -257,7 +257,7 @@ export default function EkipPage() {
         </div>
 
         {stats.length > 0 && (
-          <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', padding: '1.25rem' }}>
+          <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '14px', fontWeight: '500', color: '#0d1f35' }}>Ciro Karşılaştırması</h3>
             <canvas ref={chartRef} height={120} />
           </div>
@@ -286,14 +286,14 @@ export default function EkipPage() {
             ))}
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Rol</label>
-              <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}>
+              <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} style={{ width: '100%', padding: '10px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#e4eaf5', outline: 'none', fontFamily: 'inherit' }}>
                 <option value="danisan">Danışman</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
             {error && <p style={{ color: '#c0392b', fontSize: '12px', marginBottom: '12px' }}>{error}</p>}
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { setShowModal(false); setError('') }} style={{ flex: 1, padding: '10px', background: '#faf8f3', color: '#5a6a7a', border: '1px solid #e8e4da', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={() => { setShowModal(false); setError('') }} style={{ flex: 1, padding: '10px', background: '#e4eaf5', color: '#5a6a7a', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={danismanEkle} disabled={saving} style={{ flex: 2, padding: '10px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {saving ? 'Ekleniyor...' : 'Danışman Ekle'}
               </button>

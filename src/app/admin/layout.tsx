@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <SidebarProvider>
-      <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f5f7', fontFamily: 'system-ui' }}>
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#e4eaf5', fontFamily: 'system-ui' }}>
         <AdminSidebarWrapper />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           <SessionTimeout />

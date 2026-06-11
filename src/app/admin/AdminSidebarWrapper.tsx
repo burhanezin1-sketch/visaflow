@@ -60,14 +60,16 @@ export default function AdminSidebarWrapper() {
             style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '10px 1.25rem', fontSize: '13px',
-              color: isActive ? 'white' : 'rgba(255,255,255,0.4)',
+              color: isActive ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.42)',
+              fontWeight: isActive ? '500' : '400',
               cursor: 'pointer',
-              borderLeft: isActive ? '2px solid #378ADD' : '2px solid transparent',
-              background: isActive ? 'rgba(55,138,221,0.08)' : 'transparent',
-              transition: 'all 0.15s',
+              borderLeft: isActive ? '4px solid #60a5fa' : '4px solid transparent',
+              background: isActive ? 'rgba(96,165,250,0.14)' : 'transparent',
+              transition: 'all 0.18s',
+              marginBottom: '1px',
             }}
           >
-            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: isActive ? '#378ADD' : 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? '#60a5fa' : 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
             {item.label}
           </div>
         )
@@ -99,7 +101,7 @@ export default function AdminSidebarWrapper() {
         )}
         <div style={{
           position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px',
-          background: '#1c1c24', zIndex: 300,
+          background: '#0e1524', zIndex: 300,
           transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.25s ease',
           display: 'flex', flexDirection: 'column',
@@ -113,7 +115,7 @@ export default function AdminSidebarWrapper() {
   }
 
   return (
-    <div style={{ width: '220px', flexShrink: 0, background: '#1c1c24', padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+    <div style={{ width: '220px', flexShrink: 0, background: '#0e1524', padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
       <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '1px', background: 'rgba(255,255,255,0.05)' }} />
       {innerContent}
     </div>

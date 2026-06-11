@@ -39,9 +39,9 @@ export default function AktivitePage() {
         <h2 style={{ fontSize: isMobile ? '15px' : '17px', fontWeight: '500', margin: 0, color: '#0d1f35' }}>Aktivite Geçmişi</h2>
       </div>
 
-      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
-        <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e4eaf5' }}>
+        <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(15,23,42,0.07)' }}>
+          <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '500' }}>Son İşlemler</h3>
             <span style={{ fontSize: '12px', color: '#9aaabb' }}>{logs.length} kayıt</span>
           </div>
@@ -72,23 +72,23 @@ export default function AktivitePage() {
                 <thead>
                   <tr>
                     {['Tarih', 'Kullanıcı', 'İşlem', 'Müşteri / Konu'].map(h => (
-                      <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
+                      <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid rgba(188,204,226,0.3)', background: '#eef2f9' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {logs.map(log => (
                     <tr key={log.id}>
-                      <td style={{ padding: '11px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid #f0ede6', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '11px 1.25rem', fontSize: '12px', color: '#9aaabb', borderBottom: '1px solid rgba(188,204,226,0.3)', whiteSpace: 'nowrap' }}>
                         {new Date(log.created_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td style={{ padding: '11px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0ede6' }}>
+                      <td style={{ padding: '11px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
                         {log.user_name || '-'}
                       </td>
-                      <td style={{ padding: '11px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0ede6', color: '#1a3a5c' }}>
+                      <td style={{ padding: '11px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.3)', color: '#1a3a5c' }}>
                         {log.action}
                       </td>
-                      <td style={{ padding: '11px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid #f0ede6' }}>
+                      <td style={{ padding: '11px 1.25rem', fontSize: '12px', color: '#5a6a7a', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
                         {log.entity_name || '-'}
                       </td>
                     </tr>
