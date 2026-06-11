@@ -114,9 +114,17 @@ export default function SablonlarPage() {
 
   async function del(id: string) {
     if (!confirm('Bu şablonu silmek istediğinize emin misiniz?')) return
-    const { error } = await supabase.from('visa_templates').delete().eq('id', id)
+    const { data: deleted, error } = await supabase
+      .from('visa_templates')
+      .delete()
+      .eq('id', id)
+      .select('id')
     if (error) {
       alert('Silme başarısız: ' + error.message)
+      return
+    }
+    if (!deleted || deleted.length === 0) {
+      alert('Silme başarısız: RLS politikası engelledi. Migration uygulandı mı kontrol edin.')
       return
     }
     init()
