@@ -17,8 +17,8 @@ type Template = {
 }
 
 const S = {
-  bg: '#080f1c', card: '#111d30', border: 'rgba(71,107,160,0.35)',
-  text: 'white', muted: '#94a3b8', faint: '#475569', accent: '#5b6ff5',
+  bg: '#080f1c', card: '#111d30', border: 'rgba(71,107,160,0.3)',
+  text: 'white', muted: '#94a3b8', faint: '#475569', accent: '#6366f1',
 }
 const DELIVERY_COLORS: Record<string, string> = {
   digital: '#22c55e', physical: '#ef4444', firma: '#6366f1',

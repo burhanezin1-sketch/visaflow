@@ -10,40 +10,50 @@ import { useIsMobile } from '@/lib/useIsMobile'
 const typeIcon: Record<string, string> = {
   evrak: '📎', randevu: '📅', odeme: '💰', pasaport: '🛂',
 }
-const typeBg: Record<string, { color: string; border: string }> = {
-  evrak: { color: '#c0392b', border: '#f5b8b0' },
-  randevu: { color: '#1a5fa5', border: '#b8d4f0' },
-  odeme: { color: '#92600a', border: '#f0d896' },
-  pasaport: { color: '#5a6a7a', border: '#e8e4da' },
+const typeStyle: Record<string, { color: string; border: string; accent: string }> = {
+  evrak:   { color: '#dc2626', border: '#fca5a5', accent: '#ef4444' },
+  randevu: { color: '#1d4ed8', border: '#93c5fd', accent: '#3b82f6' },
+  odeme:   { color: '#065f46', border: '#6ee7b7', accent: '#10b981' },
+  pasaport:{ color: '#475569', border: '#cbd5e1', accent: '#64748b' },
 }
 
-function GorevItem({ gorev, onToggle, onNavigate, compact }: { gorev: any; onToggle: (id: string) => void; onNavigate: (clientId: string) => void; compact?: boolean }) {
-  const style = typeBg[gorev.type] || typeBg.pasaport
+function GorevItem({ gorev, onToggle, onNavigate, compact }: {
+  gorev: any; onToggle: (id: string) => void; onNavigate: (clientId: string) => void; compact?: boolean
+}) {
+  const st = typeStyle[gorev.type] || typeStyle.pasaport
   return (
     <div style={{
-      display: 'flex', alignItems: compact ? 'flex-start' : 'center', gap: '8px',
-      padding: compact ? '10px' : '12px',
-      borderRadius: '10px',
-      border: `1px solid ${style.border}`,
-      marginBottom: '6px', background: 'white',
-      borderLeft: `3px solid ${style.color}`,
+      display: 'flex', alignItems: compact ? 'flex-start' : 'center', gap: '10px',
+      padding: compact ? '10px 12px' : '12px 14px',
+      borderRadius: '12px',
+      border: `1px solid ${st.border}`,
+      marginBottom: '6px',
+      background: 'white',
+      borderLeft: `4px solid ${st.accent}`,
+      boxShadow: '0 1px 4px rgba(15,23,42,0.05)',
+      transition: 'box-shadow 0.2s',
     }}>
-      <span style={{ fontSize: compact ? '15px' : '18px', flexShrink: 0, marginTop: compact ? '1px' : 0 }}>
+      <div style={{
+        width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+        background: `${st.accent}18`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '16px',
+      }}>
         {typeIcon[gorev.type]}
-      </span>
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: compact ? '12px' : '13px', fontWeight: '500', color: '#0d1f35' }}>{gorev.title}</div>
-        <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: compact ? 'nowrap' : 'normal' }}>
+        <div style={{ fontSize: compact ? '12px' : '13px', fontWeight: '500', color: '#1e293b' }}>{gorev.title}</div>
+        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: compact ? 'nowrap' : 'normal' }}>
           <strong>{gorev.client_name}</strong> — {gorev.aciklama}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
         <button onClick={() => onNavigate(gorev.client_id)}
-          style={{ padding: compact ? '4px 8px' : '4px 10px', fontSize: '11px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+          style={{ padding: compact ? '5px 9px' : '5px 11px', fontSize: '11px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: '600', transition: 'opacity 0.2s' }}>
           →
         </button>
         <button onClick={() => onToggle(gorev.id)}
-          style={{ padding: compact ? '4px 8px' : '4px 10px', fontSize: '11px', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+          style={{ padding: compact ? '5px 9px' : '5px 11px', fontSize: '11px', background: 'linear-gradient(135deg, #059669, #0d9488)', color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: '600', transition: 'opacity 0.2s' }}>
           ✓
         </button>
       </div>
@@ -86,13 +96,13 @@ export default function GorevlerPage() {
     clients?.forEach(c => {
       const app = c.applications?.[0]
       const payment = payments?.find(p => p.applications?.client_id === c.id)
-      if (app?.status === 'missing') liste.push({ id: `evrak-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Eksik evrak hatırlatması gönder', type: 'evrak', priority: 'urgent', aciklama: `${app.country} ${app.visa_type} başvurusu için evraklar eksik` })
-      if (app?.status === 'appointment_waiting') liste.push({ id: `randevu-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Randevu ayarla', type: 'randevu', priority: 'urgent', aciklama: `${app.country} ${app.visa_type} için konsolosluk randevusu bekleniyor` })
-      if (payment && payment.total_amount - payment.paid_amount > 0) liste.push({ id: `odeme-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Ödeme takibi yap', type: 'odeme', priority: 'normal', aciklama: `Kalan: ${(payment.total_amount - payment.paid_amount).toLocaleString('tr-TR')}₺` })
+      if (app?.status === 'missing') liste.push({ id: `evrak-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Eksik evrak hatırlatması gönder', type: 'evrak', aciklama: `${app.country} ${app.visa_type} başvurusu için evraklar eksik` })
+      if (app?.status === 'appointment_waiting') liste.push({ id: `randevu-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Randevu ayarla', type: 'randevu', aciklama: `${app.country} ${app.visa_type} için konsolosluk randevusu bekleniyor` })
+      if (payment && payment.total_amount - payment.paid_amount > 0) liste.push({ id: `odeme-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Ödeme takibi yap', type: 'odeme', aciklama: `Kalan: ${(payment.total_amount - payment.paid_amount).toLocaleString('tr-TR')}₺` })
       if (c.passport_expiry) {
         const expiry = new Date(c.passport_expiry)
         const ucAySonra = new Date(); ucAySonra.setMonth(ucAySonra.getMonth() + 3)
-        if (expiry < ucAySonra) liste.push({ id: `pasaport-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Pasaport yenileme uyarısı', type: 'pasaport', priority: 'normal', aciklama: `Pasaport ${expiry.toLocaleDateString('tr-TR')} tarihinde sona eriyor` })
+        if (expiry < ucAySonra) liste.push({ id: `pasaport-${c.id}`, client_id: c.id, client_name: c.full_name, title: 'Pasaport yenileme uyarısı', type: 'pasaport', aciklama: `Pasaport ${expiry.toLocaleDateString('tr-TR')} tarihinde sona eriyor` })
       }
     })
     setGorevler(liste)
@@ -109,8 +119,10 @@ export default function GorevlerPage() {
   }
 
   const aktif = gorevler.filter(g => !tamamlanan.has(g.id))
-  const acil = aktif.filter(g => g.priority === 'urgent')
-  const normal = aktif.filter(g => g.priority === 'normal')
+  // Eksik Evraklar: evrak + randevu + pasaport görevleri
+  const eksikEvraklar = aktif.filter(g => g.type !== 'odeme')
+  // Eksik Ödemeler: sadece ödeme görevleri
+  const eksikOdemeler = aktif.filter(g => g.type === 'odeme')
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -123,41 +135,42 @@ export default function GorevlerPage() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Topbar title="Görev Listesi" />
-      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
+      <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e4eaf5' }}>
         {aktif.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#9aaabb', fontSize: '13px' }}>
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8', fontSize: '13px' }}>
             🎉 Tüm görevler tamamlandı!
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '8px' : '1.25rem' }}>
-            <div>
-              <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-                <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #fef0ee, #fff5f4)' }}>
-                  <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#c0392b' }}>⚡ Acil</span>
-                  <span style={{ background: '#fef0ee', color: '#c0392b', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #f5b8b0' }}>{acil.length}</span>
-                </div>
-                <div style={{ padding: isMobile ? '0.5rem' : '0.75rem' }}>
-                  {acil.length === 0
-                    ? <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Acil görev yok</div>
-                    : acil.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={nav} compact={isMobile} />)
-                  }
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '10px' : '1.25rem' }}>
+
+            {/* Eksik Evraklar */}
+            <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(15,23,42,0.07)' }}>
+              <div style={{ padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.35)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #fef2f2, #fff5f4)', borderTop: '4px solid #ef4444' }}>
+                <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#991b1b' }}>📋 Eksik Evraklar</span>
+                <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px', border: '1px solid #fca5a5' }}>{eksikEvraklar.length}</span>
+              </div>
+              <div style={{ padding: isMobile ? '0.5rem' : '0.75rem' }}>
+                {eksikEvraklar.length === 0
+                  ? <div style={{ textAlign: 'center', padding: '1.25rem', color: '#94a3b8', fontSize: '12px' }}>✓ Eksik evrak yok</div>
+                  : eksikEvraklar.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={nav} compact={isMobile} />)
+                }
               </div>
             </div>
-            <div>
-              <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
-                <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #fff8ec, #fffbf0)' }}>
-                  <span style={{ fontSize: isMobile ? '12px' : '14px', fontWeight: '600', color: '#92600a' }}>📋 Normal</span>
-                  <span style={{ background: '#fff8ec', color: '#92600a', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #f0d896' }}>{normal.length}</span>
-                </div>
-                <div style={{ padding: isMobile ? '0.5rem' : '0.75rem' }}>
-                  {normal.length === 0
-                    ? <div style={{ textAlign: 'center', padding: '1rem', color: '#9aaabb', fontSize: '12px' }}>✓ Normal görev yok</div>
-                    : normal.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={nav} compact={isMobile} />)
-                  }
-                </div>
+
+            {/* Eksik Ödemeler */}
+            <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(15,23,42,0.07)' }}>
+              <div style={{ padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.35)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #ecfdf5, #f0fdf4)', borderTop: '4px solid #10b981' }}>
+                <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#065f46' }}>💰 Eksik Ödemeler</span>
+                <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px', border: '1px solid #6ee7b7' }}>{eksikOdemeler.length}</span>
+              </div>
+              <div style={{ padding: isMobile ? '0.5rem' : '0.75rem' }}>
+                {eksikOdemeler.length === 0
+                  ? <div style={{ textAlign: 'center', padding: '1.25rem', color: '#94a3b8', fontSize: '12px' }}>✓ Eksik ödeme yok</div>
+                  : eksikOdemeler.map(g => <GorevItem key={g.id} gorev={g} onToggle={toggleTamamla} onNavigate={nav} compact={isMobile} />)
+                }
               </div>
             </div>
+
           </div>
         )}
       </div>

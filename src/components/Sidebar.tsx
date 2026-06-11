@@ -192,14 +192,16 @@ export default function Sidebar() {
             style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '10px 1.25rem', fontSize: '13px',
-              color: isActive ? 'white' : 'rgba(255,255,255,0.4)',
+              color: isActive ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.42)',
+              fontWeight: isActive ? '500' : '400',
               cursor: 'pointer',
-              borderLeft: isActive ? '2px solid #4e86d0' : '2px solid transparent',
-              background: isActive ? 'rgba(59,130,246,0.11)' : 'transparent',
-              transition: 'all 0.15s',
+              borderLeft: isActive ? '4px solid #60a5fa' : '4px solid transparent',
+              background: isActive ? 'rgba(96,165,250,0.14)' : 'transparent',
+              transition: 'all 0.18s',
+              marginBottom: '1px',
             }}
           >
-            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: isActive ? '#4e86d0' : 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? '#60a5fa' : 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
             <span style={{ flex: 1 }}>{item.label}</span>
             {item.badge === 'lead' && leadCount > 0 && (
               <span style={{ background: '#a32d2d', color: 'white', fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '10px' }}>{leadCount}</span>

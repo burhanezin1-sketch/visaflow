@@ -215,7 +215,7 @@ export default function SablonlarPage() {
                 : globalTpls.map(t => (
                   <Card key={t.id} t={t} actions={
                     <button onClick={() => clone(t)}
-                      style={{ fontSize: '11px', padding: '4px 10px', background: '#1a3a5c', color: 'white',
+                      style={{ fontSize: '11px', padding: '4px 10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white',
                         border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                       Klonla
                     </button>
@@ -229,7 +229,7 @@ export default function SablonlarPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#0d1f35' }}>🗂 Kendi Şablonlarım</div>
                 <button onClick={openNew}
-                  style={{ fontSize: '12px', padding: '6px 14px', background: '#1a3a5c', color: 'white',
+                  style={{ fontSize: '12px', padding: '6px 14px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white',
                     border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>
                   + Yeni Şablon
                 </button>
@@ -328,7 +328,7 @@ export default function SablonlarPage() {
                 İptal
               </button>
               <button onClick={save} disabled={saving || !form.country || !form.visa_type || !form.occupation}
-                style={{ flex: 2, padding: '10px', background: '#1a3a5c', color: 'white',
+                style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white',
                   border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500',
                   cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Kaydediliyor...' : editTpl ? 'Güncelle' : 'Kaydet (İncelemeye Gönder)'}
