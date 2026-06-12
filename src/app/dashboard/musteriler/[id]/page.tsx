@@ -303,12 +303,15 @@ export default function MusteriDetayPage() {
   async function evraklariYenile() {
     if (!application || !companyId) return
     setEvrakHata(null)
+    const nat = application.nationality || 'Türkiye Cumhuriyeti'
 
+    // 4-way: country + visa_type + occupation + nationality
     const { data: ownTpl } = await supabase
       .from('visa_templates').select('docs')
       .eq('company_id', companyId).neq('status', 'rejected')
       .ilike('country', application.country).ilike('visa_type', application.visa_type)
-      .ilike('occupation', application.occupation || '').limit(1).maybeSingle()
+      .ilike('occupation', application.occupation || '').ilike('nationality', nat)
+      .limit(1).maybeSingle()
 
     let matchedDocs: any[] | null = null
     if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
@@ -318,7 +321,8 @@ export default function MusteriDetayPage() {
         .from('visa_templates').select('docs')
         .eq('is_global', true).eq('status', 'approved')
         .ilike('country', application.country).ilike('visa_type', application.visa_type)
-        .ilike('occupation', application.occupation || '').limit(1).maybeSingle()
+        .ilike('occupation', application.occupation || '').ilike('nationality', nat)
+        .limit(1).maybeSingle()
       if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
         matchedDocs = globalTpl.docs
       }

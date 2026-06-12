@@ -34,7 +34,7 @@ export default function LeadsPage() {
   const [showDurumModal, setShowDurumModal] = useState(false)
   const [selectedLead, setSelectedLead] = useState<any>(null)
   const [prices, setPrices] = useState<any[]>([])
-  const [form, setForm] = useState({ country: '', visa_type: '', occupation: '' })
+  const [form, setForm] = useState({ country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti' })
   const [saving, setSaving] = useState(false)
   const isSavingRef = useRef(false)
   const [durumAksiyon, setDurumAksiyon] = useState<'musteri' | 'iptal' | 'sonra' | null>(null)
@@ -130,7 +130,7 @@ export default function LeadsPage() {
 
     const { data: app } = await supabase
       .from('applications')
-      .insert({ company_id: companyId, client_id: newClient.id, country: form.country, visa_type: form.visa_type, occupation: form.occupation || null, status: 'missing' })
+      .insert({ company_id: companyId, client_id: newClient.id, country: form.country, visa_type: form.visa_type, occupation: form.occupation || null, nationality: form.nationality || 'Türkiye Cumhuriyeti', status: 'missing' })
       .select().single()
 
     const price = prices.find(p =>
@@ -146,23 +146,26 @@ export default function LeadsPage() {
 
     let matchedDocs: any[] | null = null
     let usedGlobal = false
+    const nat = form.nationality || 'Türkiye Cumhuriyeti'
 
     if (app && form.country && form.visa_type) {
+      // 1. Firma kendi şablonu — 4-way
       const { data: ownTpl } = await supabase
         .from('visa_templates').select('docs')
         .eq('company_id', companyId).neq('status', 'rejected')
         .ilike('country', form.country).ilike('visa_type', form.visa_type)
-        .ilike('occupation', form.occupation || '')
+        .ilike('occupation', form.occupation || '').ilike('nationality', nat)
         .limit(1).maybeSingle()
 
       if (ownTpl && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
         matchedDocs = ownTpl.docs
       } else {
+        // 2. Global onaylı — 4-way
         const { data: globalTpl } = await supabase
           .from('visa_templates').select('docs')
           .eq('is_global', true).eq('status', 'approved')
           .ilike('country', form.country).ilike('visa_type', form.visa_type)
-          .ilike('occupation', form.occupation || '')
+          .ilike('occupation', form.occupation || '').ilike('nationality', nat)
           .limit(1).maybeSingle()
 
         if (globalTpl && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
@@ -183,8 +186,9 @@ export default function LeadsPage() {
       }
 
       if (!matchedDocs) {
+        // 3. Nationality mismatch veya genel benzer şablonlar
         const { data: similar } = await supabase
-          .from('visa_templates').select('country, visa_type, occupation, docs, is_global')
+          .from('visa_templates').select('country, visa_type, occupation, nationality, docs, is_global')
           .ilike('country', form.country).eq('status', 'approved').limit(6)
         setSimilarTemplates(similar || [])
       }
@@ -198,7 +202,7 @@ export default function LeadsPage() {
     setSaving(false)
     isSavingRef.current = false
     setShowDurumModal(false)
-    setForm({ country: '', visa_type: '', occupation: '' })
+    setForm({ country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti' })
     fetchData()
 
     if (!matchedDocs && app && form.country && form.visa_type) {
@@ -389,9 +393,13 @@ export default function LeadsPage() {
                     <input value={form.visa_type} onChange={e => setForm({ ...form, visa_type: toTitleCase(e.target.value) })} placeholder={tp('visaType')} style={inputStyle} />
                   </div>
                 </div>
-                <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ marginBottom: '10px' }}>
                   <label style={labelStyle}>{tf('occupation')}</label>
                   <input value={form.occupation} onChange={e => setForm({ ...form, occupation: toTitleCase(e.target.value) })} placeholder={tp('occupation')} style={inputStyle} />
+                </div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={labelStyle}>{tf('nationality')}</label>
+                  <input value={form.nationality} onChange={e => setForm({ ...form, nationality: toTitleCase(e.target.value) })} placeholder="Türkiye Cumhuriyeti" style={inputStyle} />
                 </div>
 
                 {autoPrice ? (

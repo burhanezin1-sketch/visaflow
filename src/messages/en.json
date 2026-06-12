@@ -53,7 +53,8 @@
     "date": "Date",
     "status": "Status",
     "consultant": "Consultant",
-    "password": "Password"
+    "password": "Password",
+    "nationality": "Nationality"
   },
   "placeholders": {
     "firstName": "John",
@@ -163,7 +164,8 @@
       "useTemplate": "Use This Template",
       "createTemplate": "+ Create Template",
       "viewGlobal": "🌐 View Global Templates",
-      "goToProfile": "Go to Customer Profile →"
+      "goToProfile": "Go to Customer Profile →",
+      "nationalityMismatch": "No template found for this nationality. Templates for a similar country/visa combination with a different nationality are available:"
     }
   },
   "sablonlar": {

@@ -53,7 +53,8 @@
     "date": "Data",
     "status": "Status",
     "consultant": "Konsultant",
-    "password": "Hasło"
+    "password": "Hasło",
+    "nationality": "Narodowość"
   },
   "placeholders": {
     "firstName": "Jan",
@@ -163,7 +164,8 @@
       "useTemplate": "Użyj tego szablonu",
       "createTemplate": "+ Utwórz szablon",
       "viewGlobal": "🌐 Przeglądaj globalne szablony",
-      "goToProfile": "Przejdź do profilu klienta →"
+      "goToProfile": "Przejdź do profilu klienta →",
+      "nationalityMismatch": "Nie znaleziono szablonu dla tej narodowości. Dostępne są szablony dla podobnej kombinacji kraj/wiza z inną narodowością:"
     }
   },
   "sablonlar": {

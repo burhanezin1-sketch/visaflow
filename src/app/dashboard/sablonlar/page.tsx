@@ -14,6 +14,7 @@ type Template = {
   country: string
   visa_type: string
   occupation: string
+  nationality?: string
   docs: Doc[]
   status: 'pending' | 'approved' | 'rejected'
   is_global: boolean
@@ -45,7 +46,7 @@ export default function SablonlarPage() {
   const [showModal, setShowModal]   = useState(false)
   const [editTpl, setEditTpl]       = useState<Template | null>(null)
   const [saving, setSaving]         = useState(false)
-  const [form, setForm] = useState({ country: '', visa_type: '', occupation: '', docs: [emptyDoc()] })
+  const [form, setForm] = useState({ country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', docs: [emptyDoc()] })
 
   useEffect(() => { init() }, [])
 
@@ -69,13 +70,13 @@ export default function SablonlarPage() {
 
   function openNew() {
     setEditTpl(null)
-    setForm({ country: '', visa_type: '', occupation: '', docs: [emptyDoc()] })
+    setForm({ country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', docs: [emptyDoc()] })
     setShowModal(true)
   }
 
   function openEdit(tp: Template) {
     setEditTpl(tp)
-    setForm({ country: tp.country, visa_type: tp.visa_type, occupation: tp.occupation, docs: tp.docs.length ? tp.docs : [emptyDoc()] })
+    setForm({ country: tp.country, visa_type: tp.visa_type, occupation: tp.occupation, nationality: tp.nationality || 'Türkiye Cumhuriyeti', docs: tp.docs.length ? tp.docs : [emptyDoc()] })
     setShowModal(true)
   }
 
@@ -86,19 +87,21 @@ export default function SablonlarPage() {
     if (editTpl) {
       await supabase.from('visa_templates').update({
         country: form.country, visa_type: form.visa_type,
-        occupation: form.occupation, docs: validDocs,
+        occupation: form.occupation, nationality: form.nationality || 'Türkiye Cumhuriyeti',
+        docs: validDocs,
       }).eq('id', editTpl.id)
     } else {
       await supabase.from('visa_templates').insert({
         company_id: companyId, country: form.country,
         visa_type: form.visa_type, occupation: form.occupation,
+        nationality: form.nationality || 'Türkiye Cumhuriyeti',
         docs: validDocs, status: 'approved', is_global: false,
       })
       logAction(
         companyId,
         userId,
         userName,
-        `${userName} tarafından ${form.country} + ${form.visa_type} + ${form.occupation} şablonu oluşturuldu`,
+        `${userName} tarafından ${form.country} + ${form.visa_type} + ${form.occupation} (${form.nationality || 'Türkiye Cumhuriyeti'}) şablonu oluşturuldu`,
         'visa_template',
         null,
         `${form.country} + ${form.visa_type} + ${form.occupation}`
@@ -132,6 +135,7 @@ export default function SablonlarPage() {
     await supabase.from('visa_templates').insert({
       company_id: companyId, country: tp.country,
       visa_type: tp.visa_type, occupation: tp.occupation,
+      nationality: tp.nationality || 'Türkiye Cumhuriyeti',
       docs: tp.docs, status: 'pending', is_global: false,
     })
     init()
@@ -188,7 +192,7 @@ export default function SablonlarPage() {
               {tp.country} · {tp.visa_type}
             </div>
             <div style={{ fontSize: '11px', color: '#9aaabb' }}>
-              {tp.occupation} · {t('docCount', { count: (tp.docs || []).length })}
+              {tp.occupation} · {tp.nationality || 'Türkiye Cumhuriyeti'} · {t('docCount', { count: (tp.docs || []).length })}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '5px', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -217,10 +221,13 @@ export default function SablonlarPage() {
     background: '#f7f9fd',
   }
 
+  const toTitleCase = (str: string) => str.replace(/(?:^|\s)\S/g, c => c.toUpperCase())
+
   const fieldLabels = [
-    { key: 'country',    label: tf('country') },
-    { key: 'visa_type',  label: tf('visaType') },
-    { key: 'occupation', label: tf('occupation') },
+    { key: 'country',     label: tf('country') },
+    { key: 'visa_type',   label: tf('visaType') },
+    { key: 'occupation',  label: tf('occupation') },
+    { key: 'nationality', label: tf('nationality') },
   ]
 
   return (
@@ -301,7 +308,8 @@ export default function SablonlarPage() {
                 <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb',
                   textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>{label}</label>
                 <input value={(form as any)[key]}
-                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  onChange={e => setForm(f => ({ ...f, [key]: toTitleCase(e.target.value) }))}
+                  placeholder={key === 'nationality' ? 'Türkiye Cumhuriyeti' : undefined}
                   style={inputStyle} />
               </div>
             ))}

@@ -53,7 +53,8 @@
     "date": "Datum",
     "status": "Status",
     "consultant": "Berater",
-    "password": "Passwort"
+    "password": "Passwort",
+    "nationality": "Staatsangehörigkeit"
   },
   "placeholders": {
     "firstName": "Hans",
@@ -163,7 +164,8 @@
       "useTemplate": "Diese Vorlage verwenden",
       "createTemplate": "+ Vorlage erstellen",
       "viewGlobal": "🌐 Globale Vorlagen anzeigen",
-      "goToProfile": "Zum Kundenprofil →"
+      "goToProfile": "Zum Kundenprofil →",
+      "nationalityMismatch": "Keine Vorlage für diese Staatsangehörigkeit gefunden. Vorlagen für eine ähnliche Land/Visum-Kombination mit anderer Staatsangehörigkeit sind verfügbar:"
     }
   },
   "sablonlar": {

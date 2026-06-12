@@ -150,7 +150,7 @@ export default function SuperadminSablonlar() {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: S.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {t.country} · {t.visa_type} · {t.occupation || '—'}
+                      {t.country} · {t.visa_type} · {t.occupation || '—'} · {(t as any).nationality || 'Türkiye Cumhuriyeti'}
                     </div>
                     <div style={{ fontSize: '12px', color: S.muted, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                       <span>🏢 {t.companies?.name ?? 'Firma bilinmiyor'}</span>

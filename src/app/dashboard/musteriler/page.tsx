@@ -36,7 +36,7 @@ export default function MusterilerPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [prices, setPrices] = useState<any[]>([])
-  const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', notes: '' })
+  const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
@@ -48,6 +48,7 @@ export default function MusterilerPage() {
   const [globalToast, setGlobalToast] = useState(false)
   const [similarTemplates, setSimilarTemplates] = useState<any[]>([])
   const [usingSimilar, setUsingSimilar] = useState(false)
+  const [nationalityMismatch, setNationalityMismatch] = useState(false)
   const isSavingRef = useRef(false)
   const router = useRouter()
 
@@ -163,6 +164,7 @@ export default function MusterilerPage() {
           country: form.country,
           visa_type: form.visa_type,
           occupation: form.occupation || null,
+          nationality: form.nationality || 'Türkiye Cumhuriyeti',
           status: 'missing',
         })
         .select()
@@ -181,8 +183,10 @@ export default function MusterilerPage() {
 
       let matchedDocs: { doc_name: string; delivery_type: string; description?: string }[] | null = null
       let usedGlobal = false
+      const nat = form.nationality || 'Türkiye Cumhuriyeti'
 
       if (resolvedApp && form.country && form.visa_type) {
+        // 1. Firma kendi şablonu — 4-way eşleşme
         const { data: ownTpl } = await supabase
           .from('visa_templates')
           .select('docs')
@@ -191,12 +195,14 @@ export default function MusterilerPage() {
           .ilike('country', form.country)
           .ilike('visa_type', form.visa_type)
           .ilike('occupation', form.occupation || '')
+          .ilike('nationality', nat)
           .limit(1)
           .maybeSingle()
 
         if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
           matchedDocs = ownTpl.docs
         } else {
+          // 2. Global onaylı şablon — 4-way eşleşme
           const { data: globalTpl } = await supabase
             .from('visa_templates')
             .select('docs')
@@ -205,6 +211,7 @@ export default function MusterilerPage() {
             .ilike('country', form.country)
             .ilike('visa_type', form.visa_type)
             .ilike('occupation', form.occupation || '')
+            .ilike('nationality', nat)
             .limit(1)
             .maybeSingle()
 
@@ -228,13 +235,30 @@ export default function MusterilerPage() {
         }
 
         if (!matchedDocs) {
-          const { data: similar } = await supabase
+          // 3. Aynı ülke+vize+meslek ama farklı uyruk — nationality mismatch önerisi
+          const { data: natMismatch } = await supabase
             .from('visa_templates')
-            .select('country, visa_type, occupation, docs, is_global')
+            .select('country, visa_type, occupation, nationality, docs, is_global')
             .ilike('country', form.country)
+            .ilike('visa_type', form.visa_type)
+            .ilike('occupation', form.occupation || '')
             .eq('status', 'approved')
             .limit(6)
-          setSimilarTemplates(similar || [])
+
+          if (natMismatch && natMismatch.length > 0) {
+            setSimilarTemplates(natMismatch)
+            setNationalityMismatch(true)
+          } else {
+            // 4. Hiçbiri yoksa: aynı ülkeye ait genel öneriler
+            const { data: similar } = await supabase
+              .from('visa_templates')
+              .select('country, visa_type, occupation, nationality, docs, is_global')
+              .ilike('country', form.country)
+              .eq('status', 'approved')
+              .limit(6)
+            setSimilarTemplates(similar || [])
+            setNationalityMismatch(false)
+          }
         }
       }
 
@@ -256,7 +280,7 @@ export default function MusterilerPage() {
 
       await fetchData()
       setShowModal(false)
-      setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', notes: '' })
+      setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
 
       if (!matchedDocs && resolvedApp && !!(form.country && form.visa_type)) {
         setSavedClientId(clientId)
@@ -466,6 +490,10 @@ export default function MusterilerPage() {
               )}
             </div>
             <div style={{ marginBottom: '10px' }}>
+              <label style={labelStyle}>{tf('nationality')}</label>
+              <input value={form.nationality} onChange={e => setForm({...form, nationality: toTitleCase(e.target.value)})} placeholder="Türkiye Cumhuriyeti" style={inputStyle} />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
               <label style={labelStyle}>{tf('notes')}</label>
               <textarea
                 value={form.notes}
@@ -513,19 +541,27 @@ export default function MusterilerPage() {
 
             {similarTemplates.length > 0 && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: '#5a6a7a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
-                  {t('noTemplate.similarTitle')}
-                  <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
-                </div>
+                {nationalityMismatch ? (
+                  <div style={{ fontSize: '12px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '8px', padding: '8px 12px', marginBottom: '10px' }}>
+                    {t('noTemplate.nationalityMismatch')}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#5a6a7a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
+                    {t('noTemplate.similarTitle')}
+                    <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
+                  </div>
+                )}
                 {similarTemplates.map((tpl, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid #e2e2e8', borderRadius: '8px', marginBottom: '6px', gap: '8px' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: `1.5px solid ${nationalityMismatch ? '#f0d896' : '#e2e2e8'}`, borderRadius: '8px', marginBottom: '6px', gap: '8px' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {tpl.country} · {tpl.visa_type}
                       </div>
                       <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>
-                        {tpl.occupation || t('noTemplate.noOccupation')} · {t('noTemplate.docCount', { count: (tpl.docs || []).length })}
+                        {tpl.occupation || t('noTemplate.noOccupation')}
+                        {tpl.nationality && <span style={{ marginLeft: '4px', color: nationalityMismatch ? '#92600a' : '#9aaabb' }}>· {tpl.nationality}</span>}
+                        {' · '}{t('noTemplate.docCount', { count: (tpl.docs || []).length })}
                         {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>{t('noTemplate.globalBadge')}</span>}
                       </div>
                     </div>
@@ -555,7 +591,7 @@ export default function MusterilerPage() {
                 {t('noTemplate.viewGlobal')}
               </button>
               <button
-                onClick={() => { setNoTemplateModal(false); setSimilarTemplates([]); router.push(`/dashboard/musteriler/${savedClientId}`) }}
+                onClick={() => { setNoTemplateModal(false); setSimilarTemplates([]); setNationalityMismatch(false); router.push(`/dashboard/musteriler/${savedClientId}`) }}
                 style={{ width: '100%', padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 {t('noTemplate.goToProfile')}

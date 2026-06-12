@@ -53,7 +53,8 @@
     "date": "Tarih",
     "status": "Durum",
     "consultant": "Danışman",
-    "password": "Şifre"
+    "password": "Şifre",
+    "nationality": "Uyruk"
   },
   "placeholders": {
     "firstName": "Ahmet",
@@ -163,7 +164,8 @@
       "useTemplate": "Bu Şablonu Kullan",
       "createTemplate": "+ Şablon Oluştur",
       "viewGlobal": "🌐 Global Şablonlara Bak",
-      "goToProfile": "Müşteri Profiline Git →"
+      "goToProfile": "Müşteri Profiline Git →",
+      "nationalityMismatch": "Bu uyruk için özel şablon bulunamadı. Benzer ülke/vize kombinasyonunda farklı uyruğa ait şablonlar mevcut:"
     }
   },
   "sablonlar": {
