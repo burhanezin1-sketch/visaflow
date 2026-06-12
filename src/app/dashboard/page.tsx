@@ -6,23 +6,27 @@ import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
-
-const statusMap: any = {
-  missing:              { label: 'Evrak Eksik',        bg: '#fef2f2', color: '#dc2626' },
-  appointment_waiting:  { label: 'Randevu Bekleniyor', bg: '#fffbeb', color: '#92600a' },
-  appointment:          { label: 'Randevu Alındı',     bg: '#eff6ff', color: '#1d4ed8' },
-  approved:             { label: 'Onaylandı ✓',        bg: '#f0fdf4', color: '#16a34a' },
-  rejected:             { label: 'Reddedildi ✗',       bg: '#fef2f2', color: '#dc2626' },
-}
+import { useTranslations } from 'next-intl'
 
 export default function DashboardPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
+  const t = useTranslations('dashboard')
+  const ts = useTranslations('status')
+  const tc = useTranslations('common')
   const [clients, setClients] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState('')
   const router = useRouter()
+
+  const statusMap: any = {
+    missing:             { label: ts('missing'),             bg: '#fef2f2', color: '#dc2626' },
+    appointment_waiting: { label: ts('appointment_waiting'), bg: '#fffbeb', color: '#92600a' },
+    appointment:         { label: ts('appointment'),         bg: '#eff6ff', color: '#1d4ed8' },
+    approved:            { label: ts('approved'),            bg: '#f0fdf4', color: '#16a34a' },
+    rejected:            { label: ts('rejected'),            bg: '#fef2f2', color: '#dc2626' },
+  }
 
   useEffect(() => {
     if (companyLoading) return
@@ -47,15 +51,15 @@ export default function DashboardPage() {
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#888' }}>Yükleniyor...</div>
+      <div style={{ color: '#888' }}>{tc('loading')}</div>
     </div>
   )
 
   const statCards = [
-    { label: 'Aktif Dosya',      value: clients.length,       icon: '📂', iconBg: '#eff6ff', iconColor: '#1d4ed8', accent: '#3b82f6', numColor: '#1e3a8a', sub: null,               click: undefined },
-    { label: 'Yeni Lead',        value: leads.length,         icon: '⭐', iconBg: '#fffbeb', iconColor: '#d97706', accent: '#f59e0b', numColor: '#92400e', sub: 'Aranmayı bekliyor', click: () => router.push('/dashboard/leads') },
-    { label: 'Bekleyen Evrak',   value: bekleyenEvrak.length, icon: '📋', iconBg: '#fef2f2', iconColor: '#dc2626', accent: '#ef4444', numColor: '#991b1b', sub: 'Acil takip',        click: () => router.push('/dashboard/musteriler') },
-    { label: 'Bu Hafta Randevu', value: randevular.length,    icon: '📅', iconBg: '#f0fdf4', iconColor: '#16a34a', accent: '#22c55e', numColor: '#14532d', sub: 'Takvimi aç',        click: () => router.push('/dashboard/takvim') },
+    { label: t('stats.activeFiles'),       value: clients.length,       icon: '📂', iconBg: '#eff6ff', iconColor: '#1d4ed8', accent: '#3b82f6', numColor: '#1e3a8a', sub: null,                          click: undefined },
+    { label: t('stats.newLead'),           value: leads.length,         icon: '⭐', iconBg: '#fffbeb', iconColor: '#d97706', accent: '#f59e0b', numColor: '#92400e', sub: t('stats.waitingToCall'),     click: () => router.push('/dashboard/leads') },
+    { label: t('stats.pendingDocs'),       value: bekleyenEvrak.length, icon: '📋', iconBg: '#fef2f2', iconColor: '#dc2626', accent: '#ef4444', numColor: '#991b1b', sub: t('stats.urgentFollowup'),    click: () => router.push('/dashboard/musteriler') },
+    { label: t('stats.weeklyAppointment'), value: randevular.length,    icon: '📅', iconBg: '#f0fdf4', iconColor: '#16a34a', accent: '#22c55e', numColor: '#14532d', sub: t('stats.openCalendar'),      click: () => router.push('/dashboard/takvim') },
   ]
 
   const cardBase: React.CSSProperties = {
@@ -74,7 +78,7 @@ export default function DashboardPage() {
         {/* Greeting */}
         <div style={{ marginBottom: isMobile ? '1rem' : '1.5rem' }}>
           <h2 style={{ fontSize: isMobile ? '17px' : '22px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-            Günaydın, {userName} 👋
+            {t('greeting', { name: userName })}
           </h2>
           <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
             {new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -134,7 +138,7 @@ export default function DashboardPage() {
           <div style={{ ...cardBase, borderTop: '4px solid #ef4444' }}>
             <div style={{ padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#1e293b' }}>
-                📋 Evrak Bekleyen
+                {t('pendingDocs.title')}
               </span>
               <span style={{ background: '#fef2f2', color: '#dc2626', fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px', border: '1px solid #fca5a5' }}>
                 {bekleyenEvrak.length}
@@ -142,7 +146,7 @@ export default function DashboardPage() {
             </div>
             {bekleyenEvrak.length === 0 ? (
               <div style={{ padding: '1.5rem', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
-                Bekleyen evrak yok ✓
+                {t('pendingDocs.empty')}
               </div>
             ) : (
               <div>
@@ -174,7 +178,7 @@ export default function DashboardPage() {
                 ))}
                 {bekleyenEvrak.length > (isMobile ? 4 : 6) && (
                   <div onClick={() => router.push('/dashboard/musteriler')} style={{ padding: isMobile ? '8px 1rem' : '8px 1.25rem', fontSize: '12px', color: '#3b82f6', cursor: 'pointer', textAlign: 'center', borderTop: '1px solid rgba(188,204,226,0.3)', fontWeight: '500' }}>
-                    +{bekleyenEvrak.length - (isMobile ? 4 : 6)} daha görüntüle
+                    {tc('viewMore', { count: bekleyenEvrak.length - (isMobile ? 4 : 6) })}
                   </div>
                 )}
               </div>
@@ -185,18 +189,18 @@ export default function DashboardPage() {
           <div style={{ ...cardBase, borderTop: '4px solid #3b82f6' }}>
             <div style={{ padding: isMobile ? '0.75rem 1rem' : '1rem 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '600', color: '#1e293b' }}>
-                🕐 Son İşlemler
+                {t('recentActivity.title')}
               </span>
               <button
                 onClick={() => router.push('/dashboard/musteriler')}
                 style={{ padding: '4px 12px', fontSize: '11px', fontWeight: '600', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'opacity 0.2s' }}
               >
-                Tümü
+                {tc('all')}
               </button>
             </div>
             {clients.length === 0 ? (
               <div style={{ padding: '1.5rem', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
-                Henüz müşteri yok
+                {t('recentActivity.empty')}
               </div>
             ) : (
               <div>

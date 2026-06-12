@@ -6,6 +6,7 @@ import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { useTranslations } from 'next-intl'
 
 function formatPrice(price: number, currency: string = 'TRY') {
   const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -20,6 +21,12 @@ const toTitleCase = (str: string) =>
 export default function LeadsPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
+  const t = useTranslations('leads')
+  const tc = useTranslations('common')
+  const ts = useTranslations('status')
+  const tf = useTranslations('fields')
+  const tp = useTranslations('placeholders')
+  const tm = useTranslations('musteriler')
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
@@ -106,7 +113,7 @@ export default function LeadsPage() {
         .from('clients').select('id, full_name')
         .eq('company_id', companyId).eq('phone', selectedLead.phone).maybeSingle()
       if (existing) {
-        setMusteriYapError(`Bu müşteri zaten kayıtlı: ${existing.full_name}`)
+        setMusteriYapError(tm('addModal.alreadyRegistered', { name: existing.full_name }))
         setSaving(false); isSavingRef.current = false; return
       }
     }
@@ -126,7 +133,6 @@ export default function LeadsPage() {
       .insert({ company_id: companyId, client_id: newClient.id, country: form.country, visa_type: form.visa_type, occupation: form.occupation || null, status: 'missing' })
       .select().single()
 
-    // Fiyat kaydı
     const price = prices.find(p =>
       p.country.toLowerCase() === form.country.toLowerCase() &&
       p.visa_type.toLowerCase() === form.visa_type.toLowerCase()
@@ -138,12 +144,10 @@ export default function LeadsPage() {
       })
     }
 
-    // Şablon arama
     let matchedDocs: any[] | null = null
     let usedGlobal = false
 
     if (app && form.country && form.visa_type) {
-      // 1. Firma kendi şablonu (rejected hariç)
       const { data: ownTpl } = await supabase
         .from('visa_templates').select('docs')
         .eq('company_id', companyId).neq('status', 'rejected')
@@ -154,7 +158,6 @@ export default function LeadsPage() {
       if (ownTpl && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
         matchedDocs = ownTpl.docs
       } else {
-        // 2. Global onaylı şablon
         const { data: globalTpl } = await supabase
           .from('visa_templates').select('docs')
           .eq('is_global', true).eq('status', 'approved')
@@ -179,7 +182,6 @@ export default function LeadsPage() {
         )
       }
 
-      // 3. Şablon yoksa benzer şablonlar
       if (!matchedDocs) {
         const { data: similar } = await supabase
           .from('visa_templates').select('country, visa_type, occupation, docs, is_global')
@@ -188,7 +190,6 @@ export default function LeadsPage() {
       }
     }
 
-    // Lead'i dönüştür
     await supabase.from('leads').delete().eq('id', selectedLead.id)
 
     const clientId = newClient.id
@@ -243,9 +244,9 @@ export default function LeadsPage() {
   }
 
   const statusLabel: any = {
-    waiting:   { label: 'Bekliyor',                  bg: '#fff8ec', color: '#92600a' },
-    claimed:   { label: 'Sahiplenildi',              bg: '#eef4fb', color: '#1a5fa5' },
-    contacted: { label: 'Daha Sonra Konuşulacak',    bg: '#f0eeff', color: '#5b2eb5' },
+    waiting:   { label: ts('waiting'),   bg: '#fff8ec', color: '#92600a' },
+    claimed:   { label: ts('claimed'),   bg: '#eef4fb', color: '#1a5fa5' },
+    contacted: { label: ts('contacted'), bg: '#f0eeff', color: '#5b2eb5' },
   }
 
   const autoPrice = prices.find(p =>
@@ -266,31 +267,31 @@ export default function LeadsPage() {
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#888' }}>Yükleniyor...</div>
+      <div style={{ color: '#888' }}>{tc('loading')}</div>
     </div>
   )
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Topbar title="Potansiyel Müşteriler" />
+      <Topbar title={t('pageTitle')} />
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e4eaf5' }}>
         <div style={{ background: '#f7f9fd', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(15,23,42,0.07)' }}>
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Lead Listesi</h3>
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>{leads.filter(l => l.status === 'waiting').length} bekliyor</span>
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>{t('listTitle')}</h3>
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>{t('waitingCount', { count: leads.filter(l => l.status === 'waiting').length })}</span>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
               <thead>
                 <tr>
-                  {['Ad Soyad', 'Ne İstiyor?', 'Danışman', 'Durum', ''].map(h => (
+                  {[t('table.name'), t('table.wants'), t('table.consultant'), t('table.status'), ''].map(h => (
                     <th key={h} style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid rgba(188,204,226,0.35)', background: '#eef2f9' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {leads.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Henüz potansiyel müşteri yok</td></tr>
+                  <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>{t('table.empty')}</td></tr>
                 )}
                 {leads.map(lead => {
                   const s = statusLabel[lead.status] || statusLabel.waiting
@@ -312,7 +313,7 @@ export default function LeadsPage() {
                         </div>
                       </td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '12px', color: '#475569', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
-                        {claimedName ? <span style={{ color: '#1d4ed8', fontWeight: '500' }}>{claimedName}</span> : 'Atanmadı'}
+                        {claimedName ? <span style={{ color: '#1d4ed8', fontWeight: '500' }}>{claimedName}</span> : t('table.notAssigned')}
                       </td>
                       <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
                         <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '3px 9px', borderRadius: '20px' }}>{s.label}</span>
@@ -321,12 +322,12 @@ export default function LeadsPage() {
                         <div style={{ display: 'flex', gap: '6px' }}>
                           {lead.status === 'waiting' && (
                             <button onClick={() => sahiplen(lead)} style={{ padding: '5px 12px', fontSize: '11px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: '600', transition: 'opacity 0.2s' }}>
-                              Sahiplen
+                              {t('actions.claim')}
                             </button>
                           )}
                           {(lead.status === 'claimed' || lead.status === 'contacted') && isMine && (
                             <button onClick={() => { setSelectedLead(lead); setDurumAksiyon(null); setShowDurumModal(true) }} style={{ padding: '5px 12px', fontSize: '11px', background: 'linear-gradient(135deg, #0ea5e9, #1d4ed8)', color: 'white', border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: '600', transition: 'opacity 0.2s' }}>
-                              Durum Güncelle
+                              {t('actions.updateStatus')}
                             </button>
                           )}
                         </div>
@@ -340,18 +341,16 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Global şablon toastı */}
       {globalToast && (
         <div style={{ position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)', background: '#1a7a45', color: 'white', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}>
-          ✓ Global şablon kullanıldı
+          {tm('toasts.globalTemplateUsed')}
         </div>
       )}
 
-      {/* Durum modalı */}
       {showDurumModal && selectedLead && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
           <div style={{ background: '#f7f9fd', borderRadius: '18px', padding: '2rem', width: '460px', maxWidth: '95vw', boxShadow: '0 16px 48px rgba(15,23,42,0.15)' }}>
-            <h3 style={{ fontSize: '17px', fontWeight: '500', marginBottom: '6px', color: '#1e293b' }}>Durum Güncelle</h3>
+            <h3 style={{ fontSize: '17px', fontWeight: '500', marginBottom: '6px', color: '#1e293b' }}>{t('modal.title')}</h3>
 
             <div style={{ background: '#eef2fa', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', padding: '10px 12px', marginBottom: '1.5rem' }}>
               <div style={{ fontSize: '13px', fontWeight: '500', color: '#1e293b', marginBottom: '4px' }}>{selectedLead.full_name || '—'}</div>
@@ -366,59 +365,43 @@ export default function LeadsPage() {
             {!durumAksiyon && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1rem' }}>
                 <button onClick={() => setDurumAksiyon('musteri')} style={{ padding: '12px', background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #86efac', borderRadius: '10px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
-                  ✓ Müşteriye Dönüştür
+                  {t('modal.convertToCustomer')}
                 </button>
                 <button onClick={() => setDurumAksiyon('sonra')} style={{ padding: '12px', background: '#f0eeff', color: '#5b2eb5', border: '1.5px solid #c9bdf0', borderRadius: '10px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
-                  🕐 Daha Sonra Konuşulacak
+                  {t('modal.talkLater')}
                 </button>
                 <button onClick={() => setDurumAksiyon('iptal')} style={{ padding: '12px', background: '#fef2f2', color: '#dc2626', border: '1.5px solid #fca5a5', borderRadius: '10px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', textAlign: 'left' }}>
-                  ✕ İptal — Müşteri Olmayacak
+                  {t('modal.cancel')}
                 </button>
               </div>
             )}
 
-            {/* Müşteriye dönüştür formu */}
             {durumAksiyon === 'musteri' && (
               <>
-                <p style={{ fontSize: '13px', color: '#475569', marginBottom: '1rem' }}>Vize bilgilerini girin:</p>
+                <p style={{ fontSize: '13px', color: '#475569', marginBottom: '1rem' }}>{t('modal.visaInfoLabel')}</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                   <div>
-                    <label style={labelStyle}>Ülke</label>
-                    <input
-                      value={form.country}
-                      onChange={e => setForm({ ...form, country: toTitleCase(e.target.value) })}
-                      placeholder="ör. Fransa"
-                      style={inputStyle}
-                    />
+                    <label style={labelStyle}>{tf('country')}</label>
+                    <input value={form.country} onChange={e => setForm({ ...form, country: toTitleCase(e.target.value) })} placeholder={tp('country')} style={inputStyle} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Vize Türü</label>
-                    <input
-                      value={form.visa_type}
-                      onChange={e => setForm({ ...form, visa_type: toTitleCase(e.target.value) })}
-                      placeholder="ör. Turist Vizesi"
-                      style={inputStyle}
-                    />
+                    <label style={labelStyle}>{tf('visaType')}</label>
+                    <input value={form.visa_type} onChange={e => setForm({ ...form, visa_type: toTitleCase(e.target.value) })} placeholder={tp('visaType')} style={inputStyle} />
                   </div>
                 </div>
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={labelStyle}>Meslek</label>
-                  <input
-                    value={form.occupation}
-                    onChange={e => setForm({ ...form, occupation: toTitleCase(e.target.value) })}
-                    placeholder="ör. Çalışan (opsiyonel)"
-                    style={inputStyle}
-                  />
+                  <label style={labelStyle}>{tf('occupation')}</label>
+                  <input value={form.occupation} onChange={e => setForm({ ...form, occupation: toTitleCase(e.target.value) })} placeholder={tp('occupation')} style={inputStyle} />
                 </div>
 
                 {autoPrice ? (
                   <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#16a34a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Hizmet Bedeli</span>
+                    <span>{tm('addModal.servicePrice')}</span>
                     <strong>{formatPrice(autoPrice.price, autoPrice.currency)}</strong>
                   </div>
                 ) : (form.country && form.visa_type) ? (
                   <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#92400e' }}>
-                    Bu vize tipi için fiyat tanımlanmamış.
+                    {tm('addModal.noPriceDefined')}
                   </div>
                 ) : null}
 
@@ -428,9 +411,9 @@ export default function LeadsPage() {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => { setDurumAksiyon(null); setMusteriYapError(null) }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#475569', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
+                  <button onClick={() => { setDurumAksiyon(null); setMusteriYapError(null) }} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#475569', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('back')}</button>
                   <button onClick={musteriYap} disabled={saving || !form.country || !form.visa_type} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : 'linear-gradient(135deg, #16a34a, #0d9488)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: (!form.country || !form.visa_type) ? 0.6 : 1, transition: 'opacity 0.2s' }}>
-                    {saving ? 'Kaydediliyor...' : '✓ Müşteri Olarak Ekle'}
+                    {saving ? tc('saving') : t('modal.addAsCustomer')}
                   </button>
                 </div>
               </>
@@ -438,48 +421,46 @@ export default function LeadsPage() {
 
             {durumAksiyon === 'sonra' && (
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#475569', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
+                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#475569', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('back')}</button>
                 <button onClick={sonraKonusulacak} disabled={saving} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : '#5b2eb5', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                  {saving ? 'Kaydediliyor...' : '🕐 Daha Sonra Konuşulacak'}
+                  {saving ? tc('saving') : t('modal.talkLaterConfirm')}
                 </button>
               </div>
             )}
 
             {durumAksiyon === 'iptal' && (
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#475569', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>Geri</button>
+                <button onClick={() => setDurumAksiyon(null)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#475569', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('back')}</button>
                 <button onClick={iptalEt} disabled={saving} style={{ flex: 2, padding: '10px', background: saving ? '#aaa' : '#dc2626', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                  {saving ? 'Siliniyor...' : '✕ İptal Et ve Sil'}
+                  {saving ? tc('deleting') : t('modal.cancelConfirm')}
                 </button>
               </div>
             )}
 
             {!durumAksiyon && (
               <button onClick={() => { setShowDurumModal(false); setSaving(false) }} style={{ width: '100%', marginTop: '8px', padding: '10px', background: 'transparent', color: '#94a3b8', border: 'none', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                Kapat
+                {tc('close')}
               </button>
             )}
           </div>
         </div>
       )}
 
-      {/* Şablon bulunamadı modalı */}
       {noTemplateModal && savedClientId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, backdropFilter: 'blur(4px)' }}>
           <div style={{ background: '#f7f9fd', borderRadius: '18px', padding: '2rem', width: '460px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(15,23,42,0.15)' }}>
             <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>📋</div>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '6px' }}>Şablon Bulunamadı</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1e293b', marginBottom: '6px' }}>{tm('noTemplate.title')}</h3>
               <p style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-                Bu kombinasyon için henüz şablon oluşturulmamış.<br />
-                Müşteri kaydedildi, evrak listesi şimdilik boş.
+                {tm('noTemplate.description')}
               </p>
             </div>
 
             {similarTemplates.length > 0 && (
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '10px', textAlign: 'center' }}>
-                  Benzer şablonlar var, kullanmak ister misiniz?
+                  {tm('noTemplate.similarTitle')}
                 </div>
                 {similarTemplates.map((tpl, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid rgba(188,204,226,0.5)', borderRadius: '10px', marginBottom: '6px', gap: '8px' }}>
@@ -488,12 +469,12 @@ export default function LeadsPage() {
                         {tpl.country} · {tpl.visa_type}
                       </div>
                       <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                        {tpl.occupation || 'Meslek belirtilmemiş'} · {(tpl.docs || []).length} evrak
-                        {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>🌐 Global</span>}
+                        {tpl.occupation || tm('noTemplate.noOccupation')} · {tm('noTemplate.docCount', { count: (tpl.docs || []).length })}
+                        {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>{tm('noTemplate.globalBadge')}</span>}
                       </div>
                     </div>
                     <button onClick={() => useSimilarTemplate(tpl)} disabled={usingSimilar} style={{ flexShrink: 0, padding: '6px 12px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '500', cursor: usingSimilar ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: usingSimilar ? 0.6 : 1 }}>
-                      {usingSimilar ? '...' : 'Bu Şablonu Kullan'}
+                      {usingSimilar ? '...' : tm('noTemplate.useTemplate')}
                     </button>
                   </div>
                 ))}
@@ -502,13 +483,13 @@ export default function LeadsPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button onClick={() => router.push('/dashboard/sablonlar')} style={{ width: '100%', padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>
-                + Şablon Oluştur
+                {tm('noTemplate.createTemplate')}
               </button>
               <button onClick={() => router.push('/dashboard/sablonlar?tab=global')} style={{ width: '100%', padding: '10px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '10px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>
-                🌐 Global Şablonlara Bak
+                {tm('noTemplate.viewGlobal')}
               </button>
               <button onClick={() => { setNoTemplateModal(false); setSimilarTemplates([]); router.push(`/dashboard/musteriler/${savedClientId}`) }} style={{ width: '100%', padding: '10px', background: '#f1f5f9', color: '#475569', border: '1px solid rgba(188,204,226,0.6)', borderRadius: '10px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>
-                Müşteri Profiline Git →
+                {tm('noTemplate.goToProfile')}
               </button>
             </div>
           </div>

@@ -8,6 +8,7 @@ import { useCompany } from '@/lib/useCompany'
 import { checkApplicationLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { useTranslations } from 'next-intl'
 
 function formatPrice(price: number, currency: string = 'TRY') {
   const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -20,23 +21,14 @@ const toTitleCase = (str: string) => {
   return str.replace(/(?:^|\s)\S/g, (char) => char.toUpperCase())
 }
 
-const statusMap: any = {
-  missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
-  appointment_waiting: { label: 'Randevu Bekleniyor', bg: '#fff8ec', color: '#92600a' },
-  appointment: { label: 'Randevu Alındı', bg: '#eef4fb', color: '#1a5fa5' },
-  approved: { label: 'Onaylandı ✓', bg: '#edfaf3', color: '#1a7a45' },
-  rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
-}
-
-const occupationLabels: Record<string, string> = {
-  calisan: 'Çalışan', sirket_sahibi: 'İşveren / Serbest',
-  devlet_memuru: 'Devlet Memuru', ogrenci: 'Öğrenci',
-  emekli: 'Emekli', ev_hanimi: 'Çalışmıyor', ev_hanimi_meslek: 'Ev Hanımı',
-}
-
 export default function MusterilerPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
+  const t = useTranslations('musteriler')
+  const tc = useTranslations('common')
+  const ts = useTranslations('status')
+  const tf = useTranslations('fields')
+  const tp = useTranslations('placeholders')
   const [clients, setClients] = useState<any[]>([])
   const [filtered, setFiltered] = useState<any[]>([])
   const [search, setSearch] = useState('')
@@ -58,6 +50,24 @@ export default function MusterilerPage() {
   const [usingSimilar, setUsingSimilar] = useState(false)
   const isSavingRef = useRef(false)
   const router = useRouter()
+
+  const statusMap: any = {
+    missing:             { label: ts('missing'),             bg: '#fef0ee', color: '#c0392b' },
+    appointment_waiting: { label: ts('appointment_waiting'), bg: '#fff8ec', color: '#92600a' },
+    appointment:         { label: ts('appointment'),         bg: '#eef4fb', color: '#1a5fa5' },
+    approved:            { label: ts('approved') + ' ✓',    bg: '#edfaf3', color: '#1a7a45' },
+    rejected:            { label: ts('rejected') + ' ✗',    bg: '#fef0ee', color: '#c0392b' },
+  }
+
+  const occupationLabels: Record<string, string> = {
+    calisan:         t('occupations.calisan'),
+    sirket_sahibi:   t('occupations.sirket_sahibi'),
+    devlet_memuru:   t('occupations.devlet_memuru'),
+    ogrenci:         t('occupations.ogrenci'),
+    emekli:          t('occupations.emekli'),
+    ev_hanimi:       t('occupations.ev_hanimi'),
+    ev_hanimi_meslek:t('occupations.ev_hanimi_meslek'),
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -117,7 +127,7 @@ export default function MusterilerPage() {
         .eq('phone', form.phone)
         .maybeSingle()
       if (existing) {
-        setLimitError(`Bu müşteri zaten kayıtlı: ${existing.full_name}`)
+        setLimitError(t('addModal.alreadyRegistered', { name: existing.full_name }))
         setSaving(false)
         return
       }
@@ -173,10 +183,7 @@ export default function MusterilerPage() {
       let usedGlobal = false
 
       if (resolvedApp && form.country && form.visa_type) {
-        console.log('[sablon ara]', { country: form.country, visa_type: form.visa_type, occupation: form.occupation, companyId })
-
-        // 1. Firma kendi şablonu — status fark etmez (rejected hariç)
-        const { data: ownTpl, error: ownErr } = await supabase
+        const { data: ownTpl } = await supabase
           .from('visa_templates')
           .select('docs')
           .eq('company_id', companyId)
@@ -187,13 +194,10 @@ export default function MusterilerPage() {
           .limit(1)
           .maybeSingle()
 
-        console.log('[sablon] firma:', ownTpl, '| err:', ownErr?.message)
-
         if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
           matchedDocs = ownTpl.docs
         } else {
-          // 2. Global onaylı şablon
-          const { data: globalTpl, error: globalErr } = await supabase
+          const { data: globalTpl } = await supabase
             .from('visa_templates')
             .select('docs')
             .eq('is_global', true)
@@ -203,8 +207,6 @@ export default function MusterilerPage() {
             .ilike('occupation', form.occupation || '')
             .limit(1)
             .maybeSingle()
-
-          console.log('[sablon] global:', globalTpl, '| err:', globalErr?.message)
 
           if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
             matchedDocs = globalTpl.docs
@@ -225,7 +227,6 @@ export default function MusterilerPage() {
           )
         }
 
-        // 3. Hiçbiri yoksa benzer şablonları getir (sadece ülke eşleşmesi)
         if (!matchedDocs) {
           const { data: similar } = await supabase
             .from('visa_templates')
@@ -248,7 +249,7 @@ export default function MusterilerPage() {
       }
 
       const { data: userData } = await supabase.from('users').select('full_name').eq('id', user?.id).single()
-      logAction(companyId, user?.id, userData?.full_name || 'Bilinmeyen', 'Yeni müşteri eklendi', 'client', newClient.id, newClient.full_name)
+      logAction(companyId, user?.id, userData?.full_name || '', 'Yeni müşteri eklendi', 'client', newClient.id, newClient.full_name)
 
       const clientId = newClient.id
       const appId = resolvedApp?.id ?? null
@@ -276,7 +277,6 @@ export default function MusterilerPage() {
   async function useSimilarTemplate(tpl: any) {
     if (!savedAppId || usingSimilar) return
     setUsingSimilar(true)
-    // Önce varsa eskiyi temizle (çift kayıt önlemi)
     await supabase.from('user_submitted_docs').delete().eq('application_id', savedAppId)
     await supabase.from('user_submitted_docs').insert(
       (tpl.docs || []).map((d: any) => ({
@@ -295,7 +295,7 @@ export default function MusterilerPage() {
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#888' }}>Yükleniyor...</div>
+      <div style={{ color: '#888' }}>{tc('loading')}</div>
     </div>
   )
 
@@ -311,15 +311,20 @@ export default function MusterilerPage() {
     background: '#f7f9fd',
   }
 
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb',
+    marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px',
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Topbar title="Müşteriler" />
+      <Topbar title={t('pageTitle')} />
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e9eef6' }}>
         <div style={{ background: '#f7f9fd', border: '1px solid rgba(188,204,226,0.5)', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}>
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(188,204,226,0.35)', flexWrap: 'wrap' }}>
             {([
-              { key: 'tumu', label: 'Tüm Müşteriler', count: clients.length },
-              { key: 'benimkiler', label: 'Müşterilerim', count: benimkilerCount },
+              { key: 'tumu',       label: t('tabs.all'),  count: clients.length },
+              { key: 'benimkiler', label: t('tabs.mine'), count: benimkilerCount },
             ] as const).map(tab => (
               <button
                 key={tab.key}
@@ -347,20 +352,20 @@ export default function MusterilerPage() {
             ))}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center', padding: '6px 0.75rem', flexWrap: 'wrap' }}>
               {!isMobile && (
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="İsim ara..." style={{ padding: '6px 10px', border: '1.5px solid #e2e2e8', borderRadius: '7px', fontSize: '12px', outline: 'none', width: '130px' }} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tp('searchName')} style={{ padding: '6px 10px', border: '1.5px solid #e2e2e8', borderRadius: '7px', fontSize: '12px', outline: 'none', width: '130px' }} />
               )}
               {!isMobile && (
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '6px 8px', border: '1.5px solid #e2e2e8', borderRadius: '7px', fontSize: '12px', background: '#f5f5f7', outline: 'none' }}>
-                  <option value="">Tüm Durumlar</option>
-                  <option value="missing">Evrak Eksik</option>
-                  <option value="appointment_waiting">Randevu Bekleniyor</option>
-                  <option value="appointment">Randevu Alındı</option>
-                  <option value="approved">Onaylandı</option>
-                  <option value="rejected">Reddedildi</option>
+                  <option value="">{t('filters.allStatuses')}</option>
+                  <option value="missing">{ts('missing')}</option>
+                  <option value="appointment_waiting">{ts('appointment_waiting')}</option>
+                  <option value="appointment">{ts('appointment')}</option>
+                  <option value="approved">{ts('approved')}</option>
+                  <option value="rejected">{ts('rejected')}</option>
                 </select>
               )}
               <button onClick={() => setShowModal(true)} style={{ padding: '6px 12px', fontSize: '12px', fontWeight: '500', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'opacity 0.2s' }}>
-                + Yeni
+                {tc('new')}
               </button>
             </div>
           </div>
@@ -368,7 +373,7 @@ export default function MusterilerPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
               <thead>
                 <tr>
-                  {['Ad Soyad', 'Telefon', 'Ülke', 'Vize Tipi', 'Meslek', 'Durum', 'Tarih'].map(h => (
+                  {[tf('fullName'), tf('phone'), tf('country'), tf('visaType'), tf('occupation'), tf('status'), tf('date')].map(h => (
                     <th key={h} style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid rgba(188,204,226,0.35)', background: '#eef2f9' }}>{h}</th>
                   ))}
                 </tr>
@@ -377,7 +382,7 @@ export default function MusterilerPage() {
                 {displayed.length === 0 && (
                   <tr>
                     <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
-                      {activeTab === 'benimkiler' ? 'Size atanmış müşteri yok.' : 'Henüz müşteri yok.'}
+                      {activeTab === 'benimkiler' ? t('table.empty.mine') : t('table.empty.all')}
                     </td>
                   </tr>
                 )}
@@ -415,84 +420,69 @@ export default function MusterilerPage() {
           fontSize: '13px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           whiteSpace: 'nowrap',
         }}>
-          ✓ Global şablon kullanıldı
+          {t('toasts.globalTemplateUsed')}
         </div>
       )}
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
           <div style={{ background: '#f7f9fd', borderRadius: '18px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 16px 48px rgba(15,23,42,0.15)' }}>
-            <h3 style={{ fontSize: '17px', fontWeight: '500', marginBottom: '1.5rem', color: '#1e293b' }}>Yeni Müşteri Ekle</h3>
+            <h3 style={{ fontSize: '17px', fontWeight: '500', marginBottom: '1.5rem', color: '#1e293b' }}>{t('addModal.title')}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ad</label>
-                <input value={form.ad} onChange={e => setForm({...form, ad: toTitleCase(e.target.value)})} placeholder="Ahmet" style={inputStyle} />
+                <label style={labelStyle}>{tf('firstName')}</label>
+                <input value={form.ad} onChange={e => setForm({...form, ad: toTitleCase(e.target.value)})} placeholder={tp('firstName')} style={inputStyle} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Soyad</label>
-                <input value={form.soyad} onChange={e => setForm({...form, soyad: toTitleCase(e.target.value)})} placeholder="Yılmaz" style={inputStyle} />
+                <label style={labelStyle}>{tf('lastName')}</label>
+                <input value={form.soyad} onChange={e => setForm({...form, soyad: toTitleCase(e.target.value)})} placeholder={tp('lastName')} style={inputStyle} />
               </div>
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Telefon</label>
-              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+90 5xx xxx xx xx" style={inputStyle} />
+              <label style={labelStyle}>{tf('phone')}</label>
+              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder={tp('phone')} style={inputStyle} />
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>E-posta</label>
-              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="ornek@email.com" style={inputStyle} />
+              <label style={labelStyle}>{tf('email')}</label>
+              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder={tp('email')} style={inputStyle} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ülke</label>
-                <input
-                  value={form.country}
-                  onChange={e => setForm({...form, country: toTitleCase(e.target.value)})}
-                  placeholder="ör. Fransa"
-                  style={inputStyle}
-                />
+                <label style={labelStyle}>{tf('country')}</label>
+                <input value={form.country} onChange={e => setForm({...form, country: toTitleCase(e.target.value)})} placeholder={tp('country')} style={inputStyle} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Vize Türü</label>
-                <input
-                  value={form.visa_type}
-                  onChange={e => setForm({...form, visa_type: toTitleCase(e.target.value)})}
-                  placeholder="ör. Turist Vizesi"
-                  style={inputStyle}
-                />
+                <label style={labelStyle}>{tf('visaType')}</label>
+                <input value={form.visa_type} onChange={e => setForm({...form, visa_type: toTitleCase(e.target.value)})} placeholder={tp('visaType')} style={inputStyle} />
               </div>
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Meslek</label>
-              <input
-                value={form.occupation}
-                onChange={e => setForm({...form, occupation: toTitleCase(e.target.value)})}
-                placeholder="ör. Çalışan (opsiyonel)"
-                style={inputStyle}
-              />
+              <label style={labelStyle}>{tf('occupation')}</label>
+              <input value={form.occupation} onChange={e => setForm({...form, occupation: toTitleCase(e.target.value)})} placeholder={tp('occupation')} style={inputStyle} />
               {form.visa_type === 'Resmi Vize' && (
                 <div style={{ marginTop: '6px', fontSize: '11px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '6px 10px', lineHeight: '1.5' }}>
-                  ⚠️ Resmi vize yalnızca devlet görevlileri içindir. Hususi (Yeşil) veya Hizmet (Gri) pasaport sahipleri Schengen ülkelerine 90 güne kadar vizesiz seyahat edebilir.
+                  {t('addModal.officialVisaWarning')}
                 </div>
               )}
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ek Notlar</label>
+              <label style={labelStyle}>{tf('notes')}</label>
               <textarea
                 value={form.notes}
                 onChange={e => setForm({...form, notes: e.target.value})}
-                placeholder="Özel durum, sponsor bilgisi, ek açıklama..."
+                placeholder={tp('notes')}
                 rows={3}
                 style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', background: '#f5f5f7', outline: 'none', fontFamily: 'inherit', color: '#0d1f35', resize: 'vertical', boxSizing: 'border-box' }}
               />
             </div>
             {autoPrice ? (
               <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Hizmet Bedeli</span>
+                <span>{t('addModal.servicePrice')}</span>
                 <strong>{formatPrice(autoPrice.price, autoPrice.currency)}</strong>
               </div>
             ) : (
               <div style={{ background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#92600a' }}>
-                Bu vize tipi için fiyat tanımlanmamış. Admin panelinden ekleyebilirsiniz.
+                {t('addModal.noPriceDefined')}
               </div>
             )}
             {limitError && (
@@ -501,9 +491,9 @@ export default function MusterilerPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => { setShowModal(false); setLimitError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={() => { setShowModal(false); setLimitError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
               <button onClick={saveClient} disabled={saving} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(29,78,216,0.25)', transition: 'opacity 0.2s' }}>
-                {saving ? 'Kaydediliyor...' : 'Kaydet ve Profile Git'}
+                {saving ? tc('saving') : t('addModal.submitBtn')}
               </button>
             </div>
           </div>
@@ -515,10 +505,9 @@ export default function MusterilerPage() {
           <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '460px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 12px 40px rgba(13,31,53,0.12)' }}>
             <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>📋</div>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', marginBottom: '6px' }}>Şablon Bulunamadı</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', marginBottom: '6px' }}>{t('noTemplate.title')}</h3>
               <p style={{ fontSize: '13px', color: '#5a6a7a', lineHeight: '1.6', margin: 0 }}>
-                Bu kombinasyon için henüz şablon oluşturulmamış.<br />
-                Müşteri kaydedildi, evrak listesi şimdilik boş.
+                {t('noTemplate.description')}
               </p>
             </div>
 
@@ -526,7 +515,7 @@ export default function MusterilerPage() {
               <div style={{ marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: '#5a6a7a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
-                  Benzer şablonlar var, kullanmak ister misiniz?
+                  {t('noTemplate.similarTitle')}
                   <span style={{ flex: 1, height: '1px', background: '#e2e2e8', display: 'inline-block' }} />
                 </div>
                 {similarTemplates.map((tpl, i) => (
@@ -536,8 +525,8 @@ export default function MusterilerPage() {
                         {tpl.country} · {tpl.visa_type}
                       </div>
                       <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>
-                        {tpl.occupation || 'Meslek belirtilmemiş'} · {(tpl.docs || []).length} evrak
-                        {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>🌐 Global</span>}
+                        {tpl.occupation || t('noTemplate.noOccupation')} · {t('noTemplate.docCount', { count: (tpl.docs || []).length })}
+                        {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>{t('noTemplate.globalBadge')}</span>}
                       </div>
                     </div>
                     <button
@@ -545,7 +534,7 @@ export default function MusterilerPage() {
                       disabled={usingSimilar}
                       style={{ flexShrink: 0, padding: '6px 12px', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '500', cursor: usingSimilar ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: usingSimilar ? 0.6 : 1 }}
                     >
-                      {usingSimilar ? '...' : 'Bu Şablonu Kullan'}
+                      {usingSimilar ? '...' : t('noTemplate.useTemplate')}
                     </button>
                   </div>
                 ))}
@@ -557,19 +546,19 @@ export default function MusterilerPage() {
                 onClick={() => router.push('/dashboard/sablonlar')}
                 style={{ width: '100%', padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(29,78,216,0.25)', transition: 'opacity 0.2s' }}
               >
-                + Şablon Oluştur
+                {t('noTemplate.createTemplate')}
               </button>
               <button
                 onClick={() => router.push('/dashboard/sablonlar?tab=global')}
                 style={{ width: '100%', padding: '10px', background: '#f0f4ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                🌐 Global Şablonlara Bak
+                {t('noTemplate.viewGlobal')}
               </button>
               <button
                 onClick={() => { setNoTemplateModal(false); setSimilarTemplates([]); router.push(`/dashboard/musteriler/${savedClientId}`) }}
                 style={{ width: '100%', padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                Müşteri Profiline Git →
+                {t('noTemplate.goToProfile')}
               </button>
             </div>
           </div>

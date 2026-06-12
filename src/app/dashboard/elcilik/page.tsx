@@ -2,6 +2,7 @@
 
 import Topbar from '@/components/Topbar'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { useTranslations } from 'next-intl'
 
 const schengen = [
   { ulke: '🇩🇪 Almanya',     kurum: 'iDATA',          url: 'https://www.idata.com.tr' },
@@ -57,7 +58,10 @@ const araclar = [
 
 type LinkItem = { ulke: string; kurum: string; url: string; url2?: string }
 
-function LinkKarti({ items, title, isMobile }: { items: LinkItem[], title: string, isMobile: boolean }) {
+function LinkKarti({ items, title, isMobile, openBtn, vfsBtn, asBtn }: {
+  items: LinkItem[]; title: string; isMobile: boolean;
+  openBtn: string; vfsBtn: string; asBtn: string
+}) {
   return (
     <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: isMobile ? '0.75rem' : '1.25rem' }}>
       <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>
@@ -74,14 +78,14 @@ function LinkKarti({ items, title, isMobile }: { items: LinkItem[], title: strin
               onClick={() => window.open(item.url, '_blank')}
               style={{ padding: isMobile ? '5px 10px' : '6px 14px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
             >
-              {item.url2 ? 'VFS →' : 'Aç →'}
+              {item.url2 ? vfsBtn : openBtn}
             </button>
             {item.url2 && (
               <button
                 onClick={() => window.open(item.url2, '_blank')}
                 style={{ padding: isMobile ? '5px 10px' : '6px 14px', fontSize: '12px', fontWeight: '500', background: '#2d6a4f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
               >
-                AS →
+                {asBtn}
               </button>
             )}
           </div>
@@ -93,20 +97,23 @@ function LinkKarti({ items, title, isMobile }: { items: LinkItem[], title: strin
 
 export default function ElcilikPage() {
   const isMobile = useIsMobile()
+  const t = useTranslations('elcilik')
+  const ts = useTranslations('sidebar')
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Topbar title="Elçilik Linkleri" />
+      <Topbar title={ts('embassyLinks')} />
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
         <div style={{ fontSize: '12px', color: '#5a6a7a', marginBottom: isMobile ? '0.75rem' : '1.25rem' }}>
-          Sık kullanılan konsolosluk ve vize sitelerine hızlı erişim.
+          {t('pageDesc')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '0' : '1.25rem' }}>
           <div>
-            <LinkKarti title="🇪🇺 Schengen Ülkeleri" items={schengen} isMobile={isMobile} />
+            <LinkKarti title={t('schengen')} items={schengen} isMobile={isMobile} openBtn={t('openBtn')} vfsBtn={t('vfsBtn')} asBtn={t('asBtn')} />
           </div>
           <div>
-            <LinkKarti title="🌍 Schengen Dışı Ülkeler" items={diger} isMobile={isMobile} />
-            <LinkKarti title="🔧 Araçlar & Portallar" items={araclar} isMobile={isMobile} />
+            <LinkKarti title={t('nonSchengen')} items={diger} isMobile={isMobile} openBtn={t('openBtn')} vfsBtn={t('vfsBtn')} asBtn={t('asBtn')} />
+            <LinkKarti title={t('tools')} items={araclar} isMobile={isMobile} openBtn={t('openBtn')} vfsBtn={t('vfsBtn')} asBtn={t('asBtn')} />
           </div>
         </div>
       </div>

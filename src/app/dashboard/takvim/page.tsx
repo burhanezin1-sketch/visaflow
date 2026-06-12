@@ -6,21 +6,25 @@ import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
-
-const statusMap: any = {
-  missing: { label: 'Evrak Eksik', bg: '#fef0ee', color: '#c0392b' },
-  appointment_waiting: { label: 'Randevu Bekleniyor', bg: '#fff8ec', color: '#92600a' },
-  appointment: { label: 'Randevu Alındı', bg: '#eef4fb', color: '#1a5fa5' },
-  approved: { label: 'Onaylandı ✓', bg: '#edfaf3', color: '#1a7a45' },
-  rejected: { label: 'Reddedildi ✗', bg: '#fef0ee', color: '#c0392b' },
-}
+import { useTranslations } from 'next-intl'
 
 export default function TakvimPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
+  const t = useTranslations('takvim')
+  const ts = useTranslations('status')
+  const tc = useTranslations('common')
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+
+  const statusMap: any = {
+    missing:             { label: ts('missing'),             bg: '#fef0ee', color: '#c0392b' },
+    appointment_waiting: { label: ts('appointment_waiting'), bg: '#fff8ec', color: '#92600a' },
+    appointment:         { label: ts('appointment'),         bg: '#eef4fb', color: '#1a5fa5' },
+    approved:            { label: ts('approved') + ' ✓',    bg: '#edfaf3', color: '#1a7a45' },
+    rejected:            { label: ts('rejected') + ' ✗',    bg: '#fef0ee', color: '#c0392b' },
+  }
 
   useEffect(() => {
     if (companyLoading) return
@@ -74,7 +78,7 @@ export default function TakvimPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '580px' }}>
           <thead>
             <tr>
-              {['Tarih', 'Saat', 'Müşteri', 'Konsolosluk', 'Vize', 'Durum'].map(h => (
+              {[t('headers.date'), t('headers.time'), t('headers.customer'), t('headers.consulate'), t('headers.visa'), t('headers.status')].map(h => (
                 <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0ede6', background: '#faf8f3' }}>{h}</th>
               ))}
             </tr>
@@ -111,22 +115,22 @@ export default function TakvimPage() {
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#888' }}>Yükleniyor...</div>
+      <div style={{ color: '#888' }}>{tc('loading')}</div>
     </div>
   )
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Topbar title="Takvim" />
+      <Topbar title={t('pageTitle')} />
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#faf8f3' }}>
 
         <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden', marginBottom: isMobile ? '0.75rem' : '1.25rem' }}>
           <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg, #eef4fb, #f5f9ff)' }}>
-            <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '500', color: '#1a5fa5' }}>📅 Yaklaşan Randevular</h3>
+            <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '500', color: '#1a5fa5' }}>{t('upcoming')}</h3>
             <span style={{ background: '#eef4fb', color: '#1a5fa5', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #b8d4f0' }}>{yaklasan.length}</span>
           </div>
           {yaklasan.length === 0 ? (
-            <div style={{ padding: isMobile ? '1.25rem' : '2rem', textAlign: 'center', color: '#9aaabb', fontSize: '13px' }}>Yaklaşan randevu yok.</div>
+            <div style={{ padding: isMobile ? '1.25rem' : '2rem', textAlign: 'center', color: '#9aaabb', fontSize: '13px' }}>{t('noUpcoming')}</div>
           ) : (
             <AppointmentList items={yaklasan} />
           )}
@@ -135,7 +139,7 @@ export default function TakvimPage() {
         {gecmis.length > 0 && (
           <div style={{ background: 'white', border: '1px solid #e8e4da', borderRadius: '12px', overflow: 'hidden' }}>
             <div style={{ padding: isMobile ? '0.625rem 0.875rem' : '1rem 1.25rem', borderBottom: '1px solid #f0ede6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '500', color: '#9aaabb' }}>Geçmiş Randevular</h3>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '13px' : '14px', fontWeight: '500', color: '#9aaabb' }}>{t('past')}</h3>
               <span style={{ background: '#f5f5f7', color: '#9aaabb', fontSize: '11px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', border: '1px solid #e2e2e8' }}>{gecmis.length}</span>
             </div>
             <AppointmentList items={gecmis} dimmed />
