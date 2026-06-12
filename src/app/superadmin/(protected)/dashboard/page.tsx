@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
 import { fetchFxRates, amountToTRY, fmtRateNote, CUR_SYM, CUR_ORDER, type FxRates } from '@/lib/fxRates'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
@@ -341,8 +342,9 @@ export default function SuperAdminDashboard() {
             })}
           </nav>
 
-          {/* Logout */}
-          <div style={{ padding: '1rem', borderTop: `1px solid ${S.border}` }}>
+          {/* Language + Logout */}
+          <div style={{ padding: '1rem', borderTop: `1px solid ${S.border}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <LanguageSwitcher light />
             <button onClick={logout} style={{ width: '100%', padding: '8px', background: 'transparent', color: S.muted, border: `1px solid ${S.border}`, borderRadius: '7px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
               Çıkış Yap
             </button>

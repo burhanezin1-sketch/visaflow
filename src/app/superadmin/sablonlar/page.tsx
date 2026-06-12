@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 type Doc = { doc_name: string; delivery_type: string; description: string }
 type Template = {
@@ -85,11 +86,14 @@ export default function SuperadminSablonlar() {
     <div style={{ minHeight: '100vh', background: S.bg, padding: '2rem', color: S.text, fontFamily: 'system-ui' }}>
       <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>📋 Şablon Yönetimi</div>
-          <div style={{ fontSize: '13px', color: S.muted }}>
-            Firmaların evrak şablonlarını incele ve global olarak işaretle.
+        <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>📋 Şablon Yönetimi</div>
+            <div style={{ fontSize: '13px', color: S.muted }}>
+              Firmaların evrak şablonlarını incele ve global olarak işaretle.
+            </div>
           </div>
+          <LanguageSwitcher light />
         </div>
 
         {error && (

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const PLAN_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
 const PLAN_PRICES: Record<string, number> = { basic: 2999, pro: 5499 }
@@ -185,7 +186,10 @@ export default function FirmaListPage() {
             <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>Firma Yönetimi</span>
             <span style={{ background: '#273548', color: S.muted, fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '4px' }}>{companies.length}</span>
           </div>
-          <button onClick={() => router.push('/superadmin/firma/yeni')} className="fp-btn-primary">+ Yeni Firma</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <LanguageSwitcher light />
+            <button onClick={() => router.push('/superadmin/firma/yeni')} className="fp-btn-primary">+ Yeni Firma</button>
+          </div>
         </div>
 
         <div style={{ padding: '1.5rem' }}>

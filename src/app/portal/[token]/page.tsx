@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useMessages } from 'next-intl'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 // startsWith ile eşleşir — DB'deki parantez içi sıralamadan bağımsız
@@ -20,6 +20,9 @@ export default function PortalPage() {
   const { token } = useParams()
   const t = useTranslations('portal')
   const tc = useTranslations('common')
+  const messages = useMessages()
+  const docNamesMap: Record<string, string> = (messages as any).documentNames || {}
+  const tDoc = (name: string) => docNamesMap[name] || name
 
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
@@ -391,7 +394,7 @@ export default function PortalPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#eef4fb', borderRadius: '8px', padding: '10px 12px' }}>
                           <span style={{ fontSize: '16px' }}>🏢</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
+                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{tDoc(doc.doc_name)}</div>
                             <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>{t('documents.docStatus.firmaDesc')}</div>
                           </div>
                           <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px', border: '1px solid #b8d4f0', whiteSpace: 'nowrap' }}>
@@ -406,7 +409,7 @@ export default function PortalPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isApproved ? '#edfaf3' : '#faf8f3', borderRadius: '8px', padding: '10px 12px' }}>
                           <span style={{ fontSize: '16px' }}>{isApproved ? '✅' : '🤝'}</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
+                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{tDoc(doc.doc_name)}</div>
                             <div style={{ fontSize: '11px', color: isApproved ? '#1a7a45' : '#9aaabb', marginTop: '2px' }}>
                               {isApproved ? t('documents.docStatus.eldenReceivedDesc') : t('documents.docStatus.appointmentDayDesc')}
                             </div>
@@ -423,7 +426,7 @@ export default function PortalPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff8ec', borderRadius: '8px', padding: '10px 12px' }}>
                           <span style={{ fontSize: '16px' }}>🤝</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
+                            <div style={{ fontSize: '13px', fontWeight: '500' }}>{tDoc(doc.doc_name)}</div>
                             <div style={{ fontSize: '11px', color: '#92600a', marginTop: '2px' }}>{t('documents.docStatus.eldenDesc')}</div>
                           </div>
                           <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f0d08a', whiteSpace: 'nowrap' }}>
@@ -437,7 +440,7 @@ export default function PortalPage() {
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
-                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
+                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{tDoc(doc.doc_name)}</span>
                           <span style={{ fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>{t('documents.docStatus.approvedDesc')}</span>
                         </div>
                       </div>
@@ -447,7 +450,7 @@ export default function PortalPage() {
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
-                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
+                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{tDoc(doc.doc_name)}</span>
                           <span style={{ fontSize: '11px', color: '#c0392b', fontWeight: '500' }}>{t('documents.docStatus.rejectedDesc')}</span>
                         </div>
                         <div>
@@ -472,7 +475,7 @@ export default function PortalPage() {
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>↑</div>
-                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
+                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{tDoc(doc.doc_name)}</span>
                           <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                             <span style={{ fontSize: '11px', color: '#1a5fa5', fontWeight: '500' }}>{t('documents.docStatus.uploadedReview')}</span>
                             {ocrStatus[key] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6' }}>{t('documents.docStatus.scanning')}</span>}
@@ -485,14 +488,14 @@ export default function PortalPage() {
                     if (uploading[key]) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ fontSize: '13px', color: '#9aaabb' }}>
-                          {t('documents.docStatus.uploading', { docName: doc.doc_name })}
+                          {t('documents.docStatus.uploading', { docName: tDoc(doc.doc_name) })}
                         </div>
                       </div>
                     )
 
                     return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{doc.doc_name}</div>
+                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{tDoc(doc.doc_name)}</div>
                         {hasFile && isMulti && (
                           <div style={{ fontSize: '11px', color: '#1a5fa5', marginBottom: '6px' }}>
                             {t('documents.docStatus.uploadedMore')}

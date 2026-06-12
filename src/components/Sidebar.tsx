@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { supabase } from '@/lib/supabase'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { useCompany } from '@/lib/useCompany'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -217,12 +218,15 @@ export default function Sidebar() {
         )
       })}
 
-      <div
-        onClick={handleLogout}
-        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 1.25rem', marginTop: 'auto', fontSize: '13px', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', borderLeft: '2px solid transparent', transition: 'all 0.15s' }}
-      >
-        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
-        {tc('logout')}
+      <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <LanguageSwitcher light />
+        <div
+          onClick={handleLogout}
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', fontSize: '13px', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'all 0.15s' }}
+        >
+          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+          {tc('logout')}
+        </div>
       </div>
     </>
   )
