@@ -512,7 +512,7 @@ export default function MusteriDetayPage() {
                 [t('fields.email'),       client.email],
                 [t('fields.birthDate'),   client.birth_date ? new Date(client.birth_date).toLocaleDateString('tr-TR') : '-'],
                 [t('fields.passportExpiry'), client.passport_expiry ? new Date(client.passport_expiry).toLocaleDateString('tr-TR') : '-'],
-                [t('fields.visa'),        application?.country + ' ' + application?.visa_type],
+                [t('fields.visa'),        application?.country && application?.visa_type ? `${application.country} ${application.visa_type}` : (application?.country || application?.visa_type || '-')],
                 [t('fields.occupation'),  occupationLabels[application?.occupation] || '-'],
                 [t('fields.consulate'),   application?.consulate || '-'],
                 ...(application?.appointment_date ? [[t('fields.appointment'), new Date(application.appointment_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })]] : []),

@@ -128,10 +128,19 @@ export default function LeadsPage() {
       setSaving(false); isSavingRef.current = false; return
     }
 
-    const { data: app } = await supabase
+    let { data: app } = await supabase
       .from('applications')
       .insert({ company_id: companyId, client_id: newClient.id, country: form.country, visa_type: form.visa_type, occupation: form.occupation || null, nationality: form.nationality || 'Türkiye Cumhuriyeti', status: 'missing' })
       .select().single()
+
+    // Migration uygulanmamışsa nationality kolonu eksik — retry without it
+    if (!app) {
+      const { data: retried } = await supabase
+        .from('applications')
+        .insert({ company_id: companyId, client_id: newClient.id, country: form.country, visa_type: form.visa_type, occupation: form.occupation || null, status: 'missing' })
+        .select().single()
+      app = retried
+    }
 
     const price = prices.find(p =>
       p.country.toLowerCase() === form.country.toLowerCase() &&
@@ -187,8 +196,9 @@ export default function LeadsPage() {
 
       if (!matchedDocs) {
         // 3. Nationality mismatch veya genel benzer şablonlar
+        // NOT: nationality SELECT'e dahil edilmiyor (migration uygulanmamış olabilir)
         const { data: similar } = await supabase
-          .from('visa_templates').select('country, visa_type, occupation, nationality, docs, is_global')
+          .from('visa_templates').select('country, visa_type, occupation, docs, is_global')
           .ilike('country', form.country).eq('status', 'approved').limit(6)
         setSimilarTemplates(similar || [])
       }

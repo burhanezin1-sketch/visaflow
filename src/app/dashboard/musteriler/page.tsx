@@ -156,7 +156,7 @@ export default function MusterilerPage() {
       .single()
 
     if (newClient) {
-      const { data: newApp, error: appInsertError } = await supabase
+      let { data: newApp, error: appInsertError } = await supabase
         .from('applications')
         .insert({
           company_id: companyId,
@@ -170,8 +170,26 @@ export default function MusterilerPage() {
         .select()
         .single()
 
+      // Migration henüz uygulanmamışsa nationality kolonu eksik olabilir — retry without it
+      if (!newApp && appInsertError) {
+        console.warn('[musteriler] insert hata (nationality?):', appInsertError.message, '— retry without nationality')
+        const { data: retried } = await supabase
+          .from('applications')
+          .insert({
+            company_id: companyId,
+            client_id: newClient.id,
+            country: form.country,
+            visa_type: form.visa_type,
+            occupation: form.occupation || null,
+            status: 'missing',
+          })
+          .select()
+          .single()
+        newApp = retried
+      }
+
       let resolvedApp = newApp
-      if (!resolvedApp && !appInsertError) {
+      if (!resolvedApp) {
         const { data: refetched } = await supabase
           .from('applications')
           .select('id')
@@ -186,8 +204,10 @@ export default function MusterilerPage() {
       const nat = form.nationality || 'Türkiye Cumhuriyeti'
 
       if (resolvedApp && form.country && form.visa_type) {
-        // 1. Firma kendi şablonu — 4-way eşleşme
-        const { data: ownTpl } = await supabase
+        console.log('[şablon arama]', { country: form.country, visa_type: form.visa_type, occupation: form.occupation, nationality: nat })
+
+        // 1. Firma kendi şablonu — 4-way eşleşme (nationality dahil)
+        const { data: ownTpl, error: ownErr } = await supabase
           .from('visa_templates')
           .select('docs')
           .eq('company_id', companyId)
@@ -199,11 +219,13 @@ export default function MusterilerPage() {
           .limit(1)
           .maybeSingle()
 
+        console.log('[şablon sonuç - 4lü firma]', ownTpl, '| hata:', ownErr?.message)
+
         if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
           matchedDocs = ownTpl.docs
         } else {
           // 2. Global onaylı şablon — 4-way eşleşme
-          const { data: globalTpl } = await supabase
+          const { data: globalTpl, error: globalErr } = await supabase
             .from('visa_templates')
             .select('docs')
             .eq('is_global', true)
@@ -214,6 +236,8 @@ export default function MusterilerPage() {
             .ilike('nationality', nat)
             .limit(1)
             .maybeSingle()
+
+          console.log('[şablon sonuç - 4lü global]', globalTpl, '| hata:', globalErr?.message)
 
           if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
             matchedDocs = globalTpl.docs
@@ -236,14 +260,17 @@ export default function MusterilerPage() {
 
         if (!matchedDocs) {
           // 3. Aynı ülke+vize+meslek ama farklı uyruk — nationality mismatch önerisi
-          const { data: natMismatch } = await supabase
+          // NOT: SELECT'e nationality dahil edilmiyor (migration uygulanmamış olabilir)
+          const { data: natMismatch, error: natMismatchErr } = await supabase
             .from('visa_templates')
-            .select('country, visa_type, occupation, nationality, docs, is_global')
+            .select('country, visa_type, occupation, docs, is_global')
             .ilike('country', form.country)
             .ilike('visa_type', form.visa_type)
             .ilike('occupation', form.occupation || '')
             .eq('status', 'approved')
             .limit(6)
+
+          console.log('[şablon sonuç - benzer uyruk]', natMismatch, '| hata:', natMismatchErr?.message)
 
           if (natMismatch && natMismatch.length > 0) {
             setSimilarTemplates(natMismatch)
@@ -252,7 +279,7 @@ export default function MusterilerPage() {
             // 4. Hiçbiri yoksa: aynı ülkeye ait genel öneriler
             const { data: similar } = await supabase
               .from('visa_templates')
-              .select('country, visa_type, occupation, nationality, docs, is_global')
+              .select('country, visa_type, occupation, docs, is_global')
               .ilike('country', form.country)
               .eq('status', 'approved')
               .limit(6)
