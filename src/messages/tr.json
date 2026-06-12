@@ -1,0 +1,359 @@
+{
+  "common": {
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "close": "Kapat",
+    "back": "Geri",
+    "loading": "Yükleniyor...",
+    "saving": "Kaydediliyor...",
+    "deleting": "Siliniyor...",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "add": "Ekle",
+    "update": "Güncelle",
+    "approve": "Onayla",
+    "reject": "Reddet",
+    "all": "Tümü",
+    "clone": "Klonla",
+    "logout": "Çıkış",
+    "yes": "Evet",
+    "no": "Hayır",
+    "optional": "opsiyonel",
+    "required": "zorunlu",
+    "error": "Hata",
+    "success": "Başarılı",
+    "noData": "Veri yok",
+    "search": "Ara...",
+    "filter": "Filtrele",
+    "new": "+ Yeni",
+    "viewAll": "Tümünü Görüntüle",
+    "viewMore": "+{count} daha görüntüle"
+  },
+  "status": {
+    "missing": "Evrak Eksik",
+    "appointment_waiting": "Randevu Bekleniyor",
+    "appointment": "Randevu Alındı",
+    "approved": "Onaylandı",
+    "rejected": "Reddedildi",
+    "pending": "İncelemede",
+    "waiting": "Bekliyor",
+    "claimed": "Sahiplenildi",
+    "contacted": "Daha Sonra Konuşulacak"
+  },
+  "fields": {
+    "fullName": "Ad Soyad",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "phone": "Telefon",
+    "email": "E-posta",
+    "country": "Ülke",
+    "visaType": "Vize Türü",
+    "occupation": "Meslek",
+    "notes": "Ek Notlar",
+    "date": "Tarih",
+    "status": "Durum",
+    "consultant": "Danışman",
+    "password": "Şifre"
+  },
+  "placeholders": {
+    "firstName": "Ahmet",
+    "lastName": "Yılmaz",
+    "phone": "+90 5xx xxx xx xx",
+    "email": "ornek@email.com",
+    "country": "ör. Fransa",
+    "visaType": "ör. Turist Vizesi",
+    "occupation": "ör. Çalışan (opsiyonel)",
+    "notes": "Özel durum, sponsor bilgisi, ek açıklama...",
+    "searchName": "İsim ara...",
+    "loginEmail": "ornek@sirket.com"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "tasks": "Görev Listesi",
+    "customers": "Müşteriler",
+    "leads": "Potansiyel Müşteriler",
+    "calendar": "Takvim",
+    "embassyLinks": "Elçilik Linkleri",
+    "templates": "Şablon Kütüphanesi",
+    "consultantPanel": "Danışman Paneli",
+    "transferRequests": "📨 {count} Devir Talebi",
+    "transferFrom": "{name} tarafından",
+    "acceptTransfer": "✓ Onayla",
+    "rejectTransfer": "✕ Reddet"
+  },
+  "login": {
+    "title": "DANIŞMAN GİRİŞİ",
+    "emailLabel": "E-posta",
+    "passwordLabel": "Şifre",
+    "submitBtn": "GİRİŞ YAP",
+    "submittingBtn": "GİRİŞ YAPILIYOR...",
+    "error": "Email veya şifre hatalı"
+  },
+  "dashboard": {
+    "greeting": "Günaydın, {name} 👋",
+    "stats": {
+      "activeFiles": "Aktif Dosya",
+      "newLead": "Yeni Lead",
+      "pendingDocs": "Bekleyen Evrak",
+      "weeklyAppointment": "Bu Hafta Randevu",
+      "waitingToCall": "Aranmayı bekliyor",
+      "urgentFollowup": "Acil takip",
+      "openCalendar": "Takvimi aç"
+    },
+    "pendingDocs": {
+      "title": "📋 Evrak Bekleyen",
+      "empty": "Bekleyen evrak yok ✓"
+    },
+    "recentActivity": {
+      "title": "🕐 Son İşlemler",
+      "empty": "Henüz müşteri yok"
+    }
+  },
+  "musteriler": {
+    "pageTitle": "Müşteriler",
+    "tabs": {
+      "all": "Tüm Müşteriler",
+      "mine": "Müşterilerim"
+    },
+    "filters": {
+      "allStatuses": "Tüm Durumlar"
+    },
+    "table": {
+      "headers": {
+        "fullName": "Ad Soyad",
+        "phone": "Telefon",
+        "country": "Ülke",
+        "visaType": "Vize Tipi",
+        "occupation": "Meslek",
+        "status": "Durum",
+        "date": "Tarih"
+      },
+      "empty": {
+        "mine": "Size atanmış müşteri yok.",
+        "all": "Henüz müşteri yok."
+      }
+    },
+    "addModal": {
+      "title": "Yeni Müşteri Ekle",
+      "officialVisaWarning": "⚠️ Resmi vize yalnızca devlet görevlileri içindir. Hususi (Yeşil) veya Hizmet (Gri) pasaport sahipleri Schengen ülkelerine 90 güne kadar vizesiz seyahat edebilir.",
+      "servicePrice": "Hizmet Bedeli",
+      "noPriceDefined": "Bu vize tipi için fiyat tanımlanmamış. Admin panelinden ekleyebilirsiniz.",
+      "alreadyRegistered": "Bu müşteri zaten kayıtlı: {name}",
+      "submitBtn": "Kaydet ve Profile Git"
+    },
+    "occupations": {
+      "calisan": "Çalışan",
+      "sirket_sahibi": "İşveren / Serbest",
+      "devlet_memuru": "Devlet Memuru",
+      "ogrenci": "Öğrenci",
+      "emekli": "Emekli",
+      "ev_hanimi": "Çalışmıyor",
+      "ev_hanimi_meslek": "Ev Hanımı"
+    },
+    "toasts": {
+      "globalTemplateUsed": "✓ Global şablon kullanıldı"
+    },
+    "noTemplate": {
+      "title": "Şablon Bulunamadı",
+      "description": "Bu kombinasyon için henüz şablon oluşturulmamış. Müşteri kaydedildi, evrak listesi şimdilik boş.",
+      "similarTitle": "Benzer şablonlar var, kullanmak ister misiniz?",
+      "noOccupation": "Meslek belirtilmemiş",
+      "docCount": "{count} evrak",
+      "globalBadge": "🌐 Global",
+      "useTemplate": "Bu Şablonu Kullan",
+      "createTemplate": "+ Şablon Oluştur",
+      "viewGlobal": "🌐 Global Şablonlara Bak",
+      "goToProfile": "Müşteri Profiline Git →"
+    }
+  },
+  "sablonlar": {
+    "pageTitle": "Şablon Kütüphanesi",
+    "library": {
+      "title": "📚 Kütüphane Şablonları",
+      "empty": "Henüz onaylı global şablon yok."
+    },
+    "myTemplates": {
+      "title": "🗂 Kendi Şablonlarım",
+      "newBtn": "+ Yeni Şablon",
+      "empty": "Henüz şablon oluşturmadınız."
+    },
+    "actions": {
+      "clone": "Klonla",
+      "edit": "Düzenle",
+      "delete": "Sil",
+      "deleteConfirm": "Bu şablonu silmek istediğinize emin misiniz?"
+    },
+    "status": {
+      "pending": "İncelemede",
+      "approved": "Onaylı",
+      "rejected": "Reddedildi"
+    },
+    "docCount": "{count} evrak",
+    "modal": {
+      "editTitle": "Şablonu Düzenle",
+      "createTitle": "Yeni Şablon Oluştur",
+      "docsSection": "Evraklar",
+      "docNamePlaceholder": "Evrak adı *",
+      "docDescPlaceholder": "Açıklama (opsiyonel)",
+      "addDoc": "+ Evrak Ekle",
+      "submitCreate": "Kaydet (İncelemeye Gönder)",
+      "submitEdit": "Güncelle"
+    },
+    "delivery": {
+      "digital": "Dijital",
+      "physical": "Fiziksel",
+      "firma": "Firma"
+    }
+  },
+  "gorevler": {
+    "pageTitle": "Görev Listesi",
+    "empty": "🎉 Tüm görevler tamamlandı!",
+    "sections": {
+      "missingDocs": "📋 Eksik Evraklar",
+      "missingPayments": "💰 Eksik Ödemeler",
+      "emptyDocs": "✓ Eksik evrak yok",
+      "emptyPayments": "✓ Eksik ödeme yok"
+    },
+    "tasks": {
+      "sendDocReminder": "Eksik evrak hatırlatması gönder",
+      "scheduleAppointment": "Randevu ayarla",
+      "paymentFollowup": "Ödeme takibi yap",
+      "passportRenewal": "Pasaport yenileme uyarısı",
+      "missingDocsDesc": "{country} {visaType} başvurusu için evraklar eksik",
+      "appointmentDesc": "{country} {visaType} için konsolosluk randevusu bekleniyor",
+      "paymentDesc": "Kalan: {amount}₺",
+      "passportDesc": "Pasaport {date} tarihinde sona eriyor"
+    }
+  },
+  "leads": {
+    "pageTitle": "Potansiyel Müşteriler",
+    "listTitle": "Lead Listesi",
+    "waitingCount": "{count} bekliyor",
+    "table": {
+      "name": "Ad Soyad",
+      "wants": "Ne İstiyor?",
+      "consultant": "Danışman",
+      "status": "Durum",
+      "notAssigned": "Atanmadı",
+      "empty": "Henüz potansiyel müşteri yok"
+    },
+    "actions": {
+      "claim": "Sahiplen",
+      "updateStatus": "Durum Güncelle"
+    },
+    "modal": {
+      "title": "Durum Güncelle",
+      "convertToCustomer": "✓ Müşteriye Dönüştür",
+      "talkLater": "🕐 Daha Sonra Konuşulacak",
+      "cancel": "✕ İptal — Müşteri Olmayacak",
+      "visaInfoLabel": "Vize bilgilerini girin:",
+      "addAsCustomer": "✓ Müşteri Olarak Ekle",
+      "talkLaterConfirm": "🕐 Daha Sonra Konuşulacak",
+      "cancelConfirm": "✕ İptal Et ve Sil"
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "Genel Bakış",
+      "totalRevenue": "Toplam Ciro",
+      "uncollected": "Tahsil Edilmemiş",
+      "activeFiles": "Aktif Dosya",
+      "completed": "Tamamlanan",
+      "monthlyUsage": "Bu Ayki Dosya Kullanımı",
+      "monthlyTrend": "Aylık Ciro Trendi",
+      "quickSummary": "Hızlı Özet",
+      "countryRevenue": "Ülke Bazlı Ciro",
+      "visaTypeDistribution": "Vize Tipi Dağılımı"
+    },
+    "summary": {
+      "totalRevenue": "Toplam ciro",
+      "totalRevenueTL": "Toplam ciro (₺)",
+      "collected": "Tahsil edilen",
+      "collectedTL": "Tahsil edilen (₺)",
+      "uncollected": "Tahsil edilmemiş",
+      "uncollectedTL": "Tahsil edilmemiş (₺)",
+      "totalCustomers": "Toplam müşteri",
+      "completedFiles": "Tamamlanan dosya",
+      "ongoing": "Devam eden"
+    },
+    "months": {
+      "0": "Oca", "1": "Şub", "2": "Mar", "3": "Nis",
+      "4": "May", "5": "Haz", "6": "Tem", "7": "Ağu",
+      "8": "Eyl", "9": "Eki", "10": "Kas", "11": "Ara"
+    }
+  },
+  "portal": {
+    "brand": "VECTROPUS",
+    "greeting": "Merhaba {name}",
+    "loading": "Yükleniyor...",
+    "invalidLink": "Link geçersiz",
+    "invalidLinkDesc": "Bu portal linki bulunamadı.",
+    "tabs": {
+      "documents": "📋 Evraklar",
+      "myInfo": "👤 Bilgilerim"
+    },
+    "consent": {
+      "title": "🔒 Kişisel Verilerin Korunması",
+      "subtitle": "Devam etmek için onay gereklidir",
+      "viewText": "▼ Metni Görüntüle",
+      "closeText": "▲ Kapat",
+      "kvkkTitle": "KVKK Aydınlatma Metni",
+      "kvkkDear": "Sayın {name},",
+      "kvkkIntro": "6698 sayılı Kişisel Verilerin Korunması Kanunu (\"KVKK\") kapsamında kişisel verilerinizin işlenmesine ilişkin bilgiler aşağıda sunulmaktadır.",
+      "kvkk1Title": "1. Veri Sorumlusu",
+      "kvkk1Text": "Vize başvurunuzu yürüten danışmanlık firması, veri sorumlusu sıfatıyla kişisel verilerinizi işlemektedir.",
+      "kvkk2Title": "2. İşlenen Kişisel Veriler",
+      "kvkk2Text": "Ad-soyad, telefon numarası, e-posta adresi, pasaport bilgileri ve vize başvurusu kapsamında paylaştığınız belgeler işlenmektedir.",
+      "kvkk3Title": "3. İşleme Amaçları",
+      "kvkk3Text": "Verileriniz; vize başvuru sürecinizin yürütülmesi, konsolosluk randevusunun alınması, evrak takibi ve tarafınızla iletişim kurulması amacıyla işlenmektedir.",
+      "kvkk4Title": "4. Aktarım",
+      "kvkk4Text": "Verileriniz; ilgili konsolosluk, büyükelçilik ve yetkili kamu kurumlarıyla yasal zorunluluk çerçevesinde paylaşılabilir.",
+      "kvkk5Title": "5. Saklama Süresi",
+      "kvkk5Text": "Kişisel verileriniz, başvuru sürecinizin tamamlanmasından itibaren yasal yükümlülükler kapsamında en fazla 5 yıl süreyle saklanacaktır.",
+      "kvkk6Title": "6. Haklarınız",
+      "kvkk6Text": "KVKK'nın 11. maddesi kapsamında; verilerinize erişim, düzeltme, silme, işlemeye itiraz ve taşınabilirlik haklarına sahipsiniz. Taleplerinizi danışmanınıza iletebilirsiniz.",
+      "checkboxLabel": "KVKK Aydınlatma Metni'ni okudum, kişisel verilerimin belirtilen amaçlar kapsamında işlenmesine onay veriyorum.",
+      "continueBtn": "Devam Et →"
+    },
+    "documents": {
+      "completionStatus": "Tamamlama Durumu",
+      "progress": "{completed}/{total} — %{percentage}",
+      "noDocsReady": "Evrak listesi henüz hazırlanmadı.",
+      "docStatus": {
+        "firmaBadge": "Firma",
+        "firmaDesc": "Danışmanlık firmanız tarafından karşılanacak.",
+        "eldenBadge": "Elden",
+        "eldenDesc": "Danışmana elden teslim edilecek.",
+        "eldenReceivedDesc": "Elden teslim alındı.",
+        "appointmentDayDesc": "Randevu günü elden teslim edilmelidir.",
+        "approvedBadge": "✓ Alındı",
+        "approvedDesc": "Onaylandı ✓",
+        "rejectedDesc": "Reddedildi — yeniden yükleyin",
+        "uploadAgain": "📎 Yeniden Yükle",
+        "uploadedReview": "Yüklendi — inceleniyor",
+        "scanning": "🔍 Taranıyor...",
+        "dataRead": "✓ Veriler okundu",
+        "uploading": "{docName} — yükleniyor...",
+        "uploadedMore": "↑ Yüklendi — daha fazla ekleyebilirsiniz",
+        "uploadBtn": "📎 Dosyaları Yükle",
+        "addMoreBtn": "📎 Daha Fazla Ekle",
+        "digitalUploadBtn": "📎 Dijital Yükle",
+        "multipleFilesHint": "Birden fazla dosya seçebilirsiniz"
+      }
+    },
+    "myInfo": {
+      "fullNameLabel": "Ad Soyad",
+      "phoneLabel": "Telefon",
+      "emailLabel": "E-posta",
+      "saveBtn": "Bilgileri Kaydet",
+      "savedToast": "✓ Kaydedildi!",
+      "infoNote": "ℹ️ Başvurunuzla ilgili güncellemeler bu iletişim bilgilerine gönderilecektir."
+    }
+  },
+  "languageSwitcher": {
+    "tr": "🇹🇷 Türkçe",
+    "en": "🇬🇧 English",
+    "de": "🇩🇪 Deutsch",
+    "pl": "🇵🇱 Polski"
+  }
+}

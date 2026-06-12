@@ -1,0 +1,359 @@
+{
+  "common": {
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "close": "Zamknij",
+    "back": "Wstecz",
+    "loading": "Ładowanie...",
+    "saving": "Zapisywanie...",
+    "deleting": "Usuwanie...",
+    "edit": "Edytuj",
+    "delete": "Usuń",
+    "add": "Dodaj",
+    "update": "Aktualizuj",
+    "approve": "Zatwierdź",
+    "reject": "Odrzuć",
+    "all": "Wszystkie",
+    "clone": "Klonuj",
+    "logout": "Wyloguj",
+    "yes": "Tak",
+    "no": "Nie",
+    "optional": "opcjonalne",
+    "required": "wymagane",
+    "error": "Błąd",
+    "success": "Sukces",
+    "noData": "Brak danych",
+    "search": "Szukaj...",
+    "filter": "Filtruj",
+    "new": "+ Nowy",
+    "viewAll": "Pokaż wszystkie",
+    "viewMore": "+{count} więcej"
+  },
+  "status": {
+    "missing": "Brak dokumentów",
+    "appointment_waiting": "Oczekiwanie na wizytę",
+    "appointment": "Wizyta zaplanowana",
+    "approved": "Zatwierdzone",
+    "rejected": "Odrzucone",
+    "pending": "W trakcie przeglądu",
+    "waiting": "Oczekujące",
+    "claimed": "Przejęte",
+    "contacted": "Kontakt później"
+  },
+  "fields": {
+    "fullName": "Imię i nazwisko",
+    "firstName": "Imię",
+    "lastName": "Nazwisko",
+    "phone": "Telefon",
+    "email": "E-mail",
+    "country": "Kraj",
+    "visaType": "Rodzaj wizy",
+    "occupation": "Zawód",
+    "notes": "Dodatkowe uwagi",
+    "date": "Data",
+    "status": "Status",
+    "consultant": "Konsultant",
+    "password": "Hasło"
+  },
+  "placeholders": {
+    "firstName": "Jan",
+    "lastName": "Kowalski",
+    "phone": "+48 xxx xxx xx xx",
+    "email": "przyklad@email.com",
+    "country": "np. Francja",
+    "visaType": "np. Wiza turystyczna",
+    "occupation": "np. Pracownik (opcjonalnie)",
+    "notes": "Szczególne okoliczności, dane sponsora...",
+    "searchName": "Szukaj po imieniu...",
+    "loginEmail": "przyklad@firma.com"
+  },
+  "sidebar": {
+    "dashboard": "Panel główny",
+    "tasks": "Lista zadań",
+    "customers": "Klienci",
+    "leads": "Potencjalni klienci",
+    "calendar": "Kalendarz",
+    "embassyLinks": "Linki do ambasad",
+    "templates": "Biblioteka szablonów",
+    "consultantPanel": "Panel konsultanta",
+    "transferRequests": "📨 {count} Prośba o przekazanie",
+    "transferFrom": "od {name}",
+    "acceptTransfer": "✓ Akceptuj",
+    "rejectTransfer": "✕ Odrzuć"
+  },
+  "login": {
+    "title": "LOGOWANIE KONSULTANTA",
+    "emailLabel": "E-mail",
+    "passwordLabel": "Hasło",
+    "submitBtn": "ZALOGUJ SIĘ",
+    "submittingBtn": "LOGOWANIE...",
+    "error": "Nieprawidłowy adres e-mail lub hasło"
+  },
+  "dashboard": {
+    "greeting": "Dzień dobry, {name} 👋",
+    "stats": {
+      "activeFiles": "Aktywne pliki",
+      "newLead": "Nowy lead",
+      "pendingDocs": "Oczekujące dokumenty",
+      "weeklyAppointment": "Wizyty w tym tygodniu",
+      "waitingToCall": "Oczekiwanie na telefon",
+      "urgentFollowup": "Pilne działanie",
+      "openCalendar": "Otwórz kalendarz"
+    },
+    "pendingDocs": {
+      "title": "📋 Oczekujące dokumenty",
+      "empty": "Brak oczekujących dokumentów ✓"
+    },
+    "recentActivity": {
+      "title": "🕐 Ostatnie działania",
+      "empty": "Brak klientów"
+    }
+  },
+  "musteriler": {
+    "pageTitle": "Klienci",
+    "tabs": {
+      "all": "Wszyscy klienci",
+      "mine": "Moi klienci"
+    },
+    "filters": {
+      "allStatuses": "Wszystkie statusy"
+    },
+    "table": {
+      "headers": {
+        "fullName": "Imię i nazwisko",
+        "phone": "Telefon",
+        "country": "Kraj",
+        "visaType": "Rodzaj wizy",
+        "occupation": "Zawód",
+        "status": "Status",
+        "date": "Data"
+      },
+      "empty": {
+        "mine": "Brak przypisanych klientów.",
+        "all": "Brak klientów."
+      }
+    },
+    "addModal": {
+      "title": "Dodaj nowego klienta",
+      "officialVisaWarning": "⚠️ Oficjalna wiza jest przeznaczona wyłącznie dla urzędników rządowych.",
+      "servicePrice": "Opłata za usługę",
+      "noPriceDefined": "Brak zdefiniowanej ceny dla tego rodzaju wizy.",
+      "alreadyRegistered": "Ten klient jest już zarejestrowany: {name}",
+      "submitBtn": "Zapisz i przejdź do profilu"
+    },
+    "occupations": {
+      "calisan": "Pracownik",
+      "sirket_sahibi": "Pracodawca / Samozatrudniony",
+      "devlet_memuru": "Urzędnik państwowy",
+      "ogrenci": "Student",
+      "emekli": "Emeryt",
+      "ev_hanimi": "Niepracujący",
+      "ev_hanimi_meslek": "Gospodyni domowa"
+    },
+    "toasts": {
+      "globalTemplateUsed": "✓ Zastosowano globalny szablon"
+    },
+    "noTemplate": {
+      "title": "Nie znaleziono szablonu",
+      "description": "Nie utworzono jeszcze szablonu dla tej kombinacji. Klient zapisany, lista dokumentów jest pusta.",
+      "similarTitle": "Znaleziono podobne szablony — czy chcesz użyć jednego?",
+      "noOccupation": "Zawód nie podany",
+      "docCount": "{count} dokumentów",
+      "globalBadge": "🌐 Globalny",
+      "useTemplate": "Użyj tego szablonu",
+      "createTemplate": "+ Utwórz szablon",
+      "viewGlobal": "🌐 Przeglądaj globalne szablony",
+      "goToProfile": "Przejdź do profilu klienta →"
+    }
+  },
+  "sablonlar": {
+    "pageTitle": "Biblioteka szablonów",
+    "library": {
+      "title": "📚 Szablony biblioteki",
+      "empty": "Brak zatwierdzonych globalnych szablonów."
+    },
+    "myTemplates": {
+      "title": "🗂 Moje szablony",
+      "newBtn": "+ Nowy szablon",
+      "empty": "Nie utworzono jeszcze żadnych szablonów."
+    },
+    "actions": {
+      "clone": "Klonuj",
+      "edit": "Edytuj",
+      "delete": "Usuń",
+      "deleteConfirm": "Czy na pewno chcesz usunąć ten szablon?"
+    },
+    "status": {
+      "pending": "W trakcie przeglądu",
+      "approved": "Zatwierdzony",
+      "rejected": "Odrzucony"
+    },
+    "docCount": "{count} dokumentów",
+    "modal": {
+      "editTitle": "Edytuj szablon",
+      "createTitle": "Utwórz nowy szablon",
+      "docsSection": "Dokumenty",
+      "docNamePlaceholder": "Nazwa dokumentu *",
+      "docDescPlaceholder": "Opis (opcjonalnie)",
+      "addDoc": "+ Dodaj dokument",
+      "submitCreate": "Zapisz (Wyślij do przeglądu)",
+      "submitEdit": "Aktualizuj"
+    },
+    "delivery": {
+      "digital": "Cyfrowy",
+      "physical": "Fizyczny",
+      "firma": "Firma"
+    }
+  },
+  "gorevler": {
+    "pageTitle": "Lista zadań",
+    "empty": "🎉 Wszystkie zadania zakończone!",
+    "sections": {
+      "missingDocs": "📋 Brakujące dokumenty",
+      "missingPayments": "💰 Brakujące płatności",
+      "emptyDocs": "✓ Brak brakujących dokumentów",
+      "emptyPayments": "✓ Brak brakujących płatności"
+    },
+    "tasks": {
+      "sendDocReminder": "Wyślij przypomnienie o brakujących dokumentach",
+      "scheduleAppointment": "Zaplanuj wizytę",
+      "paymentFollowup": "Monitoruj płatność",
+      "passportRenewal": "Alert o odnowieniu paszportu",
+      "missingDocsDesc": "Brakujące dokumenty dla wniosku {country} {visaType}",
+      "appointmentDesc": "Oczekiwanie na wizytę konsularną dla {country} {visaType}",
+      "paymentDesc": "Pozostałe: {amount}₺",
+      "passportDesc": "Paszport wygasa {date}"
+    }
+  },
+  "leads": {
+    "pageTitle": "Potencjalni klienci",
+    "listTitle": "Lista leadów",
+    "waitingCount": "{count} oczekujących",
+    "table": {
+      "name": "Imię i nazwisko",
+      "wants": "Czego chcą?",
+      "consultant": "Konsultant",
+      "status": "Status",
+      "notAssigned": "Nie przypisano",
+      "empty": "Brak potencjalnych klientów"
+    },
+    "actions": {
+      "claim": "Przejmij",
+      "updateStatus": "Aktualizuj status"
+    },
+    "modal": {
+      "title": "Aktualizuj status",
+      "convertToCustomer": "✓ Konwertuj na klienta",
+      "talkLater": "🕐 Kontakt później",
+      "cancel": "✕ Anuluj — Nie zostanie klientem",
+      "visaInfoLabel": "Wprowadź informacje o wizie:",
+      "addAsCustomer": "✓ Dodaj jako klienta",
+      "talkLaterConfirm": "🕐 Kontakt później",
+      "cancelConfirm": "✕ Anuluj i usuń"
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "Ogólny przegląd",
+      "totalRevenue": "Łączne przychody",
+      "uncollected": "Niespłacone",
+      "activeFiles": "Aktywne pliki",
+      "completed": "Zakończone",
+      "monthlyUsage": "Miesięczne wykorzystanie plików",
+      "monthlyTrend": "Miesięczny trend przychodów",
+      "quickSummary": "Szybkie podsumowanie",
+      "countryRevenue": "Przychody według kraju",
+      "visaTypeDistribution": "Rozkład rodzajów wiz"
+    },
+    "summary": {
+      "totalRevenue": "Łączne przychody",
+      "totalRevenueTL": "Łączne przychody (₺)",
+      "collected": "Zebrane",
+      "collectedTL": "Zebrane (₺)",
+      "uncollected": "Niespłacone",
+      "uncollectedTL": "Niespłacone (₺)",
+      "totalCustomers": "Łączna liczba klientów",
+      "completedFiles": "Zakończone pliki",
+      "ongoing": "W toku"
+    },
+    "months": {
+      "0": "Sty", "1": "Lut", "2": "Mar", "3": "Kwi",
+      "4": "Maj", "5": "Cze", "6": "Lip", "7": "Sie",
+      "8": "Wrz", "9": "Paź", "10": "Lis", "11": "Gru"
+    }
+  },
+  "portal": {
+    "brand": "VECTROPUS",
+    "greeting": "Witaj, {name}",
+    "loading": "Ładowanie...",
+    "invalidLink": "Nieprawidłowy link",
+    "invalidLinkDesc": "Nie znaleziono tego linku do portalu.",
+    "tabs": {
+      "documents": "📋 Dokumenty",
+      "myInfo": "👤 Moje dane"
+    },
+    "consent": {
+      "title": "🔒 Ochrona danych osobowych",
+      "subtitle": "Wymagana zgoda aby kontynuować",
+      "viewText": "▼ Pokaż tekst",
+      "closeText": "▲ Zamknij",
+      "kvkkTitle": "Oświadczenie o ochronie danych",
+      "kvkkDear": "Szanowny/a {name},",
+      "kvkkIntro": "Poniżej przedstawiamy informacje dotyczące przetwarzania Twoich danych osobowych zgodnie z obowiązującymi przepisami o ochronie danych.",
+      "kvkk1Title": "1. Administrator danych",
+      "kvkk1Text": "Firma doradcza prowadząca Twój wniosek wizowy przetwarza Twoje dane osobowe jako administrator.",
+      "kvkk2Title": "2. Przetwarzane dane",
+      "kvkk2Text": "Przetwarzane są: imię i nazwisko, numer telefonu, adres e-mail, dane paszportowe oraz dokumenty udostępnione w ramach wniosku wizowego.",
+      "kvkk3Title": "3. Cele przetwarzania",
+      "kvkk3Text": "Dane są przetwarzane w celu prowadzenia wniosku wizowego, umawiania wizyt konsularnych, śledzenia dokumentów i komunikacji z Tobą.",
+      "kvkk4Title": "4. Przekazywanie danych",
+      "kvkk4Text": "Dane mogą być przekazywane właściwym konsulatom, ambasadom i organom publicznym w ramach obowiązków prawnych.",
+      "kvkk5Title": "5. Okres przechowywania",
+      "kvkk5Text": "Twoje dane osobowe będą przechowywane przez maksymalnie 5 lat od zakończenia procesu aplikacji, zgodnie z wymogami prawnymi.",
+      "kvkk6Title": "6. Twoje prawa",
+      "kvkk6Text": "Przysługują Ci prawa: dostępu, sprostowania, usunięcia, sprzeciwu i przenoszenia danych. Wnioski możesz kierować do swojego konsultanta.",
+      "checkboxLabel": "Zapoznałem/am się z oświadczeniem o ochronie danych i wyrażam zgodę na przetwarzanie moich danych osobowych w określonych celach.",
+      "continueBtn": "Kontynuuj →"
+    },
+    "documents": {
+      "completionStatus": "Stan realizacji",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noDocsReady": "Lista dokumentów nie została jeszcze przygotowana.",
+      "docStatus": {
+        "firmaBadge": "Firma",
+        "firmaDesc": "Zostanie dostarczone przez Twoją firmę doradczą.",
+        "eldenBadge": "Osobiście",
+        "eldenDesc": "Zostanie dostarczone konsultantowi osobiście.",
+        "eldenReceivedDesc": "Odebrane osobiście.",
+        "appointmentDayDesc": "Musi być dostarczone osobiście w dniu wizyty.",
+        "approvedBadge": "✓ Odebrane",
+        "approvedDesc": "Zatwierdzone ✓",
+        "rejectedDesc": "Odrzucone — prześlij ponownie",
+        "uploadAgain": "📎 Prześlij ponownie",
+        "uploadedReview": "Przesłane — w trakcie przeglądu",
+        "scanning": "🔍 Skanowanie...",
+        "dataRead": "✓ Dane odczytane",
+        "uploading": "{docName} — przesyłanie...",
+        "uploadedMore": "↑ Przesłane — możesz dodać więcej",
+        "uploadBtn": "📎 Prześlij pliki",
+        "addMoreBtn": "📎 Dodaj więcej",
+        "digitalUploadBtn": "📎 Prześlij cyfrowo",
+        "multipleFilesHint": "Możesz wybrać wiele plików"
+      }
+    },
+    "myInfo": {
+      "fullNameLabel": "Imię i nazwisko",
+      "phoneLabel": "Telefon",
+      "emailLabel": "E-mail",
+      "saveBtn": "Zapisz dane",
+      "savedToast": "✓ Zapisano!",
+      "infoNote": "ℹ️ Aktualizacje dotyczące Twojego wniosku będą wysyłane na te dane kontaktowe."
+    }
+  },
+  "languageSwitcher": {
+    "tr": "🇹🇷 Türkçe",
+    "en": "🇬🇧 English",
+    "de": "🇩🇪 Deutsch",
+    "pl": "🇵🇱 Polski"
+  }
+}

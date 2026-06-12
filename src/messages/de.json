@@ -1,0 +1,359 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "loading": "Wird geladen...",
+    "saving": "Wird gespeichert...",
+    "deleting": "Wird gelöscht...",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "add": "Hinzufügen",
+    "update": "Aktualisieren",
+    "approve": "Genehmigen",
+    "reject": "Ablehnen",
+    "all": "Alle",
+    "clone": "Klonen",
+    "logout": "Abmelden",
+    "yes": "Ja",
+    "no": "Nein",
+    "optional": "optional",
+    "required": "erforderlich",
+    "error": "Fehler",
+    "success": "Erfolgreich",
+    "noData": "Keine Daten",
+    "search": "Suchen...",
+    "filter": "Filtern",
+    "new": "+ Neu",
+    "viewAll": "Alle anzeigen",
+    "viewMore": "+{count} weitere"
+  },
+  "status": {
+    "missing": "Dokumente fehlen",
+    "appointment_waiting": "Termin ausstehend",
+    "appointment": "Termin vereinbart",
+    "approved": "Genehmigt",
+    "rejected": "Abgelehnt",
+    "pending": "In Bearbeitung",
+    "waiting": "Wartend",
+    "claimed": "Übernommen",
+    "contacted": "Später kontaktieren"
+  },
+  "fields": {
+    "fullName": "Vollständiger Name",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "country": "Land",
+    "visaType": "Visumtyp",
+    "occupation": "Beruf",
+    "notes": "Zusätzliche Notizen",
+    "date": "Datum",
+    "status": "Status",
+    "consultant": "Berater",
+    "password": "Passwort"
+  },
+  "placeholders": {
+    "firstName": "Hans",
+    "lastName": "Müller",
+    "phone": "+49 xxx xxx xx xx",
+    "email": "beispiel@email.com",
+    "country": "z.B. Frankreich",
+    "visaType": "z.B. Touristenvisum",
+    "occupation": "z.B. Angestellt (optional)",
+    "notes": "Besondere Umstände, Sponsor-Informationen...",
+    "searchName": "Name suchen...",
+    "loginEmail": "beispiel@firma.com"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "tasks": "Aufgabenliste",
+    "customers": "Kunden",
+    "leads": "Potenzielle Kunden",
+    "calendar": "Kalender",
+    "embassyLinks": "Botschaftslinks",
+    "templates": "Vorlagenbibliothek",
+    "consultantPanel": "Berater-Panel",
+    "transferRequests": "📨 {count} Übergabeanfrage(n)",
+    "transferFrom": "von {name}",
+    "acceptTransfer": "✓ Annehmen",
+    "rejectTransfer": "✕ Ablehnen"
+  },
+  "login": {
+    "title": "BERATER-ANMELDUNG",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Passwort",
+    "submitBtn": "ANMELDEN",
+    "submittingBtn": "WIRD ANGEMELDET...",
+    "error": "E-Mail oder Passwort falsch"
+  },
+  "dashboard": {
+    "greeting": "Guten Morgen, {name} 👋",
+    "stats": {
+      "activeFiles": "Aktive Dateien",
+      "newLead": "Neuer Lead",
+      "pendingDocs": "Ausstehende Dokumente",
+      "weeklyAppointment": "Termine diese Woche",
+      "waitingToCall": "Warten auf Rückruf",
+      "urgentFollowup": "Dringende Nachverfolgung",
+      "openCalendar": "Kalender öffnen"
+    },
+    "pendingDocs": {
+      "title": "📋 Ausstehende Dokumente",
+      "empty": "Keine ausstehenden Dokumente ✓"
+    },
+    "recentActivity": {
+      "title": "🕐 Letzte Aktivitäten",
+      "empty": "Noch keine Kunden"
+    }
+  },
+  "musteriler": {
+    "pageTitle": "Kunden",
+    "tabs": {
+      "all": "Alle Kunden",
+      "mine": "Meine Kunden"
+    },
+    "filters": {
+      "allStatuses": "Alle Status"
+    },
+    "table": {
+      "headers": {
+        "fullName": "Vollständiger Name",
+        "phone": "Telefon",
+        "country": "Land",
+        "visaType": "Visumtyp",
+        "occupation": "Beruf",
+        "status": "Status",
+        "date": "Datum"
+      },
+      "empty": {
+        "mine": "Keine Kunden Ihnen zugewiesen.",
+        "all": "Noch keine Kunden."
+      }
+    },
+    "addModal": {
+      "title": "Neuen Kunden hinzufügen",
+      "officialVisaWarning": "⚠️ Offizielle Visa sind nur für Regierungsbeamte. Inhaber von Privat- (Grün) oder Dienstpässen (Grau) können visumfrei in Schengen-Länder für bis zu 90 Tage reisen.",
+      "servicePrice": "Servicegebühr",
+      "noPriceDefined": "Kein Preis für diesen Visumtyp definiert.",
+      "alreadyRegistered": "Dieser Kunde ist bereits registriert: {name}",
+      "submitBtn": "Speichern und zum Profil"
+    },
+    "occupations": {
+      "calisan": "Angestellt",
+      "sirket_sahibi": "Arbeitgeber / Selbstständig",
+      "devlet_memuru": "Beamter",
+      "ogrenci": "Student",
+      "emekli": "Rentner",
+      "ev_hanimi": "Nicht berufstätig",
+      "ev_hanimi_meslek": "Hausfrau"
+    },
+    "toasts": {
+      "globalTemplateUsed": "✓ Globale Vorlage angewendet"
+    },
+    "noTemplate": {
+      "title": "Keine Vorlage gefunden",
+      "description": "Für diese Kombination wurde noch keine Vorlage erstellt. Kunde gespeichert, Dokumentenliste ist derzeit leer.",
+      "similarTitle": "Ähnliche Vorlagen gefunden — möchten Sie eine verwenden?",
+      "noOccupation": "Beruf nicht angegeben",
+      "docCount": "{count} Dokumente",
+      "globalBadge": "🌐 Global",
+      "useTemplate": "Diese Vorlage verwenden",
+      "createTemplate": "+ Vorlage erstellen",
+      "viewGlobal": "🌐 Globale Vorlagen anzeigen",
+      "goToProfile": "Zum Kundenprofil →"
+    }
+  },
+  "sablonlar": {
+    "pageTitle": "Vorlagenbibliothek",
+    "library": {
+      "title": "📚 Bibliotheksvorlagen",
+      "empty": "Noch keine genehmigten globalen Vorlagen."
+    },
+    "myTemplates": {
+      "title": "🗂 Meine Vorlagen",
+      "newBtn": "+ Neue Vorlage",
+      "empty": "Sie haben noch keine Vorlagen erstellt."
+    },
+    "actions": {
+      "clone": "Klonen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "deleteConfirm": "Sind Sie sicher, dass Sie diese Vorlage löschen möchten?"
+    },
+    "status": {
+      "pending": "In Bearbeitung",
+      "approved": "Genehmigt",
+      "rejected": "Abgelehnt"
+    },
+    "docCount": "{count} Dokumente",
+    "modal": {
+      "editTitle": "Vorlage bearbeiten",
+      "createTitle": "Neue Vorlage erstellen",
+      "docsSection": "Dokumente",
+      "docNamePlaceholder": "Dokumentname *",
+      "docDescPlaceholder": "Beschreibung (optional)",
+      "addDoc": "+ Dokument hinzufügen",
+      "submitCreate": "Speichern (Zur Überprüfung einreichen)",
+      "submitEdit": "Aktualisieren"
+    },
+    "delivery": {
+      "digital": "Digital",
+      "physical": "Physisch",
+      "firma": "Unternehmen"
+    }
+  },
+  "gorevler": {
+    "pageTitle": "Aufgabenliste",
+    "empty": "🎉 Alle Aufgaben erledigt!",
+    "sections": {
+      "missingDocs": "📋 Fehlende Dokumente",
+      "missingPayments": "💰 Ausstehende Zahlungen",
+      "emptyDocs": "✓ Keine fehlenden Dokumente",
+      "emptyPayments": "✓ Keine ausstehenden Zahlungen"
+    },
+    "tasks": {
+      "sendDocReminder": "Erinnerung für fehlende Dokumente senden",
+      "scheduleAppointment": "Termin vereinbaren",
+      "paymentFollowup": "Zahlung nachverfolgen",
+      "passportRenewal": "Reisepass-Verlängerungswarnung",
+      "missingDocsDesc": "Dokumente fehlen für {country} {visaType} Antrag",
+      "appointmentDesc": "Konsulattermin ausstehend für {country} {visaType}",
+      "paymentDesc": "Verbleibend: {amount}₺",
+      "passportDesc": "Reisepass läuft ab am {date}"
+    }
+  },
+  "leads": {
+    "pageTitle": "Potenzielle Kunden",
+    "listTitle": "Lead-Liste",
+    "waitingCount": "{count} wartend",
+    "table": {
+      "name": "Vollständiger Name",
+      "wants": "Was möchten sie?",
+      "consultant": "Berater",
+      "status": "Status",
+      "notAssigned": "Nicht zugewiesen",
+      "empty": "Noch keine potenziellen Kunden"
+    },
+    "actions": {
+      "claim": "Übernehmen",
+      "updateStatus": "Status aktualisieren"
+    },
+    "modal": {
+      "title": "Status aktualisieren",
+      "convertToCustomer": "✓ In Kunden umwandeln",
+      "talkLater": "🕐 Später kontaktieren",
+      "cancel": "✕ Abbrechen — Wird kein Kunde",
+      "visaInfoLabel": "Visuminformationen eingeben:",
+      "addAsCustomer": "✓ Als Kunden hinzufügen",
+      "talkLaterConfirm": "🕐 Später kontaktieren",
+      "cancelConfirm": "✕ Abbrechen und Löschen"
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "Allgemeine Übersicht",
+      "totalRevenue": "Gesamtumsatz",
+      "uncollected": "Ausstehend",
+      "activeFiles": "Aktive Dateien",
+      "completed": "Abgeschlossen",
+      "monthlyUsage": "Monatliche Dateinutzung",
+      "monthlyTrend": "Monatlicher Umsatztrend",
+      "quickSummary": "Schnellübersicht",
+      "countryRevenue": "Umsatz nach Land",
+      "visaTypeDistribution": "Visumtyp-Verteilung"
+    },
+    "summary": {
+      "totalRevenue": "Gesamtumsatz",
+      "totalRevenueTL": "Gesamtumsatz (₺)",
+      "collected": "Eingezogen",
+      "collectedTL": "Eingezogen (₺)",
+      "uncollected": "Ausstehend",
+      "uncollectedTL": "Ausstehend (₺)",
+      "totalCustomers": "Kunden gesamt",
+      "completedFiles": "Abgeschlossene Dateien",
+      "ongoing": "Laufend"
+    },
+    "months": {
+      "0": "Jan", "1": "Feb", "2": "Mär", "3": "Apr",
+      "4": "Mai", "5": "Jun", "6": "Jul", "7": "Aug",
+      "8": "Sep", "9": "Okt", "10": "Nov", "11": "Dez"
+    }
+  },
+  "portal": {
+    "brand": "VECTROPUS",
+    "greeting": "Hallo {name}",
+    "loading": "Wird geladen...",
+    "invalidLink": "Ungültiger Link",
+    "invalidLinkDesc": "Dieser Portallink wurde nicht gefunden.",
+    "tabs": {
+      "documents": "📋 Dokumente",
+      "myInfo": "👤 Meine Daten"
+    },
+    "consent": {
+      "title": "🔒 Datenschutz",
+      "subtitle": "Zustimmung erforderlich um fortzufahren",
+      "viewText": "▼ Text anzeigen",
+      "closeText": "▲ Schließen",
+      "kvkkTitle": "Datenschutzerklärung",
+      "kvkkDear": "Sehr geehrte/r {name},",
+      "kvkkIntro": "Nachfolgend finden Sie Informationen zur Verarbeitung Ihrer personenbezogenen Daten gemäß den geltenden Datenschutzgesetzen.",
+      "kvkk1Title": "1. Verantwortlicher",
+      "kvkk1Text": "Das Beratungsunternehmen, das Ihren Visumantrag bearbeitet, verarbeitet Ihre personenbezogenen Daten als Verantwortlicher.",
+      "kvkk2Title": "2. Verarbeitete Daten",
+      "kvkk2Text": "Name, Telefonnummer, E-Mail-Adresse, Reispassinformationen und im Rahmen des Visumantrags übermittelte Dokumente werden verarbeitet.",
+      "kvkk3Title": "3. Verarbeitungszwecke",
+      "kvkk3Text": "Ihre Daten werden verarbeitet, um Ihren Visumantrag zu bearbeiten, Konsulattermine zu vereinbaren, Dokumente zu verfolgen und mit Ihnen zu kommunizieren.",
+      "kvkk4Title": "4. Datenweitergabe",
+      "kvkk4Text": "Ihre Daten können im Rahmen gesetzlicher Verpflichtungen an zuständige Konsulate, Botschaften und Behörden weitergegeben werden.",
+      "kvkk5Title": "5. Aufbewahrungsdauer",
+      "kvkk5Text": "Ihre personenbezogenen Daten werden nach Abschluss des Antragsverfahrens für maximal 5 Jahre aufbewahrt.",
+      "kvkk6Title": "6. Ihre Rechte",
+      "kvkk6Text": "Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Widerspruch und Datenübertragbarkeit. Sie können Ihre Anfragen an Ihren Berater richten.",
+      "checkboxLabel": "Ich habe die Datenschutzerklärung gelesen und stimme der Verarbeitung meiner personenbezogenen Daten für die angegebenen Zwecke zu.",
+      "continueBtn": "Weiter →"
+    },
+    "documents": {
+      "completionStatus": "Bearbeitungsstand",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noDocsReady": "Die Dokumentenliste wurde noch nicht erstellt.",
+      "docStatus": {
+        "firmaBadge": "Unternehmen",
+        "firmaDesc": "Wird von Ihrem Beratungsunternehmen bereitgestellt.",
+        "eldenBadge": "Persönlich",
+        "eldenDesc": "Wird dem Berater persönlich übergeben.",
+        "eldenReceivedDesc": "Persönlich erhalten.",
+        "appointmentDayDesc": "Muss am Termintag persönlich übergeben werden.",
+        "approvedBadge": "✓ Erhalten",
+        "approvedDesc": "Genehmigt ✓",
+        "rejectedDesc": "Abgelehnt — bitte erneut hochladen",
+        "uploadAgain": "📎 Erneut hochladen",
+        "uploadedReview": "Hochgeladen — wird geprüft",
+        "scanning": "🔍 Wird gescannt...",
+        "dataRead": "✓ Daten gelesen",
+        "uploading": "{docName} — wird hochgeladen...",
+        "uploadedMore": "↑ Hochgeladen — Sie können weitere hinzufügen",
+        "uploadBtn": "📎 Dateien hochladen",
+        "addMoreBtn": "📎 Weitere hinzufügen",
+        "digitalUploadBtn": "📎 Digital hochladen",
+        "multipleFilesHint": "Sie können mehrere Dateien auswählen"
+      }
+    },
+    "myInfo": {
+      "fullNameLabel": "Vollständiger Name",
+      "phoneLabel": "Telefon",
+      "emailLabel": "E-Mail",
+      "saveBtn": "Daten speichern",
+      "savedToast": "✓ Gespeichert!",
+      "infoNote": "ℹ️ Aktualisierungen zu Ihrem Antrag werden an diese Kontaktdaten gesendet."
+    }
+  },
+  "languageSwitcher": {
+    "tr": "🇹🇷 Türkçe",
+    "en": "🇬🇧 English",
+    "de": "🇩🇪 Deutsch",
+    "pl": "🇵🇱 Polski"
+  }
+}

@@ -1,0 +1,359 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "deleting": "Deleting...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "update": "Update",
+    "approve": "Approve",
+    "reject": "Reject",
+    "all": "All",
+    "clone": "Clone",
+    "logout": "Logout",
+    "yes": "Yes",
+    "no": "No",
+    "optional": "optional",
+    "required": "required",
+    "error": "Error",
+    "success": "Success",
+    "noData": "No data",
+    "search": "Search...",
+    "filter": "Filter",
+    "new": "+ New",
+    "viewAll": "View All",
+    "viewMore": "+{count} more"
+  },
+  "status": {
+    "missing": "Documents Missing",
+    "appointment_waiting": "Awaiting Appointment",
+    "appointment": "Appointment Scheduled",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "pending": "Under Review",
+    "waiting": "Waiting",
+    "claimed": "Claimed",
+    "contacted": "Will Talk Later"
+  },
+  "fields": {
+    "fullName": "Full Name",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phone": "Phone",
+    "email": "Email",
+    "country": "Country",
+    "visaType": "Visa Type",
+    "occupation": "Occupation",
+    "notes": "Additional Notes",
+    "date": "Date",
+    "status": "Status",
+    "consultant": "Consultant",
+    "password": "Password"
+  },
+  "placeholders": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "phone": "+1 xxx xxx xx xx",
+    "email": "example@email.com",
+    "country": "e.g. France",
+    "visaType": "e.g. Tourist Visa",
+    "occupation": "e.g. Employee (optional)",
+    "notes": "Special circumstances, sponsor info, additional details...",
+    "searchName": "Search by name...",
+    "loginEmail": "example@company.com"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "tasks": "Task List",
+    "customers": "Customers",
+    "leads": "Potential Customers",
+    "calendar": "Calendar",
+    "embassyLinks": "Embassy Links",
+    "templates": "Template Library",
+    "consultantPanel": "Consultant Panel",
+    "transferRequests": "📨 {count} Transfer Request(s)",
+    "transferFrom": "from {name}",
+    "acceptTransfer": "✓ Accept",
+    "rejectTransfer": "✕ Reject"
+  },
+  "login": {
+    "title": "CONSULTANT LOGIN",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "submitBtn": "LOG IN",
+    "submittingBtn": "LOGGING IN...",
+    "error": "Incorrect email or password"
+  },
+  "dashboard": {
+    "greeting": "Good morning, {name} 👋",
+    "stats": {
+      "activeFiles": "Active Files",
+      "newLead": "New Lead",
+      "pendingDocs": "Pending Documents",
+      "weeklyAppointment": "This Week's Appointment",
+      "waitingToCall": "Waiting to be called",
+      "urgentFollowup": "Urgent follow-up",
+      "openCalendar": "Open calendar"
+    },
+    "pendingDocs": {
+      "title": "📋 Documents Waiting",
+      "empty": "No pending documents ✓"
+    },
+    "recentActivity": {
+      "title": "🕐 Recent Activity",
+      "empty": "No customers yet"
+    }
+  },
+  "musteriler": {
+    "pageTitle": "Customers",
+    "tabs": {
+      "all": "All Customers",
+      "mine": "My Customers"
+    },
+    "filters": {
+      "allStatuses": "All Statuses"
+    },
+    "table": {
+      "headers": {
+        "fullName": "Full Name",
+        "phone": "Phone",
+        "country": "Country",
+        "visaType": "Visa Type",
+        "occupation": "Occupation",
+        "status": "Status",
+        "date": "Date"
+      },
+      "empty": {
+        "mine": "No customers assigned to you.",
+        "all": "No customers yet."
+      }
+    },
+    "addModal": {
+      "title": "Add New Customer",
+      "officialVisaWarning": "⚠️ Official visa is only for government officials. Private (Green) or Service (Gray) passport holders can travel visa-free to Schengen countries for up to 90 days.",
+      "servicePrice": "Service Fee",
+      "noPriceDefined": "No price defined for this visa type. You can add it from the admin panel.",
+      "alreadyRegistered": "This customer is already registered: {name}",
+      "submitBtn": "Save and Go to Profile"
+    },
+    "occupations": {
+      "calisan": "Employee",
+      "sirket_sahibi": "Employer / Self-employed",
+      "devlet_memuru": "Government Employee",
+      "ogrenci": "Student",
+      "emekli": "Retired",
+      "ev_hanimi": "Not Working",
+      "ev_hanimi_meslek": "Homemaker"
+    },
+    "toasts": {
+      "globalTemplateUsed": "✓ Global template applied"
+    },
+    "noTemplate": {
+      "title": "Template Not Found",
+      "description": "No template has been created for this combination yet. Customer saved, document list is currently empty.",
+      "similarTitle": "Similar templates found — would you like to use one?",
+      "noOccupation": "Occupation not specified",
+      "docCount": "{count} documents",
+      "globalBadge": "🌐 Global",
+      "useTemplate": "Use This Template",
+      "createTemplate": "+ Create Template",
+      "viewGlobal": "🌐 View Global Templates",
+      "goToProfile": "Go to Customer Profile →"
+    }
+  },
+  "sablonlar": {
+    "pageTitle": "Template Library",
+    "library": {
+      "title": "📚 Library Templates",
+      "empty": "No approved global templates yet."
+    },
+    "myTemplates": {
+      "title": "🗂 My Templates",
+      "newBtn": "+ New Template",
+      "empty": "You haven't created any templates yet."
+    },
+    "actions": {
+      "clone": "Clone",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this template?"
+    },
+    "status": {
+      "pending": "Under Review",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "docCount": "{count} documents",
+    "modal": {
+      "editTitle": "Edit Template",
+      "createTitle": "Create New Template",
+      "docsSection": "Documents",
+      "docNamePlaceholder": "Document name *",
+      "docDescPlaceholder": "Description (optional)",
+      "addDoc": "+ Add Document",
+      "submitCreate": "Save (Submit for Review)",
+      "submitEdit": "Update"
+    },
+    "delivery": {
+      "digital": "Digital",
+      "physical": "Physical",
+      "firma": "Company"
+    }
+  },
+  "gorevler": {
+    "pageTitle": "Task List",
+    "empty": "🎉 All tasks completed!",
+    "sections": {
+      "missingDocs": "📋 Missing Documents",
+      "missingPayments": "💰 Missing Payments",
+      "emptyDocs": "✓ No missing documents",
+      "emptyPayments": "✓ No missing payments"
+    },
+    "tasks": {
+      "sendDocReminder": "Send missing document reminder",
+      "scheduleAppointment": "Schedule appointment",
+      "paymentFollowup": "Follow up on payment",
+      "passportRenewal": "Passport renewal alert",
+      "missingDocsDesc": "Documents missing for {country} {visaType} application",
+      "appointmentDesc": "Consulate appointment awaited for {country} {visaType}",
+      "paymentDesc": "Remaining: {amount}₺",
+      "passportDesc": "Passport expires on {date}"
+    }
+  },
+  "leads": {
+    "pageTitle": "Potential Customers",
+    "listTitle": "Lead List",
+    "waitingCount": "{count} waiting",
+    "table": {
+      "name": "Full Name",
+      "wants": "What do they want?",
+      "consultant": "Consultant",
+      "status": "Status",
+      "notAssigned": "Not assigned",
+      "empty": "No potential customers yet"
+    },
+    "actions": {
+      "claim": "Claim",
+      "updateStatus": "Update Status"
+    },
+    "modal": {
+      "title": "Update Status",
+      "convertToCustomer": "✓ Convert to Customer",
+      "talkLater": "🕐 Will Talk Later",
+      "cancel": "✕ Cancel — Won't Be a Customer",
+      "visaInfoLabel": "Enter visa information:",
+      "addAsCustomer": "✓ Add as Customer",
+      "talkLaterConfirm": "🕐 Will Talk Later",
+      "cancelConfirm": "✕ Cancel and Delete"
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "General Overview",
+      "totalRevenue": "Total Revenue",
+      "uncollected": "Uncollected",
+      "activeFiles": "Active Files",
+      "completed": "Completed",
+      "monthlyUsage": "This Month's File Usage",
+      "monthlyTrend": "Monthly Revenue Trend",
+      "quickSummary": "Quick Summary",
+      "countryRevenue": "Revenue by Country",
+      "visaTypeDistribution": "Visa Type Distribution"
+    },
+    "summary": {
+      "totalRevenue": "Total revenue",
+      "totalRevenueTL": "Total revenue (₺)",
+      "collected": "Collected",
+      "collectedTL": "Collected (₺)",
+      "uncollected": "Uncollected",
+      "uncollectedTL": "Uncollected (₺)",
+      "totalCustomers": "Total customers",
+      "completedFiles": "Completed files",
+      "ongoing": "Ongoing"
+    },
+    "months": {
+      "0": "Jan", "1": "Feb", "2": "Mar", "3": "Apr",
+      "4": "May", "5": "Jun", "6": "Jul", "7": "Aug",
+      "8": "Sep", "9": "Oct", "10": "Nov", "11": "Dec"
+    }
+  },
+  "portal": {
+    "brand": "VECTROPUS",
+    "greeting": "Hello {name}",
+    "loading": "Loading...",
+    "invalidLink": "Invalid Link",
+    "invalidLinkDesc": "This portal link could not be found.",
+    "tabs": {
+      "documents": "📋 Documents",
+      "myInfo": "👤 My Information"
+    },
+    "consent": {
+      "title": "🔒 Personal Data Protection",
+      "subtitle": "Approval required to continue",
+      "viewText": "▼ View Text",
+      "closeText": "▲ Close",
+      "kvkkTitle": "KVKK / GDPR Disclosure Statement",
+      "kvkkDear": "Dear {name},",
+      "kvkkIntro": "The following information is provided regarding the processing of your personal data under Personal Data Protection Law.",
+      "kvkk1Title": "1. Data Controller",
+      "kvkk1Text": "The consulting firm conducting your visa application processes your personal data as the data controller.",
+      "kvkk2Title": "2. Processed Personal Data",
+      "kvkk2Text": "Your name, phone number, email address, passport information and documents shared during the visa application process are being processed.",
+      "kvkk3Title": "3. Processing Purposes",
+      "kvkk3Text": "Your data is processed to manage your visa application, obtain consulate appointments, track documents and communicate with you.",
+      "kvkk4Title": "4. Data Transfers",
+      "kvkk4Text": "Your data may be shared with relevant consulates, embassies and authorized public institutions within the framework of legal obligations.",
+      "kvkk5Title": "5. Retention Period",
+      "kvkk5Text": "Your personal data will be retained for a maximum of 5 years from the completion of your application process, within the scope of legal obligations.",
+      "kvkk6Title": "6. Your Rights",
+      "kvkk6Text": "You have the rights to access, correct, delete, object to processing and data portability. You can submit your requests to your consultant.",
+      "checkboxLabel": "I have read the Disclosure Statement and consent to the processing of my personal data for the specified purposes.",
+      "continueBtn": "Continue →"
+    },
+    "documents": {
+      "completionStatus": "Completion Status",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noDocsReady": "Document list has not been prepared yet.",
+      "docStatus": {
+        "firmaBadge": "Company",
+        "firmaDesc": "Will be provided by your consulting firm.",
+        "eldenBadge": "In Person",
+        "eldenDesc": "Will be delivered to the consultant in person.",
+        "eldenReceivedDesc": "Received in person.",
+        "appointmentDayDesc": "Must be delivered in person on the appointment day.",
+        "approvedBadge": "✓ Received",
+        "approvedDesc": "Approved ✓",
+        "rejectedDesc": "Rejected — please re-upload",
+        "uploadAgain": "📎 Re-upload",
+        "uploadedReview": "Uploaded — under review",
+        "scanning": "🔍 Scanning...",
+        "dataRead": "✓ Data read",
+        "uploading": "{docName} — uploading...",
+        "uploadedMore": "↑ Uploaded — you can add more",
+        "uploadBtn": "📎 Upload Files",
+        "addMoreBtn": "📎 Add More",
+        "digitalUploadBtn": "📎 Digital Upload",
+        "multipleFilesHint": "You can select multiple files"
+      }
+    },
+    "myInfo": {
+      "fullNameLabel": "Full Name",
+      "phoneLabel": "Phone",
+      "emailLabel": "Email",
+      "saveBtn": "Save Information",
+      "savedToast": "✓ Saved!",
+      "infoNote": "ℹ️ Updates regarding your application will be sent to these contact details."
+    }
+  },
+  "languageSwitcher": {
+    "tr": "🇹🇷 Türkçe",
+    "en": "🇬🇧 English",
+    "de": "🇩🇪 Deutsch",
+    "pl": "🇵🇱 Polski"
+  }
+}
