@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 // startsWith ile eşleşir — DB'deki parantez içi sıralamadan bağımsız
 const MULTI_UPLOAD_PREFIXES = [
@@ -16,6 +18,9 @@ function isMultiUploadDoc(docName: string) {
 
 export default function PortalPage() {
   const { token } = useParams()
+  const t = useTranslations('portal')
+  const tc = useTranslations('common')
+
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -115,9 +120,7 @@ export default function PortalPage() {
     }
 
     if (isMulti) {
-      // Her dosyayı ayrı ayrı yükle, per-file durum takibi
       const collectedUrls: string[] = []
-
       for (let i = 0; i < fileArr.length; i++) {
         const f = fileArr[i]
         const fd = new FormData()
@@ -128,7 +131,6 @@ export default function PortalPage() {
         fd.append('docName', docName)
         fd.append('idx', idx)
         fd.append('skipDocUpdate', 'true')
-
         try {
           const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
           const data = await res.json()
@@ -143,8 +145,6 @@ export default function PortalPage() {
           setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'error' as const } : e) }))
         }
       }
-
-      // Tüm URL'leri birleştirip user_submitted_docs'a yaz
       if (collectedUrls.length > 0) {
         await fetch('/api/portal-update-url', {
           method: 'POST',
@@ -153,7 +153,6 @@ export default function PortalPage() {
         })
       }
     } else {
-      // Tek dosya: mevcut batch davranışı
       const fd = new FormData()
       fd.append('file', fileArr[0])
       fd.append('token', tokenStr)
@@ -161,7 +160,6 @@ export default function PortalPage() {
       fd.append('applicationId', application.id)
       fd.append('docName', docName)
       fd.append('idx', idx)
-
       try {
         const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
         const data = await res.json()
@@ -192,61 +190,64 @@ export default function PortalPage() {
     setUploading(prev => ({ ...prev, [idx]: false }))
   }
 
+  // ── Loading ──
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', fontFamily: 'system-ui' }}>
-      <div style={{ color: 'white', fontSize: '14px' }}>Yükleniyor...</div>
+      <div style={{ color: 'white', fontSize: '14px' }}>{t('loading')}</div>
     </div>
   )
 
+  // ── Invalid link ──
   if (!client) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', textAlign: 'center', maxWidth: '320px' }}>
         <div style={{ fontSize: '32px', marginBottom: '1rem' }}>❌</div>
-        <h2 style={{ fontSize: '16px', marginBottom: '8px' }}>Link geçersiz</h2>
-        <p style={{ fontSize: '13px', color: '#888' }}>Bu portal linki bulunamadı.</p>
+        <h2 style={{ fontSize: '16px', marginBottom: '8px' }}>{t('invalidLink')}</h2>
+        <p style={{ fontSize: '13px', color: '#888' }}>{t('invalidLinkDesc')}</p>
       </div>
     </div>
   )
 
+  // ── KVKK consent ──
   if (showConsent) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '480px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
 
-        {/* Başlık */}
-        <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
+          {/* Language switcher */}
+          <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+            <LanguageSwitcher light />
+          </div>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}>🔒</div>
-          <h2 style={{ color: 'white', fontSize: '17px', fontWeight: '600', margin: 0 }}>Kişisel Verilerin Korunması</h2>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '6px 0 0' }}>Devam etmek için onay gereklidir</p>
+          <h2 style={{ color: 'white', fontSize: '17px', fontWeight: '600', margin: 0 }}>{t('consent.title')}</h2>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '6px 0 0' }}>{t('consent.subtitle')}</p>
         </div>
 
         <div style={{ padding: '1.5rem' }}>
-
-          {/* Accordion */}
+          {/* KVKK accordion */}
           <div style={{ border: '1px solid #e8e4da', borderRadius: '10px', marginBottom: '1.25rem', overflow: 'hidden' }}>
             <button
               onClick={() => setKvkkOpen(o => !o)}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#faf8f3', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: '600', color: '#0d1f35' }}
             >
-              <span>KVKK Aydınlatma Metni</span>
+              <span>{t('consent.kvkkTitle')}</span>
               <span style={{ fontSize: '11px', color: '#5b21b6', fontWeight: '500' }}>
-                {kvkkOpen ? '▲ Kapat' : '▼ Metni Görüntüle'}
+                {kvkkOpen ? t('consent.closeText') : t('consent.viewText')}
               </span>
             </button>
 
             {kvkkOpen && (
               <div style={{ padding: '14px 14px 16px', borderTop: '1px solid #e8e4da', maxHeight: '320px', overflowY: 'auto' }}>
-                <p style={{ fontSize: '12px', color: '#0d1f35', fontWeight: '600', marginTop: 0 }}>Sayın {client.full_name},</p>
-                <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.7', marginTop: 0 }}>
-                  6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında kişisel verilerinizin işlenmesine ilişkin bilgiler aşağıda sunulmaktadır.
-                </p>
-                {[
-                  ['1. Veri Sorumlusu', 'Vize başvurunuzu yürüten danışmanlık firması, veri sorumlusu sıfatıyla kişisel verilerinizi işlemektedir.'],
-                  ['2. İşlenen Kişisel Veriler', 'Ad-soyad, telefon numarası, e-posta adresi, pasaport bilgileri ve vize başvurusu kapsamında paylaştığınız belgeler işlenmektedir.'],
-                  ['3. İşleme Amaçları', 'Verileriniz; vize başvuru sürecinizin yürütülmesi, konsolosluk randevusunun alınması, evrak takibi ve tarafınızla iletişim kurulması amacıyla işlenmektedir.'],
-                  ['4. Aktarım', 'Verileriniz; ilgili konsolosluk, büyükelçilik ve yetkili kamu kurumlarıyla yasal zorunluluk çerçevesinde paylaşılabilir.'],
-                  ['5. Saklama Süresi', 'Kişisel verileriniz, başvuru sürecinizin tamamlanmasından itibaren yasal yükümlülükler kapsamında en fazla 5 yıl süreyle saklanacaktır.'],
-                  ['6. Haklarınız', 'KVKK\'nın 11. maddesi kapsamında; verilerinize erişim, düzeltme, silme, işlemeye itiraz ve taşınabilirlik haklarına sahipsiniz. Taleplerinizi danışmanınıza iletebilirsiniz.'],
-                ].map(([title, body]) => (
+                <p style={{ fontSize: '12px', color: '#0d1f35', fontWeight: '600', marginTop: 0 }}>{t('consent.kvkkDear', { name: client.full_name })}</p>
+                <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.7', marginTop: 0 }}>{t('consent.kvkkIntro')}</p>
+                {([
+                  [t('consent.kvkk1Title'), t('consent.kvkk1Text')],
+                  [t('consent.kvkk2Title'), t('consent.kvkk2Text')],
+                  [t('consent.kvkk3Title'), t('consent.kvkk3Text')],
+                  [t('consent.kvkk4Title'), t('consent.kvkk4Text')],
+                  [t('consent.kvkk5Title'), t('consent.kvkk5Text')],
+                  [t('consent.kvkk6Title'), t('consent.kvkk6Text')],
+                ] as [string, string][]).map(([title, body]) => (
                   <div key={title} style={{ marginBottom: '10px' }}>
                     <p style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35', margin: '0 0 3px' }}>{title}</p>
                     <p style={{ fontSize: '12px', color: '#5a6a7a', lineHeight: '1.6', margin: 0 }}>{body}</p>
@@ -265,11 +266,10 @@ export default function PortalPage() {
               style={{ marginTop: '2px', width: '16px', height: '16px', accentColor: '#0d1f35', flexShrink: 0, cursor: 'pointer' }}
             />
             <span style={{ fontSize: '13px', color: '#0d1f35', lineHeight: '1.5' }}>
-              KVKK Aydınlatma Metni'ni okudum, kişisel verilerimin belirtilen amaçlar kapsamında işlenmesine onay veriyorum.
+              {t('consent.checkboxLabel')}
             </span>
           </label>
 
-          {/* Buton */}
           <button
             onClick={approveConsent}
             disabled={!consentChecked || consentSaving}
@@ -282,7 +282,7 @@ export default function PortalPage() {
               fontFamily: 'inherit', transition: 'background 0.2s',
             }}
           >
-            {consentSaving ? 'Kaydediliyor...' : 'Devam Et →'}
+            {consentSaving ? tc('saving') : t('consent.continueBtn')}
           </button>
         </div>
       </div>
@@ -299,7 +299,13 @@ export default function PortalPage() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '440px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
 
-        <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center' }}>
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
+          {/* Language switcher — top right */}
+          <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+            <LanguageSwitcher light />
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
             <svg width="44" height="44" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="40" cy="40" r="37" stroke="white" strokeWidth="2.5"/>
@@ -318,17 +324,25 @@ export default function PortalPage() {
               <circle cx="40" cy="40" r="1.5" fill="#0d1f35"/>
             </svg>
           </div>
-          <h2 style={{ color: 'white', fontFamily: "'Playfair Display', serif", fontSize: '18px', fontWeight: '400', letterSpacing: '3px', marginBottom: '12px' }}>VECTROPUS</h2>
+          <h2 style={{ color: 'white', fontFamily: "'Playfair Display', serif", fontSize: '18px', fontWeight: '400', letterSpacing: '3px', marginBottom: '12px' }}>
+            {t('brand')}
+          </h2>
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
-            Merhaba <strong style={{ color: 'white' }}>{client.full_name}</strong>
+            {t('greeting', { name: '' })
+              .replace('', '')}{' '}
+            <strong style={{ color: 'white' }}>{client.full_name}</strong>
           </p>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginTop: '2px' }}>
             {application?.country} — {application?.visa_type}
           </p>
         </div>
 
+        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e8e4da' }}>
-          {[['evrak', '📋 Evraklar'], ['bilgi', '👤 Bilgilerim']].map(([key, label]) => (
+          {([
+            ['evrak', t('tabs.documents')],
+            ['bilgi',  t('tabs.myInfo')],
+          ] as [string, string][]).map(([key, label]) => (
             <button key={key} onClick={() => setActiveTab(key)} style={{
               flex: 1, padding: '12px 8px', fontSize: '12px', fontWeight: '500',
               border: 'none', background: activeTab === key ? '#faf8f3' : 'white',
@@ -340,16 +354,23 @@ export default function PortalPage() {
         </div>
 
         <div style={{ padding: '1.5rem' }}>
+
+          {/* Documents tab */}
           {activeTab === 'evrak' && (
             <div>
               {userSubmittedDocs.length === 0 ? (
-                <p style={{ fontSize: '13px', color: '#9aaabb', textAlign: 'center', padding: '2rem 0' }}>Evrak listesi henüz hazırlanmadı.</p>
+                <p style={{ fontSize: '13px', color: '#9aaabb', textAlign: 'center', padding: '2rem 0' }}>
+                  {t('documents.noDocsReady')}
+                </p>
               ) : (
                 <>
+                  {/* Progress */}
                   <div style={{ marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#5a6a7a', marginBottom: '6px' }}>
-                      <span>Tamamlama Durumu</span>
-                      <span style={{ fontWeight: '600', color: yuzde === 100 ? '#1a7a45' : '#0d1f35' }}>{tamamlanan}/{toplam} — %{yuzde}</span>
+                      <span>{t('documents.completionStatus')}</span>
+                      <span style={{ fontWeight: '600', color: yuzde === 100 ? '#1a7a45' : '#0d1f35' }}>
+                        {t('documents.progress', { completed: tamamlanan, total: toplam, percentage: yuzde })}
+                      </span>
                     </div>
                     <div style={{ height: '6px', background: '#f0ede6', borderRadius: '10px', overflow: 'hidden' }}>
                       <div style={{ height: '100%', width: `${yuzde}%`, background: yuzde === 100 ? '#1a7a45' : '#1a5fa5', borderRadius: '10px', transition: 'width 0.3s' }} />
@@ -371,9 +392,11 @@ export default function PortalPage() {
                           <span style={{ fontSize: '16px' }}>🏢</span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
-                            <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>Danışmanlık firmanız tarafından karşılanacak.</div>
+                            <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>{t('documents.docStatus.firmaDesc')}</div>
                           </div>
-                          <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px', border: '1px solid #b8d4f0', whiteSpace: 'nowrap' }}>Firma</span>
+                          <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px', border: '1px solid #b8d4f0', whiteSpace: 'nowrap' }}>
+                            {t('documents.docStatus.firmaBadge')}
+                          </span>
                         </div>
                       </div>
                     )
@@ -385,11 +408,11 @@ export default function PortalPage() {
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
                             <div style={{ fontSize: '11px', color: isApproved ? '#1a7a45' : '#9aaabb', marginTop: '2px' }}>
-                              {isApproved ? 'Elden teslim alındı.' : 'Randevu günü elden teslim edilmelidir.'}
+                              {isApproved ? t('documents.docStatus.eldenReceivedDesc') : t('documents.docStatus.appointmentDayDesc')}
                             </div>
                           </div>
                           <span style={{ fontSize: '10px', color: isApproved ? '#1a7a45' : '#92600a', fontWeight: '600', background: isApproved ? '#edfaf3' : '#fff8ec', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
-                            {isApproved ? '✓ Alındı' : 'Elden'}
+                            {isApproved ? t('documents.docStatus.approvedBadge') : t('documents.docStatus.eldenBadge')}
                           </span>
                         </div>
                       </div>
@@ -401,9 +424,11 @@ export default function PortalPage() {
                           <span style={{ fontSize: '16px' }}>🤝</span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: '13px', fontWeight: '500' }}>{doc.doc_name}</div>
-                            <div style={{ fontSize: '11px', color: '#92600a', marginTop: '2px' }}>Danışmana elden teslim edilecek.</div>
+                            <div style={{ fontSize: '11px', color: '#92600a', marginTop: '2px' }}>{t('documents.docStatus.eldenDesc')}</div>
                           </div>
-                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f0d08a', whiteSpace: 'nowrap' }}>Elden</span>
+                          <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px', border: '1px solid #f0d08a', whiteSpace: 'nowrap' }}>
+                            {t('documents.docStatus.eldenBadge')}
+                          </span>
                         </div>
                       </div>
                     )
@@ -413,7 +438,7 @@ export default function PortalPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
                           <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
-                          <span style={{ fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>Onaylandı ✓</span>
+                          <span style={{ fontSize: '11px', color: '#1a7a45', fontWeight: '500' }}>{t('documents.docStatus.approvedDesc')}</span>
                         </div>
                       </div>
                     )
@@ -423,19 +448,12 @@ export default function PortalPage() {
                         <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
                           <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
-                          <span style={{ fontSize: '11px', color: '#c0392b', fontWeight: '500' }}>Reddedildi — yeniden yükleyin</span>
+                          <span style={{ fontSize: '11px', color: '#c0392b', fontWeight: '500' }}>{t('documents.docStatus.rejectedDesc')}</span>
                         </div>
                         <div>
-                          <input
-                            type="file"
-                            {...(isMultiUploadDoc(doc.doc_name) ? { multiple: true } : {})}
-                            accept="image/*,application/pdf"
-                            ref={el => { fileRefs.current[key] = el }}
-                            onChange={e => handleFileUpload(key, doc.doc_name, e)}
-                            style={{ display: 'none' }}
-                          />
+                          <input type="file" {...(isMultiUploadDoc(doc.doc_name) ? { multiple: true } : {})} accept="image/*,application/pdf" ref={el => { fileRefs.current[key] = el }} onChange={e => handleFileUpload(key, doc.doc_name, e)} style={{ display: 'none' }} />
                           <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#c0392b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                            📎 Yeniden Yükle
+                            {t('documents.docStatus.uploadAgain')}
                           </button>
                           {(fileEntries[key] || []).map((entry, fi) => (
                             <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
@@ -450,16 +468,15 @@ export default function PortalPage() {
 
                     const isMulti = isMultiUploadDoc(doc.doc_name)
 
-                    // Tek-dosya evraklarda yüklü dosya varsa upload butonunu gizle
                     if (hasFile && !isMulti) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>↑</div>
                           <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{doc.doc_name}</span>
                           <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                            <span style={{ fontSize: '11px', color: '#1a5fa5', fontWeight: '500' }}>Yüklendi — inceleniyor</span>
-                            {ocrStatus[key] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6' }}>🔍 Taranıyor...</span>}
-                            {ocrStatus[key] === 'done' && <span style={{ fontSize: '10px', color: '#1a7a45' }}>✓ Veriler okundu</span>}
+                            <span style={{ fontSize: '11px', color: '#1a5fa5', fontWeight: '500' }}>{t('documents.docStatus.uploadedReview')}</span>
+                            {ocrStatus[key] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6' }}>{t('documents.docStatus.scanning')}</span>}
+                            {ocrStatus[key] === 'done'     && <span style={{ fontSize: '10px', color: '#1a7a45' }}>{t('documents.docStatus.dataRead')}</span>}
                           </span>
                         </div>
                       </div>
@@ -467,7 +484,9 @@ export default function PortalPage() {
 
                     if (uploading[key]) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ fontSize: '13px', color: '#9aaabb' }}>{doc.doc_name} — yükleniyor...</div>
+                        <div style={{ fontSize: '13px', color: '#9aaabb' }}>
+                          {t('documents.docStatus.uploading', { docName: doc.doc_name })}
+                        </div>
                       </div>
                     )
 
@@ -476,21 +495,20 @@ export default function PortalPage() {
                         <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{doc.doc_name}</div>
                         {hasFile && isMulti && (
                           <div style={{ fontSize: '11px', color: '#1a5fa5', marginBottom: '6px' }}>
-                            ↑ Yüklendi — daha fazla ekleyebilirsiniz
+                            {t('documents.docStatus.uploadedMore')}
                           </div>
                         )}
-                        <input
-                          type="file"
-                          {...(isMulti ? { multiple: true } : {})}
-                          accept="image/*,application/pdf"
-                          ref={el => { fileRefs.current[key] = el }}
-                          onChange={e => handleFileUpload(key, doc.doc_name, e)}
-                          style={{ display: 'none' }}
-                        />
+                        <input type="file" {...(isMulti ? { multiple: true } : {})} accept="image/*,application/pdf" ref={el => { fileRefs.current[key] = el }} onChange={e => handleFileUpload(key, doc.doc_name, e)} style={{ display: 'none' }} />
                         <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                          📎 {isMulti ? (hasFile ? 'Daha Fazla Ekle' : 'Dosyaları Yükle') : 'Dijital Yükle'}
+                          {isMulti
+                            ? (hasFile ? t('documents.docStatus.addMoreBtn') : t('documents.docStatus.uploadBtn'))
+                            : t('documents.docStatus.digitalUploadBtn')}
                         </button>
-                        {isMulti && !hasFile && <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>Birden fazla dosya seçebilirsiniz</div>}
+                        {isMulti && !hasFile && (
+                          <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>
+                            {t('documents.docStatus.multipleFilesHint')}
+                          </div>
+                        )}
                         {(fileEntries[key] || []).map((entry, fi) => (
                           <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
                             <span>{entry.status === 'done' ? '✓' : entry.status === 'error' ? '✗' : '⏳'}</span>
@@ -506,28 +524,36 @@ export default function PortalPage() {
             </div>
           )}
 
+          {/* My info tab */}
           {activeTab === 'bilgi' && (
             <div>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Ad Soyad</label>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                  {t('myInfo.fullNameLabel')}
+                </label>
                 <input readOnly value={client.full_name} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Telefon</label>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                  {t('myInfo.phoneLabel')}
+                </label>
                 <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+90 5xx xxx xx xx" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>E-posta</label>
+                <label style={{ display: 'block', fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                  {t('myInfo.emailLabel')}
+                </label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@email.com" style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
               <button onClick={saveBilgi} style={{ width: '100%', padding: '11px', background: bilgiKaydedildi ? '#1a7a45' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', marginBottom: '12px' }}>
-                {bilgiKaydedildi ? '✓ Kaydedildi!' : 'Bilgileri Kaydet'}
+                {bilgiKaydedildi ? t('myInfo.savedToast') : t('myInfo.saveBtn')}
               </button>
               <div style={{ background: '#faf8f3', borderRadius: '8px', padding: '12px', fontSize: '12px', color: '#5a6a7a', lineHeight: '1.5' }}>
-                ℹ️ Başvurunuzla ilgili güncellemeler bu iletişim bilgilerine gönderilecektir.
+                {t('myInfo.infoNote')}
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>
