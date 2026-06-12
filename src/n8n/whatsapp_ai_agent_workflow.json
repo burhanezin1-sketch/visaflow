@@ -1,0 +1,855 @@
+{
+  "name": "vectropus vize wp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ee0ce88c-b933-4edf-a11b-088ce8db3019",
+      "name": "Twilio Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2272,
+        112
+      ],
+      "webhookId": "whatsapp-inbound"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response></Response>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/xml"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2195c7a0-2a9f-4ce1-a8e1-6bd24b211664",
+      "name": "Respond to Twilio",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -2064,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body;\nconst toNumber = body.To || '';\nconst fromNumber = body.From || '';\nconst messageBody = body.Body || '';\nconst fromClean = fromNumber.replace('whatsapp:', '');\nconst fromEncoded = '%2B' + fromClean.replace('+', '');\nreturn [{ json: {\n  to_number: toNumber,\n  from_number: fromNumber,\n  message_body: messageBody,\n  to_encoded: encodeURIComponent(toNumber),\n  from_clean: fromClean,\n  from_encoded: fromEncoded\n}}];"
+      },
+      "id": "3f5f1bf0-2698-4c26-b2b6-cc8a1292b68b",
+      "name": "Webhook Verisini Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2064,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://yhmcpfxakmxryqnwpiaa.supabase.co/rest/v1/companies?whatsapp_number=eq.{{ $json.to_number.replace('+', '%2B') }}&select=id,name,whatsapp_number&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "150782ae-908d-4cad-ba4b-5cf07a15622e",
+      "name": "Supabase — Firmayı Bul",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1840,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json[0] ? $json[0].id : '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6bc7177c-6751-414c-9d3f-0ca05f8bcc01",
+      "name": "Firma Var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1616,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [];"
+      },
+      "id": "dc758669-47c8-4889-a18d-2445f2897668",
+      "name": "Dur — Bilinmeyen Firma",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1392,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const company = $('Supabase — Firmayı Bul').item.json[0] || $('Supabase — Firmayı Bul').item.json;\nconst wh = $('Webhook Verisini Hazırla').item.json;\nconst firm = Array.isArray($('Supabase — Firmayı Bul').all()[0].json) \n  ? $('Supabase — Firmayı Bul').all()[0].json[0]\n  : $('Supabase — Firmayı Bul').all()[0].json;\nreturn [{ json: {\n  company_id: firm.id,\n  company_name: firm.name,\n  whatsapp_number: firm.whatsapp_number,\n  whatsapp_number_clean: firm.whatsapp_number.replace('whatsapp:', ''),\n  from_clean: wh.from_clean,\n  from_encoded: wh.from_encoded,\n  from_number: wh.from_number,\n  message_body: wh.message_body,\n  to_number: wh.to_number\n}}];"
+      },
+      "id": "cf595196-67ff-4d01-8550-c455146865d3",
+      "name": "Bağlam Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1392,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://yhmcpfxakmxryqnwpiaa.supabase.co/rest/v1/clients?phone=ilike.*{{ $json.from_clean.replace('+', '') }}*&company_id=eq.{{ $json.company_id }}&select=id,full_name,phone,portal_token&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a03788c1-03dd-48e5-89e4-2c6591863a1c",
+      "name": "Supabase — Mevcut Müşteri Bul",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1184,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cm1",
+              "leftValue": "={{ $json.id ?? '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "488e6bbb-686a-404d-ae42-1ef3c67f85ca",
+      "name": "Müşteri Var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Bağlam Hazırla').item.json;\nconst allItems = $('Supabase — Mevcut Müşteri Bul').all();\nconst raw = allItems.length > 0 ? allItems[0].json : {};\nconst client = Array.isArray(raw) ? (raw[0] || null) : (raw && raw.id ? raw : null);\nconst clientName = client ? (client.full_name || '') : '';\nconst clientId = client ? client.id : null;\nconst companyName = ctx.company_name || 'Vize Danışmanlık';\nconst hitap = 'efendim';\nconst portalBaseUrl = 'https://app.vectropus.com';\nconst portalLink = client?.portal_token ? `${portalBaseUrl}/portal/${client.portal_token}` : null;\n\nconst sys = `Sen ${companyName} firmasının WhatsApp asistanısın. Türkçe yaz, kısa ve samimi ol. Emoji kullanma.\nBu kişi firmanın kayıtlı müşterisidir. \"${hitap}\" olarak hitap et.\nGörevin: Sorusunu anlayıp yardımcı olmak. Vize başvurusu, randevu, evrak konularında genel bilgi ver. Ayrıntılar için danışmanları yönlendir.\nKURALLAR:\nKURAL 1 — PORTAL LİNKİ: Müşteri \"portal linki\", \"linkimi at\", \"portal adresim\", \"nasıl gireceğim\" diye sorarsa direkt portal linkini ver (${portalLink || 'portal linki bilgisi mevcut değil'}). \"Danışmanınıza ileteceğim\" DEME.\n- Kesin tarih, süre veya fiyat bilgisi verme\n- Cevapları kısa tut (1-3 cümle)\n- Her zaman nazik ve profesyonel ol\nYANIT FORMATI: Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:\n{\"response\": \"WhatsApp mesajın buraya\"}\n\nÖRNEK KONUŞMALAR (bu örneklere göre cevap ver):\n\nMüşteri: Evraklarım tamam mı?\nAsistan: Evrak durumunuzu portal üzerinden takip edebilirsiniz efendim. Eksik evraklar portalda kırmızı görünecektir.\n\nMüşteri: Randevum ne zaman?\nAsistan: Randevu bilgileriniz portala yansıtılmaktadır efendim. Danışmanınız randevu aldığında sizi ayrıca bilgilendirecektir.\n\nMüşteri: Vizem çıktı mı?\nAsistan: Vize sonucu konsolosluktan geldiği anda danışmanınız sizi arayacaktır efendim. Pasaport teslimi de aynı şekilde bildirilecektir.\n\nMüşteri: Portal şifrem ne?\nAsistan: Portala şifre gerekmez efendim, size özel link üzerinden direkt giriş yapabilirsiniz.\n\nMüşteri: Ne zaman arayacaklar?\nAsistan: Danışmanınız mesai saatlerinde (09:00-18:00) sizinle iletişime geçecektir efendim.\n\nMüşteri: Kaç aylık banka ekstresi lazım?\nAsistan: Genellikle son 3-6 aylık ekstre istenmektedir efendim, ancak kesin liste için portaldaki evrak listesini inceleyebilirsiniz.\n\nMüşteri: İptal etmek istiyorum.\nAsistan: İptal talebinizi danışmanınıza iletmem için not aldım efendim. En kısa sürede sizinle iletişime geçilecektir.\n\nMüşteri: Seyahat tarihim yaklaşıyor, yetişir mi?\nAsistan: Bu konuyu danışmanınıza acil olarak iletiyorum efendim. Lütfen danışmanınızı mesai saatlerinde (09:00-18:00) arayın.\n\nMüşteri: Konsoloslukta ne yapacağım?\nAsistan: Konsolosluk randevusunda pasaportunuzu, fotoğrafınızı ve onaylı evraklarınızı yanınızda bulundurmanız yeterlidir efendim. Danışmanınız öncesinde detaylı bilgi verecektir.\n\nMüşteri: Reddettiyseler ne olacak?\nAsistan: Ret durumunda danışmanınız sizinle iletişime geçerek sonraki adımları değerlendirecektir efendim.\n\nMüşteri: Linkimi atar mısın?\nAsistan: Portal linkiniz: ${portalLink} efendim.\n\nMüşteri: Portala nasıl giriyorum?\nAsistan: Portal linkiniz: ${portalLink} efendim. Bu link üzerinden direkt giriş yapabilirsiniz.`;\n\nconst messages = [\n  { role: 'system', content: sys },\n  { role: 'user', content: ctx.message_body }\n];\nconst body = JSON.stringify({ model: 'gpt-4o', messages });\n\nreturn [{ json: {\n  company_id: ctx.company_id,\n  company_name: companyName,\n  client_id: clientId,\n  client_name: clientName,\n  from_clean: ctx.from_clean,\n  whatsapp_number_clean: ctx.whatsapp_number_clean,\n  message_body: ctx.message_body,\n  gpt_body_string: body\n}}];"
+      },
+      "id": "3139b333-523e-433b-8eda-8a256ae2f6c5",
+      "name": "GPT Müşteri Mesajlarını Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.gpt_body_string }}",
+        "options": {}
+      },
+      "id": "d9139c67-9d89-4fda-9199-9c1f754ce860",
+      "name": "OpenAI API — Müşteri",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -512,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.choices[0].message.content;\nconst ctx = $('GPT Müşteri Mesajlarını Hazırla').item.json;\n\nlet gptResponse;\ntry {\n  const parsed = JSON.parse(raw);\n  gptResponse = parsed.response || raw;\n} catch(e) {\n  gptResponse = raw;\n}\n\nreturn [{ json: {\n  whatsapp_number_clean: ctx.whatsapp_number_clean,\n  phone_clean: ctx.from_clean,\n  gpt_response: gptResponse\n}}];"
+      },
+      "id": "0bcf8927-844b-44ef-a414-a4379e631c27",
+      "name": "Müşteri Yanıt Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $json.whatsapp_number_clean }}",
+        "to": "={{ $json.phone_clean }}",
+        "toWhatsapp": true,
+        "message": "={{ $json.gpt_response }}",
+        "options": {}
+      },
+      "id": "77dc9875-8bc2-4695-91ac-d8cfa78a7c4f",
+      "name": "Twilio — Müşteriye Yanıt",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -208
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "6RWMbzFTaSg8bsfP",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://yhmcpfxakmxryqnwpiaa.supabase.co/rest/v1/leads?phone=ilike.*{{ $(\"Bağlam Hazırla\").item.json.from_clean.replace('+', '') }}*&company_id=eq.{{ $(\"Bağlam Hazırla\").item.json.company_id }}&select=id,phone,conversation_history,status,full_name&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b39be714-40d3-4db2-9b0c-c4247812ca6f",
+      "name": "Supabase — Mevcut Lead Bul",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1184,
+        192
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst ctx = $('Bağlam Hazırla').item.json;\n\nlet lead_id = null;\nlet history = [];\nlet existing_user_message = '';\n\nconst lead = (items.length > 0 && items[0].json && items[0].json.id) ? items[0].json : null;\n\nif (lead) {\n  lead_id = lead.id;\n  existing_user_message = lead.user_message || '';\n  const raw = lead.conversation_history;\n  if (raw) {\n    if (typeof raw === 'string') {\n      try { history = JSON.parse(raw); } catch(e) { history = []; }\n    } else if (Array.isArray(raw)) {\n      history = [...raw];\n    }\n  }\n}\n\nhistory.push({ role: 'user', content: ctx.message_body });\nif (history.length > 20) history = history.slice(-20);\n\nreturn [{ json: {\n  lead_id: lead_id,\n  existing_user_message: existing_user_message,\n  company_id: ctx.company_id,\n  company_name: ctx.company_name,\n  phone_clean: ctx.from_clean,\n  phone_encoded: ctx.from_encoded,\n  whatsapp_number_clean: ctx.whatsapp_number_clean,\n  message: ctx.message_body,\n  history_for_gpt: history\n}}];"
+      },
+      "id": "691d7b4f-f749-4713-9bed-23729ddcee0e",
+      "name": "Geçmiş Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.item.json;\nconst name = ctx.company_name || 'Vize Danışmanlık';\nconst hist = Array.isArray(ctx.history_for_gpt) ? ctx.history_for_gpt : [{ role: 'user', content: ctx.message }];\n\nconst assistantCount = hist.filter(m => m.role === 'assistant').length;\nconst isFirstMessage = assistantCount === 0;\n\nlet durum = '';\nif (isFirstMessage) {\n  durum = 'Bu ilk mesajdır. Karşılama yap ve hangi ülke/vize konusunda bilgi almak istediğini sor.';\n} else {\n  const lastAssistant = hist.filter(m => m.role === 'assistant').pop()?.content || '';\n  const isimSoruldu = lastAssistant.includes('sminizi') || lastAssistant.includes('soyisim');\n  if (isimSoruldu) {\n    durum = 'İsim sorusu sordun. Kullanıcı cevap verdi, ismi al ve teşekkür et, danışmanlar arayacak de.';\n  } else {\n    durum = 'Konuyu öğrendin. Şimdi isim sor.';\n  }\n}\n\nconst sys = `Sen ${name} firmasının WhatsApp vize danışmanlık asistanısın. Türkçe yaz, kısa ve samimi ol. Emoji kullanma.\n\nMEVCUT DURUM: ${durum}\n\nGÖREV AKIŞI:\nAdım 1 → Selamlama/ilk mesaj: Karşıla, ülke ve vize konusunu sor.\nAdım 2 → Konu belirtildi: \"Tamamdır, not aldım. İsim soyisminizi öğrenebilir miyim?\"\nAdım 3 → İsim verildi: \"Teşekkürler [isim]! Danışmanlarımız sizi en kısa sürede arayacak.\"\nAdım 4 → Sonraki mesajlar: Danışmana yönlendir.\n\nÖRNEK KONUŞMALAR:\n\nMüşteri: Merhaba\nAsistan: {\"response\": \"Merhaba! ${name} olarak size nasıl yardımcı olabiliriz? Hangi ülke ve vize konusunda bilgi almak istiyorsunuz?\"}\n\nMüşteri: Almanya vizesi hakkında bilgi almak istiyorum\nAsistan: {\"response\": \"Tamamdır, not aldım. İsim soyisminizi öğrenebilir miyim?\"}\n\nMüşteri: Schengen vizesi almak istiyorum\nAsistan: {\"response\": \"Tamamdır, not aldım. İsim soyisminizi öğrenebilir miyim?\"}\n\nMüşteri: Fransa turistik vize\nAsistan: {\"response\": \"Tamamdır, not aldım. İsim soyisminizi öğrenebilir miyim?\"}\n\nMüşteri: Öğrenci vizesi almak istiyorum\nAsistan: {\"response\": \"Hangi ülke için öğrenci vizesi almak istiyorsunuz?\"}\n\nMüşteri: Almanya öğrenci vizesi\nAsistan: {\"response\": \"Tamamdır, not aldım. İsim soyisminizi öğrenebilir miyim?\"}\n\nMüşteri: Ahmet Yılmaz\nAsistan: {\"response\": \"Teşekkürler Ahmet Yılmaz! Danışmanlarımız sizi en kısa sürede arayacak.\"}\n\nMüşteri: Ne zaman arayacaklar?\nAsistan: {\"response\": \"Danışmanlarımız mesai saatlerinde (09:00-18:00) sizi arayacaktır.\"}\n\nMüşteri: Fiyat nedir?\nAsistan: {\"response\": \"Fiyat bilgisi için danışmanlarımız sizi aradığında detaylı bilgi verecektir. İsim soyisminizi öğrenebilir miyim?\"}\n\nMüşteri: Vize kaç günde çıkar?\nAsistan: {\"response\": \"Vize süreleri başvuruya göre değişmektedir. Danışmanlarımız sizi aradığında detaylı bilgi verecektir.\"}\n\nMüşteri: Hangi evraklar lazım?\nAsistan: {\"response\": \"Evrak listesi ülkeye ve vize türüne göre değişmektedir. Danışmanlarımız sizi aradığında size özel liste hazırlayacaktır.\"}\n\nMüşteri: Acil vizem lazım\nAsistan: {\"response\": \"Acil başvurular için danışmanlarımız en kısa sürede sizi arayacaktır. İsim soyisminizi öğrenebilir miyim?\"}\n\nMüşteri: Ret yedim ne yapacağım?\nAsistan: {\"response\": \"Ret durumunda yeniden başvuru yapılabilir. Danışmanlarımız sizi aradığında durumunuzu değerlendirecektir. İsim soyisminizi öğrenebilir miyim?\"}\n\nMüşteri: Teşekkürler\nAsistan: {\"response\": \"Rica ederiz! Danışmanlarımız sizi en kısa sürede arayacaktır.\"}\n\nKURALLAR:\n- Geçmişe bak, devam et, başa dönme\n- Fiyat bilgisi verme\n- Kesin tarih/süre verme\n- Her zaman nazik ve profesyonel ol\n\nYANIT FORMATI — SADECE bu JSON'ı döndür, başka hiçbir şey yazma:\n{\"response\": \"mesaj buraya\"}`;\n\nconst body = JSON.stringify({\n  model: 'gpt-4o',\n  messages: [{ role: 'system', content: sys }, ...hist],\n  response_format: { type: 'json_object' }\n});\n\nreturn [{ json: { ...ctx, history_for_gpt: hist, gpt_body_string: body } }];"
+      },
+      "id": "5d3b78ff-0d56-4055-805f-2d952c5f3cf1",
+      "name": "GPT Mesajlarını Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.gpt_body_string }}",
+        "options": {}
+      },
+      "id": "3f4b6de5-58a6-4df7-b995-65f4ecf28d5c",
+      "name": "OpenAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -512,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.choices[0].message.content;\nconst ctx = $('GPT Mesajlarını Hazırla').item.json;\n\nlet gptResponse;\ntry {\n  const parsed = JSON.parse(raw);\n  gptResponse = parsed.response || raw;\n} catch(e) {\n  gptResponse = raw;\n}\n\nlet updated = [...(ctx.history_for_gpt || []), { role: 'assistant', content: gptResponse }];\nif (updated.length > 20) updated = updated.slice(-20);\n\nlet full_name = null;\nfor (let i = 0; i < updated.length - 1; i++) {\n  if (updated[i].role === 'assistant') {\n    const content = updated[i].content;\n    if (content.indexOf('soyisim') !== -1 || content.indexOf('sminizi') !== -1) {\n      if (updated[i + 1] && updated[i + 1].role === 'user') {\n        full_name = updated[i + 1].content.trim();\n      }\n    }\n  }\n}\n\nconst kullaniciMesajlari = updated\n  .filter(m => m.role === 'user')\n  .map(m => m.content)\n  .join('\\n');\n\nconst anthropicBody = JSON.stringify({\n  model: 'claude-haiku-4-5-20251001',\n  max_tokens: 100,\n  messages: [{\n    role: 'user',\n    content: 'Aşağıdaki WhatsApp konuşmasında müşterinin ne istediğini tek cümleyle özetle. Sadece vize amacını yaz, isim bilgisi ekleme, \"müşteri\" kelimesi kullanma. Direkt yaz örnek: \"İsviçre öğrenci vizesi için bilgi almak istiyor\"\\n\\nKonuşma:\\n' + kullaniciMesajlari\n  }]\n});\n\nreturn [{ json: {\n  lead_id: ctx.lead_id,\n  company_id: ctx.company_id,\n  phone_clean: ctx.phone_clean,\n  phone_encoded: ctx.phone_encoded,\n  whatsapp_number_clean: ctx.whatsapp_number_clean,\n  existing_user_message: ctx.existing_user_message,\n  message: ctx.message,\n  gpt_response: gptResponse,\n  updated_history: updated,\n  full_name: full_name,\n  anthropic_body: anthropicBody\n}}];"
+      },
+      "id": "fb13c207-f9d6-43a1-a553-79344431fb0e",
+      "name": "Özet Hazırla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.anthropic_body }}",
+        "options": {}
+      },
+      "id": "3f352fed-6455-43e1-8d7a-c21ac1bc1ddf",
+      "name": "HTTP Request — Anthropic Özet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -64,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Özet Hazırla').item.json;\nconst anthropicData = $input.item.json;\n\nconst user_message = ((anthropicData.content && anthropicData.content[0] && anthropicData.content[0].text)\n  || ctx.existing_user_message\n  || '').trim().substring(0, 80);\n\nreturn [{ json: {\n  lead_id: ctx.lead_id,\n  company_id: ctx.company_id,\n  phone_clean: ctx.phone_clean,\n  phone_encoded: ctx.phone_encoded,\n  whatsapp_number_clean: ctx.whatsapp_number_clean,\n  user_message: user_message,\n  message: ctx.message,\n  gpt_response: ctx.gpt_response,\n  updated_history: ctx.updated_history,\n  full_name: ctx.full_name\n}}];"
+      },
+      "id": "50357a97-dce8-4228-9855-2df6b88e5baf",
+      "name": "Geçmişi Güncelle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.lead_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2c41563d-53f1-433c-a26a-c1218bff8730",
+      "name": "Lead ID Var mı?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        384,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://yhmcpfxakmxryqnwpiaa.supabase.co/rest/v1/leads?id=eq.{{ $json.lead_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ conversation_history: $json.updated_history, message: $json.gpt_response, user_message: $json.user_message, ai_summary: $json.user_message, ai_message: $json.gpt_response, full_name: $json.full_name || null }) }}",
+        "options": {}
+      },
+      "id": "c90f2538-5193-43a6-b88b-10f1d1f61e19",
+      "name": "Lead Güncelle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        608,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://yhmcpfxakmxryqnwpiaa.supabase.co/rest/v1/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ company_id: $json.company_id, phone: $json.phone_clean, message: $json.gpt_response, user_message: $json.user_message, ai_summary: $json.user_message, status: \"waiting\", conversation_history: $json.updated_history, ai_message: $json.gpt_response, full_name: $json.full_name || null }) }}",
+        "options": {}
+      },
+      "id": "bf5fb918-c7a4-406e-8977-b285f67048d0",
+      "name": "Lead Oluştur",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        608,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Geçmişi Güncelle').item.json.whatsapp_number_clean }}",
+        "to": "={{ $('Geçmişi Güncelle').item.json.phone_clean }}",
+        "toWhatsapp": true,
+        "message": "={{ $('Geçmişi Güncelle').item.json.gpt_response }}",
+        "options": {}
+      },
+      "id": "eac1f734-1ecc-44ed-bd74-9ae3e3e501e5",
+      "name": "Twilio — Lead'e Yanıt",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        832,
+        192
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "6RWMbzFTaSg8bsfP",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Twilio Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Twilio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Verisini Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Verisini Hazırla": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Firmayı Bul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — Firmayı Bul": {
+      "main": [
+        [
+          {
+            "node": "Firma Var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firma Var mı?": {
+      "main": [
+        [
+          {
+            "node": "Bağlam Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dur — Bilinmeyen Firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bağlam Hazırla": {
+      "main": [
+        [
+          {
+            "node": "Supabase — Mevcut Müşteri Bul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — Mevcut Müşteri Bul": {
+      "main": [
+        [
+          {
+            "node": "Müşteri Var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Müşteri Var mı?": {
+      "main": [
+        [
+          {
+            "node": "GPT Müşteri Mesajlarını Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase — Mevcut Lead Bul",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Müşteri Mesajlarını Hazırla": {
+      "main": [
+        [
+          {
+            "node": "OpenAI API — Müşteri",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API — Müşteri": {
+      "main": [
+        [
+          {
+            "node": "Müşteri Yanıt Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Müşteri Yanıt Hazırla": {
+      "main": [
+        [
+          {
+            "node": "Twilio — Müşteriye Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — Mevcut Lead Bul": {
+      "main": [
+        [
+          {
+            "node": "Geçmiş Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmiş Hazırla": {
+      "main": [
+        [
+          {
+            "node": "GPT Mesajlarını Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT Mesajlarını Hazırla": {
+      "main": [
+        [
+          {
+            "node": "OpenAI API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API": {
+      "main": [
+        [
+          {
+            "node": "Özet Hazırla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Özet Hazırla": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request — Anthropic Özet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request — Anthropic Özet": {
+      "main": [
+        [
+          {
+            "node": "Geçmişi Güncelle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geçmişi Güncelle": {
+      "main": [
+        [
+          {
+            "node": "Lead ID Var mı?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead ID Var mı?": {
+      "main": [
+        [
+          {
+            "node": "Lead Güncelle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lead Oluştur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Güncelle": {
+      "main": [
+        [
+          {
+            "node": "Twilio — Lead'e Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Oluştur": {
+      "main": [
+        [
+          {
+            "node": "Twilio — Lead'e Yanıt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fe2fc7a1-92f0-4aac-b9d5-48cd69edc7d3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a3e5440ab8772d6d06ab0a0600d46f24f8040b437b36d26e47db532e6f71d45c"
+  },
+  "nodeGroups": [],
+  "id": "wvI7kYOFnx7SaXHY",
+  "tags": [
+    {
+      "updatedAt": "2026-03-29T22:54:52.146Z",
+      "createdAt": "2026-03-29T22:54:52.146Z",
+      "id": "VSYds0jJ5vTjYk98",
+      "name": "Workflows"
+    }
+  ]
+}
