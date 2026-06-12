@@ -6,7 +6,7 @@ const USER_LIMITS: Record<string, number> = { basic: 3, pro: 5 }
 export async function checkApplicationLimit(companyId: string): Promise<{ allowed: boolean; message?: string }> {
   const { data: company } = await supabase
     .from('companies')
-    .select('plan')
+    .select('plan, total_customers_created')
     .eq('id', companyId)
     .single()
 
@@ -15,12 +15,24 @@ export async function checkApplicationLimit(companyId: string): Promise<{ allowe
   const limit = APPLICATION_LIMITS[company.plan]
   if (!limit) return { allowed: true }
 
-  const { data: count } = await supabase.rpc('get_monthly_application_count', { p_company_id: companyId })
+  // total_customers_created: DB trigger ile artırılır, silince azalmaz
+  // Kolon henüz eklenmemişse (migration uygulanmadı) eski RPC'ye fallback
+  const total = company.total_customers_created ?? null
+  if (total === null) {
+    const { data: count } = await supabase.rpc('get_monthly_application_count', { p_company_id: companyId })
+    if ((count || 0) >= limit) {
+      return {
+        allowed: false,
+        message: `${company.plan === 'basic' ? 'Basic' : 'Pro'} paketinizde maksimum ${limit} müşteri hakkınız var. Üst pakete geçmek için bizimle iletişime geçin.`
+      }
+    }
+    return { allowed: true }
+  }
 
-  if ((count || 0) >= limit) {
+  if (total >= limit) {
     return {
       allowed: false,
-      message: `${company.plan === 'basic' ? 'Basic' : 'Pro'} paketinizde aylık maksimum ${limit} dosya hakkınız var. Üst pakete geçmek için bizimle iletişime geçin.`
+      message: `${company.plan === 'basic' ? 'Basic' : 'Pro'} paketinizde toplam ${limit} müşteri hakkınız var (${total}/${limit} kullanıldı). Üst pakete geçmek için bizimle iletişime geçin.`
     }
   }
 
