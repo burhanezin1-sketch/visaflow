@@ -36,8 +36,10 @@ export default function MusterilerPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [prices, setPrices] = useState<any[]>([])
+  const [surcharges, setSurcharges] = useState<any[]>([])
   const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
+  const [autoSurcharge, setAutoSurcharge] = useState<{ surcharge_amount: number; currency: string; reason?: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [limitError, setLimitError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'tumu' | 'benimkiler'>('tumu')
@@ -100,6 +102,11 @@ export default function MusterilerPage() {
       .select('*')
       .eq('company_id', companyId)
     setPrices(data || [])
+    const { data: sur } = await supabase
+      .from('nationality_surcharges')
+      .select('*')
+      .eq('company_id', companyId)
+    setSurcharges(sur || [])
   }
 
   useEffect(() => {
@@ -113,6 +120,12 @@ export default function MusterilerPage() {
     const p = prices.find(p => p.country === form.country && p.visa_type === form.visa_type)
     setAutoPrice(p ? { price: p.price, currency: p.currency || 'TRY' } : null)
   }, [form.country, form.visa_type, prices])
+
+  useEffect(() => {
+    const nat = form.nationality?.trim().toLowerCase()
+    const s = surcharges.find(s => s.nationality?.trim().toLowerCase() === nat)
+    setAutoSurcharge(s ? { surcharge_amount: s.surcharge_amount, currency: s.currency || 'TRY', reason: s.reason } : null)
+  }, [form.nationality, surcharges])
 
   async function saveClient() {
     if (isSavingRef.current || !form.ad || !form.soyad || !companyId) return
@@ -290,12 +303,17 @@ export default function MusterilerPage() {
       }
 
       if (newApp && autoPrice) {
+        const sameCurrency = !autoSurcharge || autoSurcharge.currency === autoPrice.currency
+        const totalAmount = autoPrice.price + (sameCurrency && autoSurcharge ? autoSurcharge.surcharge_amount : 0)
         await supabase.from('payments').insert({
           company_id: companyId,
           application_id: newApp.id,
-          total_amount: autoPrice.price,
+          total_amount: totalAmount,
           paid_amount: 0,
           currency: autoPrice.currency || 'TRY',
+          notes: autoSurcharge
+            ? `Hizmet: ${autoPrice.price} ${autoPrice.currency} + Uyruk ek ücreti: ${autoSurcharge.surcharge_amount} ${autoSurcharge.currency}${autoSurcharge.reason ? ` (${autoSurcharge.reason})` : ''}`
+            : null,
         })
       }
 
@@ -531,9 +549,25 @@ export default function MusterilerPage() {
               />
             </div>
             {autoPrice ? (
-              <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{t('addModal.servicePrice')}</span>
-                <strong>{formatPrice(autoPrice.price, autoPrice.currency)}</strong>
+              <div style={{ background: '#edfaf3', border: '1px solid #a8e6c1', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#1a7a45' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{t('addModal.servicePrice')}</span>
+                  <strong>{formatPrice(autoPrice.price, autoPrice.currency)}</strong>
+                </div>
+                {autoSurcharge && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #a8e6c1', color: '#854f0b' }}>
+                      <span>Uyruk Ek Ücreti{autoSurcharge.reason ? ` (${autoSurcharge.reason})` : ''}</span>
+                      <strong>+{formatPrice(autoSurcharge.surcharge_amount, autoSurcharge.currency)}</strong>
+                    </div>
+                    {autoSurcharge.currency === autoPrice.currency && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #a8e6c1', fontWeight: '700' }}>
+                        <span>Toplam</span>
+                        <span>{formatPrice(autoPrice.price + autoSurcharge.surcharge_amount, autoPrice.currency)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             ) : (
               <div style={{ background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#92600a' }}>

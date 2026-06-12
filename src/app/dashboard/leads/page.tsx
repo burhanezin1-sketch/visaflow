@@ -34,6 +34,7 @@ export default function LeadsPage() {
   const [showDurumModal, setShowDurumModal] = useState(false)
   const [selectedLead, setSelectedLead] = useState<any>(null)
   const [prices, setPrices] = useState<any[]>([])
+  const [surcharges, setSurcharges] = useState<any[]>([])
   const [form, setForm] = useState({ country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti' })
   const [saving, setSaving] = useState(false)
   const isSavingRef = useRef(false)
@@ -87,6 +88,8 @@ export default function LeadsPage() {
   async function fetchPrices() {
     const { data } = await supabase.from('service_prices').select('*').eq('company_id', companyId)
     setPrices(data || [])
+    const { data: sur } = await supabase.from('nationality_surcharges').select('*').eq('company_id', companyId)
+    setSurcharges(sur || [])
   }
 
   async function sahiplen(lead: any) {
@@ -146,10 +149,16 @@ export default function LeadsPage() {
       p.country.toLowerCase() === form.country.toLowerCase() &&
       p.visa_type.toLowerCase() === form.visa_type.toLowerCase()
     )
+    const sur = surcharges.find(s => s.nationality?.trim().toLowerCase() === (form.nationality || '').trim().toLowerCase())
     if (app && price) {
+      const sameCurrency = !sur || sur.currency === price.currency
+      const totalAmount = price.price + (sameCurrency && sur ? sur.surcharge_amount : 0)
       await supabase.from('payments').insert({
         company_id: companyId, application_id: app.id,
-        total_amount: price.price, paid_amount: 0, currency: price.currency || 'TRY',
+        total_amount: totalAmount, paid_amount: 0, currency: price.currency || 'TRY',
+        notes: sur
+          ? `Hizmet: ${price.price} ${price.currency} + Uyruk ek ücreti: ${sur.surcharge_amount} ${sur.currency}${sur.reason ? ` (${sur.reason})` : ''}`
+          : null,
       })
     }
 
@@ -268,6 +277,10 @@ export default function LeadsPage() {
     p.country.toLowerCase() === form.country.toLowerCase() &&
     p.visa_type.toLowerCase() === form.visa_type.toLowerCase()
   )
+
+  const autoSurcharge = form.nationality
+    ? surcharges.find(s => s.nationality?.trim().toLowerCase() === form.nationality.trim().toLowerCase())
+    : null
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '10px', border: '1.5px solid rgba(188,204,226,0.7)',
@@ -413,9 +426,25 @@ export default function LeadsPage() {
                 </div>
 
                 {autoPrice ? (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#16a34a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{tm('addModal.servicePrice')}</span>
-                    <strong>{formatPrice(autoPrice.price, autoPrice.currency)}</strong>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '13px', color: '#16a34a' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{tm('addModal.servicePrice')}</span>
+                      <strong>{formatPrice(autoPrice.price, autoPrice.currency)}</strong>
+                    </div>
+                    {autoSurcharge && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #86efac', color: '#854f0b' }}>
+                          <span>Uyruk Ek Ücreti{autoSurcharge.reason ? ` (${autoSurcharge.reason})` : ''}</span>
+                          <strong>+{formatPrice(autoSurcharge.surcharge_amount, autoSurcharge.currency)}</strong>
+                        </div>
+                        {autoSurcharge.currency === autoPrice.currency && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #86efac', fontWeight: '700' }}>
+                            <span>Toplam</span>
+                            <span>{formatPrice(autoPrice.price + autoSurcharge.surcharge_amount, autoPrice.currency)}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 ) : (form.country && form.visa_type) ? (
                   <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#92400e' }}>
