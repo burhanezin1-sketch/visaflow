@@ -158,6 +158,9 @@ export default function AdminPage() {
 
   const fmt = (n: number) => Math.round(n).toLocaleString('tr-TR') + '₺'
   const hasForeign = Object.keys(currencyBreakdown).some(c => c !== 'TRY')
+  const hasEUR = (currencyBreakdown['EUR']?.total ?? 0) > 0
+  const hasUSD = (currencyBreakdown['USD']?.total ?? 0) > 0
+  const ratesOk = (!hasEUR || (fxRates?.EUR_TRY ?? 0) > 0) && (!hasUSD || (fxRates?.USD_TRY ?? 0) > 0)
   const rateNote = fxRates ? fmtRateNote(fxRates) : null
 
   function multiLine(key: 'total' | 'collected'): string {
@@ -186,8 +189,8 @@ export default function AdminPage() {
       <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e4eaf5' }}>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: isMobile ? '8px' : '12px', marginBottom: '0.75rem' }}>
           {[
-            { label: 'Toplam Ciro',       value: hasForeign ? multiLine('total')       : fmt(stats.toplamOdeme),    icon: '💰', iconBg: '#f0fdf4', accent: '#22c55e', numColor: '#14532d', sub: hasForeign ? `~${fmt(stats.toplamOdeme)} TL` : null },
-            { label: 'Tahsil Edilmemiş',  value: hasForeign ? multiLineRemaining()    : fmt(stats.tahsilEdilmemis), icon: '⏳', iconBg: '#fef2f2', accent: '#ef4444', numColor: '#991b1b', sub: hasForeign ? `~${fmt(stats.tahsilEdilmemis)} TL` : null },
+            { label: 'Toplam Ciro',       value: hasForeign ? multiLine('total')       : fmt(stats.toplamOdeme),    icon: '💰', iconBg: '#f0fdf4', accent: '#22c55e', numColor: '#14532d', sub: hasForeign && ratesOk ? `~${fmt(stats.toplamOdeme)} TL` : null },
+            { label: 'Tahsil Edilmemiş',  value: hasForeign ? multiLineRemaining()    : fmt(stats.tahsilEdilmemis), icon: '⏳', iconBg: '#fef2f2', accent: '#ef4444', numColor: '#991b1b', sub: hasForeign && ratesOk ? `~${fmt(stats.tahsilEdilmemis)} TL` : null },
             { label: 'Aktif Dosya',       value: stats.toplamMusteri,                  icon: '📂', iconBg: '#eff6ff', accent: '#3b82f6', numColor: '#1e3a8a', sub: null },
             { label: 'Tamamlanan',        value: stats.tamamlanan,                     icon: '✅', iconBg: '#f0fdf4', accent: '#22c55e', numColor: '#065f46', sub: null },
           ].map((s, i) => (

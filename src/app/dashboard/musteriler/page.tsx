@@ -123,9 +123,16 @@ export default function MusterilerPage() {
 
   useEffect(() => {
     const nat = form.nationality?.trim().toLowerCase()
-    const s = surcharges.find(s => s.nationality?.trim().toLowerCase() === nat)
+    const country = form.country?.trim().toLowerCase()
+    const visaType = form.visa_type?.trim().toLowerCase()
+    const s = surcharges.find(s => {
+      if (s.nationality?.trim().toLowerCase() !== nat) return false
+      if (s.country && s.country.trim().toLowerCase() !== country) return false
+      if (s.visa_type && s.visa_type.trim().toLowerCase() !== visaType) return false
+      return true
+    })
     setAutoSurcharge(s ? { surcharge_amount: s.surcharge_amount, currency: s.currency || 'TRY', reason: s.reason } : null)
-  }, [form.nationality, surcharges])
+  }, [form.nationality, form.country, form.visa_type, surcharges])
 
   async function saveClient() {
     if (isSavingRef.current || !form.ad || !form.soyad || !companyId) return

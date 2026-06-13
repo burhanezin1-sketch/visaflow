@@ -13,9 +13,10 @@ export async function fetchFxRates(): Promise<FxRates> {
 }
 
 export function amountToTRY(amount: number, currency: string, rates: FxRates): number {
+  if (currency === 'TRY') return amount
   if (currency === 'EUR' && rates.EUR_TRY) return amount * rates.EUR_TRY
   if (currency === 'USD' && rates.USD_TRY) return amount * rates.USD_TRY
-  return amount
+  return 0
 }
 
 export const CUR_SYM: Record<string, string> = { TRY: '₺', EUR: '€', USD: '$' }

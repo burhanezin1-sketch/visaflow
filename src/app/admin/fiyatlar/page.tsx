@@ -148,20 +148,25 @@ export default function FiyatlarPage() {
       reason: surForm.reason || null,
     }
 
-    if (editSur) {
-      await supabase.from('nationality_surcharges').update({
-        country: payload.country,
-        visa_type: payload.visa_type,
-        nationality: payload.nationality,
-        surcharge_amount: payload.surcharge_amount,
-        currency: payload.currency,
-        reason: payload.reason,
-      }).eq('id', editSur.id)
-    } else {
-      await supabase.from('nationality_surcharges').insert(payload)
-    }
+    const { error: surError } = editSur
+      ? await supabase.from('nationality_surcharges').update({
+          country: payload.country,
+          visa_type: payload.visa_type,
+          nationality: payload.nationality,
+          surcharge_amount: payload.surcharge_amount,
+          currency: payload.currency,
+          reason: payload.reason,
+        }).eq('id', editSur.id)
+      : await supabase.from('nationality_surcharges').insert(payload)
 
     setSurSaving(false)
+
+    if (surError) {
+      setUpdateToast('❌ Kayıt başarısız: ' + surError.message)
+      setTimeout(() => setUpdateToast(null), 6000)
+      return
+    }
+
     setShowSurModal(false)
     setEditSur(null)
     setSurForm({ country: '', visa_type: '', nationality: '', surcharge_amount: '', currency: 'TRY', reason: '' })

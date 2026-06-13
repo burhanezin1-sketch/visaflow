@@ -149,7 +149,12 @@ export default function LeadsPage() {
       p.country.toLowerCase() === form.country.toLowerCase() &&
       p.visa_type.toLowerCase() === form.visa_type.toLowerCase()
     )
-    const sur = surcharges.find(s => s.nationality?.trim().toLowerCase() === (form.nationality || '').trim().toLowerCase())
+    const sur = surcharges.find(s => {
+      if (s.nationality?.trim().toLowerCase() !== (form.nationality || '').trim().toLowerCase()) return false
+      if (s.country && s.country.trim().toLowerCase() !== form.country.toLowerCase()) return false
+      if (s.visa_type && s.visa_type.trim().toLowerCase() !== form.visa_type.toLowerCase()) return false
+      return true
+    })
     if (app && price) {
       const sameCurrency = !sur || sur.currency === price.currency
       const totalAmount = price.price + (sameCurrency && sur ? sur.surcharge_amount : 0)
@@ -279,7 +284,12 @@ export default function LeadsPage() {
   )
 
   const autoSurcharge = form.nationality
-    ? surcharges.find(s => s.nationality?.trim().toLowerCase() === form.nationality.trim().toLowerCase())
+    ? surcharges.find(s => {
+        if (s.nationality?.trim().toLowerCase() !== form.nationality.trim().toLowerCase()) return false
+        if (s.country && s.country.trim().toLowerCase() !== (form.country || '').toLowerCase()) return false
+        if (s.visa_type && s.visa_type.trim().toLowerCase() !== (form.visa_type || '').toLowerCase()) return false
+        return true
+      })
     : null
 
   const inputStyle: React.CSSProperties = {
