@@ -35,7 +35,7 @@ export default function FiyatlarPage() {
   const [surcharges, setSurcharges] = useState<any[]>([])
   const [showSurModal, setShowSurModal] = useState(false)
   const [editSur, setEditSur] = useState<any>(null)
-  const [surForm, setSurForm] = useState({ nationality: '', surcharge_amount: '', currency: 'TRY', reason: '' })
+  const [surForm, setSurForm] = useState({ country: '', visa_type: '', nationality: '', surcharge_amount: '', currency: 'TRY', reason: '' })
   const [surSaving, setSurSaving] = useState(false)
 
   useEffect(() => {
@@ -135,11 +135,13 @@ export default function FiyatlarPage() {
 
   // ── Uyruk ek ücreti kaydet ──
   async function saveSurcharge() {
-    if (!surForm.nationality || !surForm.surcharge_amount || !companyId) return
+    if (!surForm.country || !surForm.visa_type || !surForm.nationality || !surForm.surcharge_amount || !companyId) return
     setSurSaving(true)
 
     const payload = {
       company_id: companyId,
+      country: surForm.country || null,
+      visa_type: surForm.visa_type || null,
       nationality: surForm.nationality,
       surcharge_amount: parseFloat(surForm.surcharge_amount),
       currency: surForm.currency,
@@ -148,6 +150,8 @@ export default function FiyatlarPage() {
 
     if (editSur) {
       await supabase.from('nationality_surcharges').update({
+        country: payload.country,
+        visa_type: payload.visa_type,
         nationality: payload.nationality,
         surcharge_amount: payload.surcharge_amount,
         currency: payload.currency,
@@ -160,7 +164,7 @@ export default function FiyatlarPage() {
     setSurSaving(false)
     setShowSurModal(false)
     setEditSur(null)
-    setSurForm({ nationality: '', surcharge_amount: '', currency: 'TRY', reason: '' })
+    setSurForm({ country: '', visa_type: '', nationality: '', surcharge_amount: '', currency: 'TRY', reason: '' })
     fetchSurcharges()
     setUpdateToast('✓ Uyruk ek ücreti kaydedildi')
     setTimeout(() => setUpdateToast(null), 3000)
@@ -186,13 +190,13 @@ export default function FiyatlarPage() {
 
   function openSurAdd() {
     setEditSur(null)
-    setSurForm({ nationality: '', surcharge_amount: '', currency: 'TRY', reason: '' })
+    setSurForm({ country: '', visa_type: '', nationality: '', surcharge_amount: '', currency: 'TRY', reason: '' })
     setShowSurModal(true)
   }
 
   function openSurEdit(s: any) {
     setEditSur(s)
-    setSurForm({ nationality: s.nationality, surcharge_amount: s.surcharge_amount.toString(), currency: s.currency || 'TRY', reason: s.reason || '' })
+    setSurForm({ country: s.country || '', visa_type: s.visa_type || '', nationality: s.nationality, surcharge_amount: s.surcharge_amount.toString(), currency: s.currency || 'TRY', reason: s.reason || '' })
     setShowSurModal(true)
   }
 
@@ -315,7 +319,7 @@ export default function FiyatlarPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '400px' }}>
               <thead>
                 <tr>
-                  {['Uyruk', 'Ek Ücret', 'TL Karşılığı', 'Açıklama', ''].map(h => (
+                  {['Hizmet', 'Uyruk', 'Ek Ücret', 'TL Karşılığı', 'Açıklama', ''].map(h => (
                     <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
                   ))}
                 </tr>
@@ -323,7 +327,7 @@ export default function FiyatlarPage() {
               <tbody>
                 {surcharges.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
+                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', fontSize: '13px', color: '#9aaabb' }}>
                       Ek ücret tanımlanmamış — tüm uyruklar için standart hizmet fiyatı uygulanır.
                     </td>
                   </tr>
@@ -332,6 +336,11 @@ export default function FiyatlarPage() {
                   const tryEq = tryEquivalent(s.surcharge_amount, s.currency || 'TRY')
                   return (
                     <tr key={s.id}>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>
+                        {s.country && s.visa_type
+                          ? <span>{s.country} <span style={{ color: '#c0c8d4' }}>—</span> {s.visa_type}</span>
+                          : <span style={{ color: '#d0d0d8' }}>Tüm hizmetler</span>}
+                      </td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{s.nationality}</td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0f0f4', color: '#854f0b' }}>
                         +{formatPrice(s.surcharge_amount, s.currency || 'TRY')}
@@ -420,6 +429,25 @@ export default function FiyatlarPage() {
             </p>
 
             <div style={{ marginBottom: '12px' }}>
+              <label style={labelStyle}>Hizmet</label>
+              <select
+                value={surForm.country && surForm.visa_type ? `${surForm.country}||${surForm.visa_type}` : ''}
+                onChange={e => {
+                  const [country = '', visa_type = ''] = e.target.value.split('||')
+                  setSurForm({ ...surForm, country, visa_type })
+                }}
+                style={{ ...inputStyle, cursor: 'pointer', background: '#f5f5f7', color: surForm.country ? '#0d1f35' : '#9aaabb' }}
+              >
+                <option value="">— Hizmet seçin —</option>
+                {prices.map(p => (
+                  <option key={p.id} value={`${p.country}||${p.visa_type}`}>
+                    {p.country} — {p.visa_type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
               <label style={labelStyle}>Uyruk</label>
               <input value={surForm.nationality} onChange={e => setSurForm({ ...surForm, nationality: toTitleCase(e.target.value) })} placeholder="ör. Suriye Arap Cumhuriyeti" style={inputStyle} />
             </div>
@@ -453,7 +481,7 @@ export default function FiyatlarPage() {
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => { setShowSurModal(false); setEditSur(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-              <button onClick={saveSurcharge} disabled={surSaving || !surForm.nationality || !surForm.surcharge_amount} style={{ flex: 2, padding: '10px', background: '#854f0b', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: surSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: surSaving || !surForm.nationality || !surForm.surcharge_amount ? 0.7 : 1 }}>
+              <button onClick={saveSurcharge} disabled={surSaving || !surForm.country || !surForm.visa_type || !surForm.nationality || !surForm.surcharge_amount} style={{ flex: 2, padding: '10px', background: '#854f0b', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: surSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: surSaving || !surForm.country || !surForm.visa_type || !surForm.nationality || !surForm.surcharge_amount ? 0.7 : 1 }}>
                 {surSaving ? 'Kaydediliyor...' : editSur ? 'Güncelle' : 'Kaydet'}
               </button>
             </div>
