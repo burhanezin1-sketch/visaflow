@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const PLAN_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
-const PLAN_PRICES: Record<string, number> = { basic: 2999, pro: 5499 }
+const PLAN_PRICES: Record<string, number> = { basic: 3499, pro: 5499 }
 
 const PLAN_OPTIONS = [
   { key: 'basic', label: 'Basic', price: '2.999 TL/ay', features: ['1 Admin + 2 Danışman', '30 Dosya/Ay', 'AI Kısıtlı'] },

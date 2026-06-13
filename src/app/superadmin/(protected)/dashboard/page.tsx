@@ -10,7 +10,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
-const PLAN_PRICES: Record<string, number> = { basic: 2999, pro: 5499 }
+const PLAN_PRICES: Record<string, number> = { basic: 3499, pro: 5499 }
 const PLAN_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
 
 const statusLabels: Record<string, string> = {
