@@ -209,10 +209,8 @@ export default function LeadsPage() {
       }
 
       if (!matchedDocs) {
-        // 3. Nationality mismatch veya genel benzer şablonlar
-        // NOT: nationality SELECT'e dahil edilmiyor (migration uygulanmamış olabilir)
         const { data: similar } = await supabase
-          .from('visa_templates').select('country, visa_type, occupation, docs, is_global')
+          .from('visa_templates').select('country, visa_type, occupation, nationality, docs, is_global')
           .ilike('country', form.country).eq('status', 'approved').limit(6)
         setSimilarTemplates(similar || [])
       }
@@ -526,7 +524,9 @@ export default function LeadsPage() {
                         {tpl.country} · {tpl.visa_type}
                       </div>
                       <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                        {tpl.occupation || tm('noTemplate.noOccupation')} · {tm('noTemplate.docCount', { count: (tpl.docs || []).length })}
+                        {tpl.occupation || tm('noTemplate.noOccupation')}
+                        {tpl.nationality && <span style={{ marginLeft: '4px' }}>· {tpl.nationality}</span>}
+                        {' · '}{tm('noTemplate.docCount', { count: (tpl.docs || []).length })}
                         {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>{tm('noTemplate.globalBadge')}</span>}
                       </div>
                     </div>

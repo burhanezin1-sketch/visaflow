@@ -280,10 +280,9 @@ export default function MusterilerPage() {
 
         if (!matchedDocs) {
           // 3. Aynı ülke+vize+meslek ama farklı uyruk — nationality mismatch önerisi
-          // NOT: SELECT'e nationality dahil edilmiyor (migration uygulanmamış olabilir)
           const { data: natMismatch, error: natMismatchErr } = await supabase
             .from('visa_templates')
-            .select('country, visa_type, occupation, docs, is_global')
+            .select('country, visa_type, occupation, nationality, docs, is_global')
             .ilike('country', form.country)
             .ilike('visa_type', form.visa_type)
             .ilike('occupation', form.occupation || '')
@@ -299,7 +298,7 @@ export default function MusterilerPage() {
             // 4. Hiçbiri yoksa: aynı ülkeye ait genel öneriler
             const { data: similar } = await supabase
               .from('visa_templates')
-              .select('country, visa_type, occupation, docs, is_global')
+              .select('country, visa_type, occupation, nationality, docs, is_global')
               .ilike('country', form.country)
               .eq('status', 'approved')
               .limit(6)
