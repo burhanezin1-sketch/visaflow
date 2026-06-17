@@ -33,6 +33,7 @@ export default function PortalPage() {
   const [sidebarText, setSidebarText]     = useState<string | null>(null)
   const [buttonBg, setButtonBg]           = useState<string | null>(null)
   const [buttonText, setButtonText]       = useState<string | null>(null)
+  const [panelBg, setPanelBg]             = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showConsent, setShowConsent] = useState(false)
   const [consentSaving, setConsentSaving] = useState(false)
@@ -68,6 +69,7 @@ export default function PortalPage() {
         setSidebarText(data.sidebarText || null)
         setButtonBg(data.buttonBg || null)
         setButtonText(data.buttonText || null)
+        setPanelBg(data.panelBg || null)
       } catch (err) {
         console.error('[portal] fetchClient error', err)
       }
@@ -315,7 +317,7 @@ export default function PortalPage() {
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
 
   return (
-    <div style={{ minHeight: '100vh', background: portalBg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
+    <div style={{ minHeight: '100vh', background: panelBg || portalBg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '440px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
 
         {/* Header */}

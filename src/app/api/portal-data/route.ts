@@ -51,10 +51,11 @@ export async function GET(req: NextRequest) {
     let sidebarText: string | null = null
     let buttonBg: string | null = null
     let buttonText: string | null = null
+    let panelBg: string | null = null
     if (application?.company_id) {
       const { data: co } = await supabase
         .from('companies')
-        .select('logo_url, plan, sidebar_bg_color, sidebar_text_color, button_color, button_text_color')
+        .select('logo_url, plan, sidebar_bg_color, sidebar_text_color, button_color, button_text_color, panel_bg_color')
         .eq('id', application.company_id).maybeSingle()
       companyLogo = co?.logo_url ?? null
       if (co?.plan === 'kurumsal') {
@@ -62,10 +63,11 @@ export async function GET(req: NextRequest) {
         sidebarText = co.sidebar_text_color ?? null
         buttonBg    = co.button_color       ?? null
         buttonText  = co.button_text_color  ?? null
+        panelBg     = co.panel_bg_color     ?? null
       }
     }
 
-    return NextResponse.json({ client: safeClient, application, userSubmittedDocs, companyLogo, sidebarBg, sidebarText, buttonBg, buttonText })
+    return NextResponse.json({ client: safeClient, application, userSubmittedDocs, companyLogo, sidebarBg, sidebarText, buttonBg, buttonText, panelBg })
   } catch (err: any) {
     console.error('[portal-data]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

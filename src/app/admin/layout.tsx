@@ -34,17 +34,48 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect('/login')
 
   const { data: userData } = await supabase
-    .from('users').select('role').eq('id', user.id).maybeSingle()
+    .from('users').select('role, company_id').eq('id', user.id).maybeSingle()
   if (!userData || userData.role !== 'admin') redirect('/dashboard')
 
   const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value as Locale | undefined
   const locale: Locale = (cookieLocale && LOCALES.includes(cookieLocale)) ? cookieLocale : 'tr'
   const messages = await loadMessages(locale)
 
+  let sidebarBg   = '#0e1524'
+  let sidebarText = 'rgba(255,255,255,0.92)'
+  let buttonBg    = '#1a3a5c'
+  let buttonText  = '#ffffff'
+  let panelBg     = '#e4eaf5'
+  try {
+    if (userData.company_id) {
+      const { data: co } = await supabase
+        .from('companies')
+        .select('plan, sidebar_bg_color, sidebar_text_color, button_color, button_text_color, panel_bg_color')
+        .eq('id', userData.company_id).maybeSingle()
+      if (co?.plan === 'kurumsal') {
+        if (co.sidebar_bg_color)   sidebarBg   = co.sidebar_bg_color
+        if (co.sidebar_text_color) sidebarText = co.sidebar_text_color
+        if (co.button_color)       buttonBg    = co.button_color
+        if (co.button_text_color)  buttonText  = co.button_text_color
+        if (co.panel_bg_color)     panelBg     = co.panel_bg_color
+      }
+    }
+  } catch { /* fallback */ }
+
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <SidebarProvider>
-        <div style={{ display: 'flex', minHeight: '100vh', background: '#e4eaf5', fontFamily: 'system-ui', direction: locale === 'ar' ? 'rtl' : 'ltr' }}>
+        <div style={{
+          '--sidebar-bg':   sidebarBg,
+          '--sidebar-text': sidebarText,
+          '--button-bg':    buttonBg,
+          '--button-text':  buttonText,
+          '--panel-bg':     panelBg,
+          display: 'flex', minHeight: '100vh',
+          background: panelBg,
+          fontFamily: 'system-ui',
+          direction: locale === 'ar' ? 'rtl' : 'ltr',
+        } as React.CSSProperties}>
           <AdminSidebarWrapper />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
             <SessionTimeout />

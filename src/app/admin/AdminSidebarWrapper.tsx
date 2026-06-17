@@ -47,7 +47,7 @@ export default function AdminSidebarWrapper() {
   const innerContent = (
     <>
       <div style={{ padding: '0 1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '0.75rem' }}>
-        <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{companyName || '...'}</div>
+        <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--sidebar-text, rgba(255,255,255,0.92))' }}>{companyName || '...'}</div>
         <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>Admin Panel</div>
       </div>
 
@@ -63,13 +63,13 @@ export default function AdminSidebarWrapper() {
               color: isActive ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.42)',
               fontWeight: isActive ? '500' : '400',
               cursor: 'pointer',
-              borderLeft: isActive ? '4px solid #60a5fa' : '4px solid transparent',
+              borderLeft: isActive ? '4px solid var(--button-bg, #60a5fa)' : '4px solid transparent',
               background: isActive ? 'rgba(96,165,250,0.14)' : 'transparent',
               transition: 'all 0.18s',
               marginBottom: '1px',
             }}
           >
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? '#60a5fa' : 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? 'var(--button-bg, #60a5fa)' : 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
             {item.label}
           </div>
         )
@@ -101,7 +101,7 @@ export default function AdminSidebarWrapper() {
         )}
         <div style={{
           position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px',
-          background: '#0e1524', zIndex: 300,
+          background: 'var(--sidebar-bg, #0e1524)', zIndex: 300,
           transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.25s ease',
           display: 'flex', flexDirection: 'column',
@@ -115,7 +115,7 @@ export default function AdminSidebarWrapper() {
   }
 
   return (
-    <div style={{ width: '220px', flexShrink: 0, background: '#0e1524', padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+    <div style={{ width: '220px', flexShrink: 0, background: 'var(--sidebar-bg, #0e1524)', padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
       <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '1px', background: 'rgba(255,255,255,0.05)' }} />
       {innerContent}
     </div>

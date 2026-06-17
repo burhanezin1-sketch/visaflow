@@ -44,18 +44,20 @@ export default async function DashboardLayout({
   let sidebarText = 'rgba(255,255,255,0.92)'
   let buttonBg    = '#1a3a5c'
   let buttonText  = '#ffffff'
+  let panelBg     = '#e9eef6'
   try {
     const { data: ud } = await supabase.from('users').select('company_id').eq('id', user.id).maybeSingle()
     if (ud?.company_id) {
       const { data: co } = await supabase
         .from('companies')
-        .select('plan, sidebar_bg_color, sidebar_text_color, button_color, button_text_color')
+        .select('plan, sidebar_bg_color, sidebar_text_color, button_color, button_text_color, panel_bg_color')
         .eq('id', ud.company_id).maybeSingle()
       if (co?.plan === 'kurumsal') {
         if (co.sidebar_bg_color)   sidebarBg   = co.sidebar_bg_color
         if (co.sidebar_text_color) sidebarText = co.sidebar_text_color
         if (co.button_color)       buttonBg    = co.button_color
         if (co.button_text_color)  buttonText  = co.button_text_color
+        if (co.panel_bg_color)     panelBg     = co.panel_bg_color
       }
     }
   } catch { /* renk çekme hatası — fallback kullan */ }
@@ -68,9 +70,10 @@ export default async function DashboardLayout({
           '--sidebar-text': sidebarText,
           '--button-bg':    buttonBg,
           '--button-text':  buttonText,
+          '--panel-bg':     panelBg,
           display: 'flex',
           minHeight: '100vh',
-          background: '#e9eef6',
+          background: panelBg,
           fontFamily: "'Outfit', 'system-ui', sans-serif",
           direction: locale === 'ar' ? 'rtl' : 'ltr',
         } as React.CSSProperties}>
