@@ -1,7 +1,7 @@
 import { NextIntlClientProvider } from 'next-intl'
 import { cookies } from 'next/headers'
 
-const LOCALES = ['tr', 'en', 'de', 'pl'] as const
+const LOCALES = ['tr', 'en', 'de', 'pl', 'ar', 'ru', 'es'] as const
 type Locale = (typeof LOCALES)[number]
 
 async function loadMessages(locale: Locale) {
@@ -9,6 +9,9 @@ async function loadMessages(locale: Locale) {
     case 'en': return (await import('@/messages/en.json')).default
     case 'de': return (await import('@/messages/de.json')).default
     case 'pl': return (await import('@/messages/pl.json')).default
+    case 'ar': return (await import('@/messages/ar.json')).default
+    case 'ru': return (await import('@/messages/ru.json')).default
+    case 'es': return (await import('@/messages/es.json')).default
     default:   return (await import('@/messages/tr.json')).default
   }
 }
@@ -20,7 +23,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const messages = await loadMessages(locale)
 
   return (
-    <html lang={locale}>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>

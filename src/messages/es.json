@@ -1,0 +1,615 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "deleting": "Eliminando...",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "add": "Añadir",
+    "update": "Actualizar",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "all": "Todos",
+    "clone": "Clonar",
+    "logout": "Cerrar sesión",
+    "yes": "Sí",
+    "no": "No",
+    "optional": "opcional",
+    "required": "obligatorio",
+    "error": "Error",
+    "success": "Éxito",
+    "noData": "Sin datos",
+    "search": "Buscar...",
+    "filter": "Filtrar",
+    "new": "+ Nuevo",
+    "viewAll": "Ver todo",
+    "viewMore": "+{count} más"
+  },
+  "status": {
+    "missing": "Documentos faltantes",
+    "appointment_waiting": "Esperando cita",
+    "appointment": "Cita programada",
+    "approved": "Aprobado",
+    "rejected": "Rechazado",
+    "pending": "En revisión",
+    "waiting": "En espera",
+    "claimed": "Asignado",
+    "contacted": "Se contactará más tarde"
+  },
+  "fields": {
+    "fullName": "Nombre completo",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "phone": "Teléfono",
+    "email": "Correo electrónico",
+    "country": "País",
+    "visaType": "Tipo de visa",
+    "occupation": "Ocupación",
+    "notes": "Notas adicionales",
+    "date": "Fecha",
+    "status": "Estado",
+    "consultant": "Consultor",
+    "password": "Contraseña",
+    "nationality": "Nacionalidad"
+  },
+  "placeholders": {
+    "firstName": "Juan",
+    "lastName": "García",
+    "phone": "+90 5xx xxx xx xx",
+    "email": "ejemplo@email.com",
+    "country": "ej. Francia",
+    "visaType": "ej. Visa turística",
+    "occupation": "ej. Empleado (opcional)",
+    "notes": "Situación especial, información del patrocinador, notas adicionales...",
+    "searchName": "Buscar nombre...",
+    "loginEmail": "ejemplo@empresa.com"
+  },
+  "sidebar": {
+    "dashboard": "Panel de control",
+    "tasks": "Lista de tareas",
+    "customers": "Clientes",
+    "leads": "Clientes potenciales",
+    "calendar": "Calendario",
+    "embassyLinks": "Enlaces de embajadas",
+    "templates": "Biblioteca de plantillas",
+    "consultantPanel": "Panel del consultor",
+    "transferRequests": "📨 {count} Solicitud de transferencia",
+    "transferFrom": "De {name}",
+    "acceptTransfer": "✓ Aceptar",
+    "rejectTransfer": "✕ Rechazar"
+  },
+  "login": {
+    "title": "INICIO DE SESIÓN DEL CONSULTOR",
+    "emailLabel": "Correo electrónico",
+    "passwordLabel": "Contraseña",
+    "submitBtn": "INICIAR SESIÓN",
+    "submittingBtn": "INICIANDO SESIÓN...",
+    "error": "Correo electrónico o contraseña incorrectos"
+  },
+  "dashboard": {
+    "greeting": "Buenos días, {name} 👋",
+    "stats": {
+      "activeFiles": "Expedientes activos",
+      "newLead": "Nuevo lead",
+      "pendingDocs": "Documentos pendientes",
+      "weeklyAppointment": "Citas esta semana",
+      "waitingToCall": "Esperando llamada",
+      "urgentFollowup": "Seguimiento urgente",
+      "openCalendar": "Abrir calendario"
+    },
+    "pendingDocs": {
+      "title": "📋 Documentos pendientes",
+      "empty": "No hay documentos pendientes ✓"
+    },
+    "recentActivity": {
+      "title": "🕐 Actividad reciente",
+      "empty": "Aún no hay clientes"
+    }
+  },
+  "musteriler": {
+    "pageTitle": "Clientes",
+    "tabs": {
+      "all": "Todos los clientes",
+      "mine": "Mis clientes"
+    },
+    "filters": {
+      "allStatuses": "Todos los estados"
+    },
+    "table": {
+      "headers": {
+        "fullName": "Nombre completo",
+        "phone": "Teléfono",
+        "country": "País",
+        "visaType": "Tipo de visa",
+        "occupation": "Ocupación",
+        "status": "Estado",
+        "date": "Fecha"
+      },
+      "empty": {
+        "mine": "No hay clientes asignados a usted.",
+        "all": "Aún no hay clientes."
+      }
+    },
+    "addModal": {
+      "title": "Añadir nuevo cliente",
+      "officialVisaWarning": "⚠️ La visa oficial es solo para funcionarios del gobierno. Los titulares de pasaportes especiales (verdes) o de servicio (grises) pueden viajar a países Schengen hasta 90 días sin visa.",
+      "servicePrice": "Tarifa del servicio",
+      "noPriceDefined": "No se ha definido precio para este tipo de visa. Puede añadirlo desde el panel de administración.",
+      "alreadyRegistered": "Este cliente ya está registrado: {name}",
+      "submitBtn": "Guardar e ir al perfil"
+    },
+    "occupations": {
+      "calisan": "Empleado",
+      "sirket_sahibi": "Empresario / Autónomo",
+      "devlet_memuru": "Funcionario público",
+      "ogrenci": "Estudiante",
+      "emekli": "Jubilado",
+      "ev_hanimi": "Sin empleo",
+      "ev_hanimi_meslek": "Ama de casa"
+    },
+    "toasts": {
+      "globalTemplateUsed": "✓ Se utilizó la plantilla global"
+    },
+    "noTemplate": {
+      "title": "Plantilla no encontrada",
+      "description": "Aún no se ha creado una plantilla para esta combinación. El cliente ha sido guardado y la lista de documentos está vacía por ahora.",
+      "similarTitle": "Hay plantillas similares, ¿desea utilizarlas?",
+      "noOccupation": "Ocupación no especificada",
+      "docCount": "{count} documentos",
+      "globalBadge": "🌐 Global",
+      "useTemplate": "Usar esta plantilla",
+      "createTemplate": "+ Crear plantilla",
+      "viewGlobal": "🌐 Ver plantillas globales",
+      "goToProfile": "Ir al perfil del cliente →",
+      "nationalityMismatch": "No se encontró una plantilla específica para esta nacionalidad. Existen plantillas para combinaciones similares de país/visa con diferente nacionalidad:"
+    }
+  },
+  "sablonlar": {
+    "pageTitle": "Biblioteca de plantillas",
+    "library": {
+      "title": "📚 Plantillas de la biblioteca",
+      "empty": "Aún no hay plantillas globales aprobadas."
+    },
+    "myTemplates": {
+      "title": "🗂 Mis plantillas",
+      "newBtn": "+ Nueva plantilla",
+      "empty": "Aún no ha creado plantillas."
+    },
+    "actions": {
+      "clone": "Clonar",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Está seguro de que desea eliminar esta plantilla?"
+    },
+    "status": {
+      "pending": "En revisión",
+      "approved": "Aprobada",
+      "rejected": "Rechazada"
+    },
+    "docCount": "{count} documentos",
+    "modal": {
+      "editTitle": "Editar plantilla",
+      "createTitle": "Crear nueva plantilla",
+      "docsSection": "Documentos",
+      "docNamePlaceholder": "Nombre del documento *",
+      "docDescPlaceholder": "Descripción (opcional)",
+      "addDoc": "+ Añadir documento",
+      "submitCreate": "Guardar (enviar para revisión)",
+      "submitEdit": "Actualizar"
+    },
+    "delivery": {
+      "digital": "Digital",
+      "physical": "Físico",
+      "firma": "Empresa"
+    }
+  },
+  "gorevler": {
+    "pageTitle": "Lista de tareas",
+    "empty": "🎉 ¡Todas las tareas completadas!",
+    "sections": {
+      "missingDocs": "📋 Documentos faltantes",
+      "missingPayments": "💰 Pagos pendientes",
+      "emptyDocs": "✓ No hay documentos faltantes",
+      "emptyPayments": "✓ No hay pagos pendientes"
+    },
+    "tasks": {
+      "sendDocReminder": "Enviar recordatorio de documentos",
+      "scheduleAppointment": "Programar cita",
+      "paymentFollowup": "Seguimiento de pago",
+      "passportRenewal": "Aviso de renovación de pasaporte",
+      "missingDocsDesc": "Faltan documentos para la solicitud de {country} {visaType}",
+      "appointmentDesc": "Esperando cita consular para {country} {visaType}",
+      "paymentDesc": "Pendiente: {amount}₺",
+      "passportDesc": "El pasaporte vence el {date}"
+    }
+  },
+  "leads": {
+    "pageTitle": "Clientes potenciales",
+    "listTitle": "Lista de leads",
+    "waitingCount": "{count} en espera",
+    "table": {
+      "name": "Nombre completo",
+      "wants": "¿Qué desea?",
+      "consultant": "Consultor",
+      "status": "Estado",
+      "notAssigned": "Sin asignar",
+      "empty": "Aún no hay clientes potenciales"
+    },
+    "actions": {
+      "claim": "Asignar",
+      "updateStatus": "Actualizar estado"
+    },
+    "modal": {
+      "title": "Actualizar estado",
+      "convertToCustomer": "✓ Convertir en cliente",
+      "talkLater": "🕐 Se contactará más tarde",
+      "cancel": "✕ Cancelar — no será cliente",
+      "visaInfoLabel": "Ingrese la información de la visa:",
+      "addAsCustomer": "✓ Añadir como cliente",
+      "talkLaterConfirm": "🕐 Se contactará más tarde",
+      "cancelConfirm": "✕ Cancelar y eliminar"
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "Resumen general",
+      "totalRevenue": "Ingresos totales",
+      "uncollected": "No cobrado",
+      "activeFiles": "Expedientes activos",
+      "completed": "Completado",
+      "monthlyUsage": "Uso de expedientes este mes",
+      "monthlyTrend": "Tendencia mensual de ingresos",
+      "quickSummary": "Resumen rápido",
+      "countryRevenue": "Ingresos por país",
+      "visaTypeDistribution": "Distribución de tipos de visa"
+    },
+    "summary": {
+      "totalRevenue": "Ingresos totales",
+      "totalRevenueTL": "Ingresos totales (₺)",
+      "collected": "Cobrado",
+      "collectedTL": "Cobrado (₺)",
+      "uncollected": "No cobrado",
+      "uncollectedTL": "No cobrado (₺)",
+      "totalCustomers": "Total de clientes",
+      "completedFiles": "Expedientes completados",
+      "ongoing": "En curso"
+    },
+    "months": {
+      "0": "Ene", "1": "Feb", "2": "Mar", "3": "Abr",
+      "4": "May", "5": "Jun", "6": "Jul", "7": "Ago",
+      "8": "Sep", "9": "Oct", "10": "Nov", "11": "Dic"
+    }
+  },
+  "portal": {
+    "brand": "VECTROPUS",
+    "greeting": "Hola, {name}",
+    "loading": "Cargando...",
+    "invalidLink": "Enlace no válido",
+    "invalidLinkDesc": "No se encontró este enlace del portal.",
+    "tabs": {
+      "documents": "📋 Documentos",
+      "myInfo": "👤 Mis datos"
+    },
+    "consent": {
+      "title": "🔒 Protección de datos personales",
+      "subtitle": "Se requiere consentimiento para continuar",
+      "viewText": "▼ Ver texto",
+      "closeText": "▲ Cerrar",
+      "kvkkTitle": "Aviso de protección de datos",
+      "kvkkDear": "Estimado/a {name},",
+      "kvkkIntro": "A continuación se presenta información sobre el tratamiento de sus datos personales en el marco de la legislación de protección de datos personales.",
+      "kvkk1Title": "1. Responsable del tratamiento",
+      "kvkk1Text": "La empresa de consultoría que gestiona su solicitud de visa trata sus datos personales en calidad de responsable del tratamiento.",
+      "kvkk2Title": "2. Datos personales tratados",
+      "kvkk2Text": "Se tratan: nombre, apellido, número de teléfono, correo electrónico, datos del pasaporte y documentos compartidos en el marco de la solicitud de visa.",
+      "kvkk3Title": "3. Fines del tratamiento",
+      "kvkk3Text": "Sus datos se tratan para gestionar el proceso de solicitud de visa, obtener cita consular, hacer seguimiento de documentos y comunicarse con usted.",
+      "kvkk4Title": "4. Transferencia",
+      "kvkk4Text": "Sus datos pueden compartirse con consulados, embajadas e instituciones públicas pertinentes en el marco de las obligaciones legales.",
+      "kvkk5Title": "5. Período de conservación",
+      "kvkk5Text": "Sus datos personales se conservarán durante un máximo de 5 años tras la finalización de su proceso de solicitud de conformidad con las obligaciones legales.",
+      "kvkk6Title": "6. Sus derechos",
+      "kvkk6Text": "Tiene derecho a acceder, rectificar, suprimir sus datos, oponerse a su tratamiento y a la portabilidad. Puede dirigir sus solicitudes a su consultor.",
+      "checkboxLabel": "He leído el aviso de protección de datos y doy mi consentimiento para el tratamiento de mis datos personales con los fines indicados.",
+      "continueBtn": "Continuar →"
+    },
+    "documents": {
+      "completionStatus": "Estado de finalización",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noDocsReady": "La lista de documentos aún no está preparada.",
+      "docStatus": {
+        "firmaBadge": "Empresa",
+        "firmaDesc": "Será proporcionado por la empresa consultora.",
+        "eldenBadge": "En persona",
+        "eldenDesc": "Se entregará en persona al consultor.",
+        "eldenReceivedDesc": "Recibido en persona.",
+        "appointmentDayDesc": "Debe entregarse en persona el día de la cita.",
+        "approvedBadge": "✓ Recibido",
+        "approvedDesc": "Aprobado ✓",
+        "rejectedDesc": "Rechazado — vuelva a cargar",
+        "uploadAgain": "📎 Volver a cargar",
+        "uploadedReview": "Cargado — en revisión",
+        "scanning": "🔍 Escaneando...",
+        "dataRead": "✓ Datos leídos",
+        "uploading": "{docName} — cargando...",
+        "uploadedMore": "↑ Cargado — puede añadir más",
+        "uploadBtn": "📎 Cargar archivos",
+        "addMoreBtn": "📎 Añadir más",
+        "digitalUploadBtn": "📎 Carga digital",
+        "multipleFilesHint": "Puede seleccionar varios archivos"
+      }
+    },
+    "myInfo": {
+      "fullNameLabel": "Nombre completo",
+      "phoneLabel": "Teléfono",
+      "emailLabel": "Correo electrónico",
+      "saveBtn": "Guardar datos",
+      "savedToast": "✓ ¡Guardado!",
+      "infoNote": "ℹ️ Las actualizaciones sobre su solicitud serán enviadas a estos datos de contacto."
+    }
+  },
+  "documentNames": {
+    "Pasaportun orijinali": "Pasaporte original",
+    "Pasaport fotokopisi": "Copia del pasaporte",
+    "Pasaport aslı ve fotokopisi": "Pasaporte original y copia",
+    "Pasaportun orijinali (min. 12 ay geçerli)": "Pasaporte original (válido mín. 12 meses)",
+    "Pasaportun orijinali (+ varsa eski pasaportlar)": "Pasaporte original (+ pasaportes anteriores si los hay)",
+    "Kimlik fotokopisi": "Copia del documento de identidad",
+    "2 adet biyometrik fotoğraf": "2 fotografías biométricas",
+    "2 adet biyometrik fotoğraf (35x45mm)": "2 fotografías biométricas (35×45 mm)",
+    "1 adet biyometrik fotoğraf": "1 fotografía biométrica",
+    "1 adet biyometrik fotoğraf (5×5 cm, beyaz fon)": "1 fotografía biométrica (5×5 cm, fondo blanco)",
+    "Seyahat sağlık sigortası (min. 30.000 €)": "Seguro médico de viaje (mín. 30.000 €)",
+    "Seyahat sağlık sigortası": "Seguro médico de viaje",
+    "Gidiş-dönüş uçak bileti rezervasyonu": "Reserva de billete de avión de ida y vuelta",
+    "Otel / konaklama rezervasyonu": "Reserva de hotel / alojamiento",
+    "İkametgah belgesi (e-devlet üzerinden barkodlu çıktı)": "Certificado de residencia (impreso con código de barras del gobierno electrónico)",
+    "İkametgah belgesi (e-devlet, barkodlu)": "Certificado de residencia (gobierno electrónico, con código de barras)",
+    "İkametgah belgesi": "Certificado de residencia",
+    "Son 3 aylık banka hesap dökümü": "Extracto bancario de los últimos 3 meses",
+    "Son 6 aylık banka hesap dökümü": "Extracto bancario de los últimos 6 meses",
+    "Banka hesap dökümü (son 3 ay)": "Extracto bancario (últimos 3 meses)",
+    "Nüfus kayıt örneği (e-devlet üzerinden barkodlu çıktı)": "Registro civil (impreso con código de barras del gobierno electrónico)",
+    "Nüfus kayıt örneği (e-devlet, barkodlu)": "Registro civil (gobierno electrónico, con código de barras)",
+    "Nüfus kayıt örneği": "Registro civil",
+    "Tam vukuatlı nüfus kayıt örneği (e-devlet üzerinden barkodlu çıktı)": "Registro civil completo (con código de barras del gobierno electrónico)",
+    "Vergi levhası": "Certificado de registro fiscal",
+    "Şirket faaliyet belgesi": "Certificado de actividad empresarial",
+    "Şirket faaliyet belgesi (son 3 ay içinde alınmış güncel, e-imzalı/orijinal)": "Certificado de actividad empresarial (actualizado en 3 meses, firma electrónica/original)",
+    "Ticaret sicil gazetesi": "Boletín del registro mercantil",
+    "Ticaret sicil gazetesi (son 6 ay içinde alınmış güncel, tercümeli)": "Boletín del registro mercantil (actualizado en 6 meses, traducido)",
+    "SGK hizmet dökümü (e-devlet üzerinden barkodlu çıktı)": "Extracto de seguridad social (con código de barras del gobierno electrónico)",
+    "SGK hizmet dökümü": "Extracto de seguridad social",
+    "Maaş bordrosu veya gelir belgesi": "Nómina o certificado de ingresos",
+    "Maaş bordrosu (son 3 ay)": "Nómina (últimos 3 meses)",
+    "İşveren görev yazısı": "Carta de empleo",
+    "İşveren yazısı (izin belgesi dahil)": "Carta del empleador (incluido permiso de vacaciones)",
+    "Öğrenci belgesi": "Certificado de estudios",
+    "Burs belgesi (varsa)": "Certificado de beca (si la hay)",
+    "Ev sahibinden davet mektubu": "Carta de invitación del anfitrión",
+    "Ev sahibinin pasaport / oturma izni fotokopisi": "Copia del pasaporte / permiso de residencia del anfitrión",
+    "Akrabalık belgesi": "Documento de parentesco",
+    "Akrabalık belgesi (tercümeli)": "Documento de parentesco (traducido)",
+    "Akrabalık belgesi (tercümeli, Apostilli)": "Documento de parentesco (traducido, apostillado)",
+    "Doğum belgesi (Apostilli aslı + noterde onaylı tercümesi)": "Acta de nacimiento (original apostillado + traducción notarial)",
+    "Doğum belgesi (Apostilli, tercümeli)": "Acta de nacimiento (apostillada, traducida)",
+    "Transkript Apostilli aslı + tercümesi": "Expediente académico apostillado original + traducción",
+    "Diplomanın Apostilli aslı + noterde onaylı hedef ülke dili veya İngilizce tercümesi": "Título original apostillado + traducción notarial",
+    "Veli/sponsor banka hesap dökümü (son 3 ay)": "Extracto bancario del tutor/patrocinador (últimos 3 meses)",
+    "Son 6 aylık veli/sponsor banka hesap dökümü": "Extracto bancario del tutor/patrocinador de los últimos 6 meses",
+    "Veli gelir belgesi / maaş bordrosu": "Certificado de ingresos del tutor / nómina",
+    "CV / Özgeçmiş": "CV / Currículum",
+    "CV / Özgeçmiş (İngilizce)": "CV / Currículum (en inglés)",
+    "Konaklama belgesi": "Documento de alojamiento",
+    "Konaklama belgesi (kira sözleşmesi)": "Documento de alojamiento (contrato de arrendamiento)",
+    "Randevu onay belgesi": "Confirmación de cita",
+    "Vize dilekçesi (İngilizce)": "Solicitud de visa (en inglés)",
+    "Şirket evrakları": "Documentos de la empresa",
+    "Diploma ve mesleki belgeler": "Títulos y documentos profesionales",
+    "İş deneyimi belgeleri": "Documentos de experiencia laboral"
+  },
+  "elcilik": {
+    "pageDesc": "Acceso rápido a los sitios de consulados y visas más utilizados.",
+    "schengen": "🇪🇺 Países Schengen",
+    "nonSchengen": "🌍 Países fuera de Schengen",
+    "tools": "🔧 Herramientas y portales",
+    "openBtn": "Abrir →",
+    "vfsBtn": "VFS →",
+    "asBtn": "AS →"
+  },
+  "takvim": {
+    "pageTitle": "Calendario",
+    "upcoming": "📅 Próximas citas",
+    "past": "Citas pasadas",
+    "noUpcoming": "No hay próximas citas.",
+    "headers": {
+      "date": "Fecha",
+      "time": "Hora",
+      "customer": "Cliente",
+      "consulate": "Consulado",
+      "visa": "Visa",
+      "status": "Estado"
+    }
+  },
+  "musteriDetay": {
+    "notFound": "Cliente no encontrado.",
+    "pendingTransferToMe": "📨 Tiene una solicitud de transferencia",
+    "pendingTransferDesc": "Se desea transferirle el expediente de {name}.",
+    "transferNote": "Nota: {note}",
+    "accept": "✅ Aceptar",
+    "decline": "❌ Rechazar",
+    "pendingTransferSent": "⏳ Solicitud de transferencia enviada, esperando confirmación de la otra parte.",
+    "consultant": "Consultor:",
+    "notAssigned": "Sin asignar",
+    "changeStatus": "Cambiar estado...",
+    "addAppointmentBtn": "📅 Añadir cita",
+    "intentLetterBtn": "✍️ Carta de intención",
+    "intentLetterLocked": "✍️ Carta de intención 🔒",
+    "planUpgradeAlert": "Esta función está disponible en los planes Pro y Enterprise. Por favor, actualice su plan.",
+    "transferBtn": "↗ Transferir",
+    "deleteBtn": "🗑 Eliminar",
+    "passportSection": "Datos del pasaporte",
+    "fields": {
+      "fullName": "Nombre completo",
+      "phone": "Teléfono",
+      "email": "Correo electrónico",
+      "birthDate": "Fecha de nacimiento",
+      "passportExpiry": "Fecha de vencimiento",
+      "visa": "Visa",
+      "occupation": "Ocupación",
+      "consulate": "Consulado",
+      "appointment": "Cita"
+    },
+    "passportNo": "Número de pasaporte",
+    "notEntered": "No ingresado",
+    "hide": "Ocultar",
+    "reveal": "🔓 Mostrar",
+    "portalLink": "🔗 Enlace del portal del cliente",
+    "copy": "Copiar",
+    "copied": "✓ Copiado",
+    "notesSection": "Notas del consultor",
+    "noNotes": "Aún no hay notas.",
+    "addNotePlaceholder": "Añadir nota...",
+    "addNoteBtn": "Añadir nota",
+    "tabs": {
+      "documents": "📋 Documentos",
+      "payment": "💳 Pago",
+      "whatsapp": "💬 WhatsApp"
+    },
+    "docs": {
+      "noList": "La lista de documentos aún no ha sido creada.",
+      "refreshFromTemplate": "🔄 Actualizar documentos (desde plantilla)",
+      "generateList": "📋 Crear lista de documentos",
+      "completionLabel": "Finalización de documentos",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noTemplate": "No se encontró una plantilla aprobada para esta combinación.",
+      "status": {
+        "firma": "La empresa lo preparará",
+        "approved": "Aprobado",
+        "elden": "Se recibirá en persona",
+        "rejected": "Rechazado",
+        "uploaded": "Cargado — en revisión",
+        "physical": "Esperando entrega en persona",
+        "awaiting": "El cliente lo cargará"
+      },
+      "badge": {
+        "firma": "Empresa",
+        "approved": "✓ Aprobado",
+        "elden": "🤝 En persona",
+        "rejected": "✗ Rechazado"
+      },
+      "viewBtn": "Ver",
+      "approveBtn": "✓ Aprobar",
+      "eldenBtn": "🤝 En persona",
+      "rejectBtn": "✗ Rechazar",
+      "refreshBtn": "🔄 Actualizar documentos",
+      "reminderBtn": "📎 Enviar recordatorio de documentos",
+      "reminderMsg": "Estimado/a {name}, le pedimos que cargue sus documentos faltantes a través del enlace de su portal."
+    },
+    "payment": {
+      "total": "Tarifa del servicio",
+      "paid": "Pagado",
+      "remaining": "Pendiente",
+      "noteLabel": "Nota:",
+      "statusLabel": "Estado",
+      "collected": "Cobrado",
+      "partial": "Pago parcial",
+      "waiting": "Esperando pago",
+      "currencyLabel": "Moneda",
+      "totalWithCurrency": "Tarifa del servicio ({currency})",
+      "paidWithCurrency": "Monto pagado ({currency})",
+      "editBtn": "💰 Editar pago",
+      "noPayment": "No se encontró registro de pago.",
+      "addBtn": "+ Añadir pago",
+      "addModalTitle": "💳 Añadir pago",
+      "totalAmountLabel": "Monto total * ({currency})",
+      "paidAmountLabel": "Monto pagado ({currency})",
+      "notesLabel": "Notas (opcional)",
+      "notesPlaceholder": "Nota de pago...",
+      "saveBtn": "💳 Guardar pago"
+    },
+    "whatsapp": {
+      "sent": "✓ Mensaje enviado",
+      "errorPrefix": "Error:",
+      "noMessages": "Aún no hay mensajes.",
+      "quick": {
+        "docs": "📎 Documentos",
+        "docsMsg": "Le pedimos que cargue sus documentos faltantes en el portal.",
+        "appointment": "📅 Cita",
+        "appointmentMsg": "Su cita será programada próximamente.",
+        "payment": "💰 Pago",
+        "paymentMsg": "Le pedimos que realice el pago pendiente.",
+        "congrats": "✅ Felicitaciones",
+        "congratsMsg": "Su solicitud de visa ha sido completada. ¡Buen viaje!"
+      },
+      "placeholder": "Escriba un mensaje... (Enter para enviar)",
+      "charCount": "{count} caracteres",
+      "sending": "⏳ Enviando...",
+      "sendBtn": "➤ Enviar"
+    },
+    "appointmentModal": {
+      "title": "📅 Añadir cita",
+      "consulate": "Consulado",
+      "consulatePlaceholder": "Consulado de Francia Estambul",
+      "date": "Fecha",
+      "time": "Hora",
+      "saveBtn": "Guardar cita"
+    },
+    "transferModal": {
+      "title": "Transferir cliente",
+      "desc": "¿A qué consultor desea transferir el expediente de {name}?",
+      "consultantLabel": "Consultor",
+      "selectPlaceholder": "Seleccione...",
+      "noteLabel": "Nota (opcional)",
+      "notePlaceholder": "¿Por qué transfiere?",
+      "sendBtn": "↗ Enviar solicitud de transferencia",
+      "sending": "Enviando..."
+    },
+    "intentModal": {
+      "title": "✍️ Crear carta de intención",
+      "resultTitle": "Carta de intención",
+      "editBtn": "← Editar",
+      "pdfBtn": "📄 Descargar PDF",
+      "travelDate": "Fecha de viaje",
+      "returnDate": "Fecha de regreso",
+      "consulate": "País destino / Consulado",
+      "consulatePlaceholder": "Consulado de Alemania",
+      "travelPurpose": "Propósito del viaje",
+      "selectPurpose": "Seleccione...",
+      "purposes": {
+        "tourist": "Turismo",
+        "business": "Reunión de negocios / Conferencia",
+        "student": "Estudios / Educación",
+        "family": "Familia / Amigos",
+        "other": "Otro"
+      },
+      "purposeOtherPlaceholder": "Especifique el propósito de la visita...",
+      "accommodation": "Dirección de alojamiento",
+      "accommodationPlaceholder": "Hotel Grand Paris, 12 Rue de Rivoli, Paris",
+      "inviter": "Anfitrión (opcional)",
+      "inviterPlaceholder": "Ahmet Müller (hermano, Berlín)",
+      "generateBtn": "✨ Crear carta",
+      "generating": "✨ Creando...",
+      "editHint": "Puede editar el texto. Al hacer clic en descargar PDF se abrirá la pantalla de impresión."
+    },
+    "deleteModal": {
+      "title": "Eliminar cliente",
+      "desc": "{name} y todos sus registros se eliminarán permanentemente. Esta acción no se puede deshacer.",
+      "confirmBtn": "Sí, eliminar"
+    },
+    "confirmStatusChange": "¿Está seguro de que desea cambiar el estado a \"{status}\"?"
+  },
+  "languageSwitcher": {
+    "tr": "🇹🇷 Türkçe",
+    "en": "🇬🇧 English",
+    "de": "🇩🇪 Deutsch",
+    "pl": "🇵🇱 Polski",
+    "ar": "🇸🇦 العربية",
+    "ru": "🇷🇺 Русский",
+    "es": "🇪🇸 Español"
+  }
+}

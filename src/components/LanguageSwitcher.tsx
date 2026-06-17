@@ -8,6 +8,9 @@ const LOCALES = [
   { code: 'en', label: '🇬🇧 English' },
   { code: 'de', label: '🇩🇪 Deutsch' },
   { code: 'pl', label: '🇵🇱 Polski' },
+  { code: 'ar', label: '🇸🇦 العربية' },
+  { code: 'ru', label: '🇷🇺 Русский' },
+  { code: 'es', label: '🇪🇸 Español' },
 ]
 
 function getCurrentLocale(): string {

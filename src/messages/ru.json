@@ -1,0 +1,615 @@
+{
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "back": "Назад",
+    "loading": "Загрузка...",
+    "saving": "Сохранение...",
+    "deleting": "Удаление...",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "add": "Добавить",
+    "update": "Обновить",
+    "approve": "Одобрить",
+    "reject": "Отклонить",
+    "all": "Все",
+    "clone": "Копировать",
+    "logout": "Выйти",
+    "yes": "Да",
+    "no": "Нет",
+    "optional": "необязательно",
+    "required": "обязательно",
+    "error": "Ошибка",
+    "success": "Успех",
+    "noData": "Нет данных",
+    "search": "Поиск...",
+    "filter": "Фильтр",
+    "new": "+ Новый",
+    "viewAll": "Просмотреть все",
+    "viewMore": "+{count} ещё"
+  },
+  "status": {
+    "missing": "Документы отсутствуют",
+    "appointment_waiting": "Ожидание записи",
+    "appointment": "Запись оформлена",
+    "approved": "Одобрено",
+    "rejected": "Отклонено",
+    "pending": "На рассмотрении",
+    "waiting": "Ожидание",
+    "claimed": "Принято",
+    "contacted": "Свяжемся позже"
+  },
+  "fields": {
+    "fullName": "Полное имя",
+    "firstName": "Имя",
+    "lastName": "Фамилия",
+    "phone": "Телефон",
+    "email": "Электронная почта",
+    "country": "Страна",
+    "visaType": "Тип визы",
+    "occupation": "Профессия",
+    "notes": "Дополнительные заметки",
+    "date": "Дата",
+    "status": "Статус",
+    "consultant": "Консультант",
+    "password": "Пароль",
+    "nationality": "Гражданство"
+  },
+  "placeholders": {
+    "firstName": "Иван",
+    "lastName": "Иванов",
+    "phone": "+90 5xx xxx xx xx",
+    "email": "example@email.com",
+    "country": "напр. Франция",
+    "visaType": "напр. Туристическая виза",
+    "occupation": "напр. Сотрудник (необязательно)",
+    "notes": "Особые обстоятельства, спонсор, дополнительная информация...",
+    "searchName": "Поиск по имени...",
+    "loginEmail": "example@company.com"
+  },
+  "sidebar": {
+    "dashboard": "Панель управления",
+    "tasks": "Список задач",
+    "customers": "Клиенты",
+    "leads": "Потенциальные клиенты",
+    "calendar": "Календарь",
+    "embassyLinks": "Ссылки посольств",
+    "templates": "Библиотека шаблонов",
+    "consultantPanel": "Панель консультанта",
+    "transferRequests": "📨 {count} Запрос на передачу",
+    "transferFrom": "От {name}",
+    "acceptTransfer": "✓ Принять",
+    "rejectTransfer": "✕ Отклонить"
+  },
+  "login": {
+    "title": "ВХОД ДЛЯ КОНСУЛЬТАНТОВ",
+    "emailLabel": "Электронная почта",
+    "passwordLabel": "Пароль",
+    "submitBtn": "ВОЙТИ",
+    "submittingBtn": "ВХОД...",
+    "error": "Неверный адрес электронной почты или пароль"
+  },
+  "dashboard": {
+    "greeting": "Доброе утро, {name} 👋",
+    "stats": {
+      "activeFiles": "Активные дела",
+      "newLead": "Новый лид",
+      "pendingDocs": "Ожидающие документы",
+      "weeklyAppointment": "Записи на этой неделе",
+      "waitingToCall": "Ожидают звонка",
+      "urgentFollowup": "Срочное следование",
+      "openCalendar": "Открыть календарь"
+    },
+    "pendingDocs": {
+      "title": "📋 Ожидающие документы",
+      "empty": "Нет ожидающих документов ✓"
+    },
+    "recentActivity": {
+      "title": "🕐 Последние операции",
+      "empty": "Клиентов пока нет"
+    }
+  },
+  "musteriler": {
+    "pageTitle": "Клиенты",
+    "tabs": {
+      "all": "Все клиенты",
+      "mine": "Мои клиенты"
+    },
+    "filters": {
+      "allStatuses": "Все статусы"
+    },
+    "table": {
+      "headers": {
+        "fullName": "Полное имя",
+        "phone": "Телефон",
+        "country": "Страна",
+        "visaType": "Тип визы",
+        "occupation": "Профессия",
+        "status": "Статус",
+        "date": "Дата"
+      },
+      "empty": {
+        "mine": "Нет клиентов, назначенных вам.",
+        "all": "Клиентов пока нет."
+      }
+    },
+    "addModal": {
+      "title": "Добавить нового клиента",
+      "officialVisaWarning": "⚠️ Официальная виза предназначена только для государственных служащих. Владельцы специальных (зелёных) или служебных (серых) паспортов могут путешествовать в страны Шенгена до 90 дней без визы.",
+      "servicePrice": "Стоимость услуги",
+      "noPriceDefined": "Цена для этого типа визы не установлена. Вы можете добавить её в панели администратора.",
+      "alreadyRegistered": "Этот клиент уже зарегистрирован: {name}",
+      "submitBtn": "Сохранить и перейти к профилю"
+    },
+    "occupations": {
+      "calisan": "Наёмный работник",
+      "sirket_sahibi": "Владелец бизнеса / Самозанятый",
+      "devlet_memuru": "Государственный служащий",
+      "ogrenci": "Студент",
+      "emekli": "Пенсионер",
+      "ev_hanimi": "Безработный",
+      "ev_hanimi_meslek": "Домохозяйка"
+    },
+    "toasts": {
+      "globalTemplateUsed": "✓ Использован глобальный шаблон"
+    },
+    "noTemplate": {
+      "title": "Шаблон не найден",
+      "description": "Для этой комбинации шаблон ещё не создан. Клиент сохранён, список документов пока пуст.",
+      "similarTitle": "Есть похожие шаблоны, хотите использовать?",
+      "noOccupation": "Профессия не указана",
+      "docCount": "{count} документов",
+      "globalBadge": "🌐 Глобальный",
+      "useTemplate": "Использовать этот шаблон",
+      "createTemplate": "+ Создать шаблон",
+      "viewGlobal": "🌐 Посмотреть глобальные шаблоны",
+      "goToProfile": "Перейти к профилю клиента →",
+      "nationalityMismatch": "Специальный шаблон для этого гражданства не найден. Доступны шаблоны для похожих комбинаций страны/визы с другим гражданством:"
+    }
+  },
+  "sablonlar": {
+    "pageTitle": "Библиотека шаблонов",
+    "library": {
+      "title": "📚 Шаблоны библиотеки",
+      "empty": "Одобренных глобальных шаблонов пока нет."
+    },
+    "myTemplates": {
+      "title": "🗂 Мои шаблоны",
+      "newBtn": "+ Новый шаблон",
+      "empty": "Вы ещё не создали шаблонов."
+    },
+    "actions": {
+      "clone": "Копировать",
+      "edit": "Редактировать",
+      "delete": "Удалить",
+      "deleteConfirm": "Вы уверены, что хотите удалить этот шаблон?"
+    },
+    "status": {
+      "pending": "На рассмотрении",
+      "approved": "Одобрен",
+      "rejected": "Отклонён"
+    },
+    "docCount": "{count} документов",
+    "modal": {
+      "editTitle": "Редактировать шаблон",
+      "createTitle": "Создать новый шаблон",
+      "docsSection": "Документы",
+      "docNamePlaceholder": "Название документа *",
+      "docDescPlaceholder": "Описание (необязательно)",
+      "addDoc": "+ Добавить документ",
+      "submitCreate": "Сохранить (отправить на рассмотрение)",
+      "submitEdit": "Обновить"
+    },
+    "delivery": {
+      "digital": "Цифровой",
+      "physical": "Физический",
+      "firma": "Компания"
+    }
+  },
+  "gorevler": {
+    "pageTitle": "Список задач",
+    "empty": "🎉 Все задачи выполнены!",
+    "sections": {
+      "missingDocs": "📋 Отсутствующие документы",
+      "missingPayments": "💰 Отсутствующие платежи",
+      "emptyDocs": "✓ Отсутствующих документов нет",
+      "emptyPayments": "✓ Отсутствующих платежей нет"
+    },
+    "tasks": {
+      "sendDocReminder": "Отправить напоминание о документах",
+      "scheduleAppointment": "Назначить встречу",
+      "paymentFollowup": "Контроль оплаты",
+      "passportRenewal": "Предупреждение о продлении паспорта",
+      "missingDocsDesc": "Документы отсутствуют для заявки {country} {visaType}",
+      "appointmentDesc": "Ожидание записи в консульство для {country} {visaType}",
+      "paymentDesc": "Осталось: {amount}₺",
+      "passportDesc": "Паспорт истекает {date}"
+    }
+  },
+  "leads": {
+    "pageTitle": "Потенциальные клиенты",
+    "listTitle": "Список лидов",
+    "waitingCount": "{count} ожидают",
+    "table": {
+      "name": "Полное имя",
+      "wants": "Что хочет?",
+      "consultant": "Консультант",
+      "status": "Статус",
+      "notAssigned": "Не назначен",
+      "empty": "Потенциальных клиентов пока нет"
+    },
+    "actions": {
+      "claim": "Взять",
+      "updateStatus": "Обновить статус"
+    },
+    "modal": {
+      "title": "Обновить статус",
+      "convertToCustomer": "✓ Преобразовать в клиента",
+      "talkLater": "🕐 Свяжемся позже",
+      "cancel": "✕ Отмена — не станет клиентом",
+      "visaInfoLabel": "Введите информацию о визе:",
+      "addAsCustomer": "✓ Добавить как клиента",
+      "talkLaterConfirm": "🕐 Свяжемся позже",
+      "cancelConfirm": "✕ Отменить и удалить"
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "Общий обзор",
+      "totalRevenue": "Общая выручка",
+      "uncollected": "Не собрано",
+      "activeFiles": "Активные дела",
+      "completed": "Завершено",
+      "monthlyUsage": "Использование дел в этом месяце",
+      "monthlyTrend": "Ежемесячная тенденция выручки",
+      "quickSummary": "Краткая сводка",
+      "countryRevenue": "Выручка по странам",
+      "visaTypeDistribution": "Распределение типов виз"
+    },
+    "summary": {
+      "totalRevenue": "Общая выручка",
+      "totalRevenueTL": "Общая выручка (₺)",
+      "collected": "Собрано",
+      "collectedTL": "Собрано (₺)",
+      "uncollected": "Не собрано",
+      "uncollectedTL": "Не собрано (₺)",
+      "totalCustomers": "Всего клиентов",
+      "completedFiles": "Завершённые дела",
+      "ongoing": "В процессе"
+    },
+    "months": {
+      "0": "Янв", "1": "Фев", "2": "Мар", "3": "Апр",
+      "4": "Май", "5": "Июн", "6": "Июл", "7": "Авг",
+      "8": "Сен", "9": "Окт", "10": "Ноя", "11": "Дек"
+    }
+  },
+  "portal": {
+    "brand": "VECTROPUS",
+    "greeting": "Здравствуйте, {name}",
+    "loading": "Загрузка...",
+    "invalidLink": "Ссылка недействительна",
+    "invalidLinkDesc": "Эта ссылка на портал не найдена.",
+    "tabs": {
+      "documents": "📋 Документы",
+      "myInfo": "👤 Мои данные"
+    },
+    "consent": {
+      "title": "🔒 Защита персональных данных",
+      "subtitle": "Для продолжения необходимо согласие",
+      "viewText": "▼ Просмотреть текст",
+      "closeText": "▲ Закрыть",
+      "kvkkTitle": "Уведомление о защите данных",
+      "kvkkDear": "Уважаемый/ая {name},",
+      "kvkkIntro": "Ниже приведена информация об обработке ваших персональных данных в рамках законодательства о защите персональных данных.",
+      "kvkk1Title": "1. Контролёр данных",
+      "kvkk1Text": "Консультационная фирма, которая ведёт вашу визовую заявку, обрабатывает ваши персональные данные в качестве контролёра данных.",
+      "kvkk2Title": "2. Обрабатываемые персональные данные",
+      "kvkk2Text": "Обрабатываются: имя, фамилия, номер телефона, адрес электронной почты, данные паспорта и документы, переданные в рамках визовой заявки.",
+      "kvkk3Title": "3. Цели обработки",
+      "kvkk3Text": "Ваши данные обрабатываются для ведения процедуры визовой заявки, получения консульской записи, отслеживания документов и связи с вами.",
+      "kvkk4Title": "4. Передача данных",
+      "kvkk4Text": "Ваши данные могут быть переданы соответствующим консульствам, посольствам и уполномоченным государственным органам в рамках законодательных обязательств.",
+      "kvkk5Title": "5. Срок хранения",
+      "kvkk5Text": "Ваши персональные данные будут храниться не более 5 лет после завершения процедуры заявки в соответствии с законодательными обязательствами.",
+      "kvkk6Title": "6. Ваши права",
+      "kvkk6Text": "Вы имеете право на доступ, исправление, удаление данных, возражение против их обработки и их перенос. Направляйте запросы своему консультанту.",
+      "checkboxLabel": "Я ознакомился/ась с уведомлением о защите данных и даю согласие на обработку моих персональных данных в указанных целях.",
+      "continueBtn": "Продолжить →"
+    },
+    "documents": {
+      "completionStatus": "Статус выполнения",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noDocsReady": "Список документов ещё не подготовлен.",
+      "docStatus": {
+        "firmaBadge": "Компания",
+        "firmaDesc": "Будет предоставлено консультационной фирмой.",
+        "eldenBadge": "Лично",
+        "eldenDesc": "Будет передано консультанту лично.",
+        "eldenReceivedDesc": "Получено лично.",
+        "appointmentDayDesc": "Необходимо передать лично в день записи.",
+        "approvedBadge": "✓ Получено",
+        "approvedDesc": "Одобрено ✓",
+        "rejectedDesc": "Отклонено — загрузите заново",
+        "uploadAgain": "📎 Загрузить заново",
+        "uploadedReview": "Загружено — на рассмотрении",
+        "scanning": "🔍 Сканирование...",
+        "dataRead": "✓ Данные считаны",
+        "uploading": "{docName} — загрузка...",
+        "uploadedMore": "↑ Загружено — можно добавить ещё",
+        "uploadBtn": "📎 Загрузить файлы",
+        "addMoreBtn": "📎 Добавить ещё",
+        "digitalUploadBtn": "📎 Цифровая загрузка",
+        "multipleFilesHint": "Можно выбрать несколько файлов"
+      }
+    },
+    "myInfo": {
+      "fullNameLabel": "Полное имя",
+      "phoneLabel": "Телефон",
+      "emailLabel": "Электронная почта",
+      "saveBtn": "Сохранить данные",
+      "savedToast": "✓ Сохранено!",
+      "infoNote": "ℹ️ Обновления по вашей заявке будут отправлены на эти контактные данные."
+    }
+  },
+  "documentNames": {
+    "Pasaportun orijinali": "Оригинал паспорта",
+    "Pasaport fotokopisi": "Копия паспорта",
+    "Pasaport aslı ve fotokopisi": "Оригинал и копия паспорта",
+    "Pasaportun orijinali (min. 12 ay geçerli)": "Оригинал паспорта (действителен мин. 12 месяцев)",
+    "Pasaportun orijinali (+ varsa eski pasaportlar)": "Оригинал паспорта (+ старые паспорта при наличии)",
+    "Kimlik fotokopisi": "Копия удостоверения личности",
+    "2 adet biyometrik fotoğraf": "2 биометрических фотографии",
+    "2 adet biyometrik fotoğraf (35x45mm)": "2 биометрических фото (35×45 мм)",
+    "1 adet biyometrik fotoğraf": "1 биометрическая фотография",
+    "1 adet biyometrik fotoğraf (5×5 cm, beyaz fon)": "1 биометрическое фото (5×5 см, белый фон)",
+    "Seyahat sağlık sigortası (min. 30.000 €)": "Медицинская страховка для путешествий (мин. 30 000 €)",
+    "Seyahat sağlık sigortası": "Медицинская страховка для путешествий",
+    "Gidiş-dönüş uçak bileti rezervasyonu": "Бронирование авиабилетов туда и обратно",
+    "Otel / konaklama rezervasyonu": "Бронирование отеля / проживания",
+    "İkametgah belgesi (e-devlet üzerinden barkodlu çıktı)": "Справка о месте жительства (с баркодом через e-devlet)",
+    "İkametgah belgesi (e-devlet, barkodlu)": "Справка о проживании (e-devlet, с баркодом)",
+    "İkametgah belgesi": "Справка о проживании",
+    "Son 3 aylık banka hesap dökümü": "Выписка из банка за последние 3 месяца",
+    "Son 6 aylık banka hesap dökümü": "Выписка из банка за последние 6 месяцев",
+    "Banka hesap dökümü (son 3 ay)": "Банковская выписка (последние 3 месяца)",
+    "Nüfus kayıt örneği (e-devlet üzerinden barkodlu çıktı)": "Выписка из реестра населения (с баркодом через e-devlet)",
+    "Nüfus kayıt örneği (e-devlet, barkodlu)": "Выписка из реестра населения (e-devlet, с баркодом)",
+    "Nüfus kayıt örneği": "Выписка из реестра населения",
+    "Tam vukuatlı nüfus kayıt örneği (e-devlet üzerinden barkodlu çıktı)": "Полная выписка из реестра населения (с баркодом через e-devlet)",
+    "Vergi levhası": "Свидетельство о постановке на налоговый учёт",
+    "Şirket faaliyet belgesi": "Справка о деятельности компании",
+    "Şirket faaliyet belgesi (son 3 ay içinde alınmış güncel, e-imzalı/orijinal)": "Справка о деятельности компании (актуальная за 3 месяца, с электронной подписью/оригинал)",
+    "Ticaret sicil gazetesi": "Коммерческий реестр",
+    "Ticaret sicil gazetesi (son 6 ay içinde alınmış güncel, tercümeli)": "Коммерческий реестр (актуальный за 6 месяцев, переведённый)",
+    "SGK hizmet dökümü (e-devlet üzerinden barkodlu çıktı)": "Выписка из системы социального страхования (с баркодом через e-devlet)",
+    "SGK hizmet dökümü": "Выписка из системы социального страхования",
+    "Maaş bordrosu veya gelir belgesi": "Расчётный лист или справка о доходах",
+    "Maaş bordrosu (son 3 ay)": "Расчётный лист (последние 3 месяца)",
+    "İşveren görev yazısı": "Письмо с места работы",
+    "İşveren yazısı (izin belgesi dahil)": "Письмо от работодателя (включая разрешение на отпуск)",
+    "Öğrenci belgesi": "Справка об учёбе",
+    "Burs belgesi (varsa)": "Справка о стипендии (при наличии)",
+    "Ev sahibinden davet mektubu": "Приглашение от принимающей стороны",
+    "Ev sahibinin pasaport / oturma izni fotokopisi": "Копия паспорта / вида на жительство принимающей стороны",
+    "Akrabalık belgesi": "Документ о родстве",
+    "Akrabalık belgesi (tercümeli)": "Документ о родстве (переведённый)",
+    "Akrabalık belgesi (tercümeli, Apostilli)": "Документ о родстве (переведённый, апостилированный)",
+    "Doğum belgesi (Apostilli aslı + noterde onaylı tercümesi)": "Свидетельство о рождении (оригинал апостиля + нотариально заверенный перевод)",
+    "Doğum belgesi (Apostilli, tercümeli)": "Свидетельство о рождении (апостиль, переведённое)",
+    "Transkript Apostilli aslı + tercümesi": "Оригинал транскрипта с апостилем + перевод",
+    "Diplomanın Apostilli aslı + noterde onaylı hedef ülke dili veya İngilizce tercümesi": "Оригинал диплома с апостилем + нотариально заверенный перевод",
+    "Veli/sponsor banka hesap dökümü (son 3 ay)": "Банковская выписка родителя/спонсора (последние 3 месяца)",
+    "Son 6 aylık veli/sponsor banka hesap dökümü": "Банковская выписка родителя/спонсора за 6 месяцев",
+    "Veli gelir belgesi / maaş bordrosu": "Справка о доходах родителя / расчётный лист",
+    "CV / Özgeçmiş": "Резюме / CV",
+    "CV / Özgeçmiş (İngilizce)": "Резюме / CV (на английском)",
+    "Konaklama belgesi": "Документ о проживании",
+    "Konaklama belgesi (kira sözleşmesi)": "Документ о проживании (договор аренды)",
+    "Randevu onay belgesi": "Подтверждение записи",
+    "Vize dilekçesi (İngilizce)": "Заявление на визу (на английском)",
+    "Şirket evrakları": "Документы компании",
+    "Diploma ve mesleki belgeler": "Дипломы и профессиональные документы",
+    "İş deneyimi belgeleri": "Документы об опыте работы"
+  },
+  "elcilik": {
+    "pageDesc": "Быстрый доступ к часто используемым сайтам консульств и виз.",
+    "schengen": "🇪🇺 Страны Шенгена",
+    "nonSchengen": "🌍 Страны вне Шенгена",
+    "tools": "🔧 Инструменты и порталы",
+    "openBtn": "Открыть →",
+    "vfsBtn": "VFS →",
+    "asBtn": "AS →"
+  },
+  "takvim": {
+    "pageTitle": "Календарь",
+    "upcoming": "📅 Предстоящие записи",
+    "past": "Прошедшие записи",
+    "noUpcoming": "Предстоящих записей нет.",
+    "headers": {
+      "date": "Дата",
+      "time": "Время",
+      "customer": "Клиент",
+      "consulate": "Консульство",
+      "visa": "Виза",
+      "status": "Статус"
+    }
+  },
+  "musteriDetay": {
+    "notFound": "Клиент не найден.",
+    "pendingTransferToMe": "📨 Вам поступил запрос на передачу",
+    "pendingTransferDesc": "Дело {name} хотят передать вам.",
+    "transferNote": "Примечание: {note}",
+    "accept": "✅ Принять",
+    "decline": "❌ Отклонить",
+    "pendingTransferSent": "⏳ Запрос на передачу отправлен, ожидается подтверждение другой стороны.",
+    "consultant": "Консультант:",
+    "notAssigned": "Не назначен",
+    "changeStatus": "Изменить статус...",
+    "addAppointmentBtn": "📅 Добавить запись",
+    "intentLetterBtn": "✍️ Письмо о намерениях",
+    "intentLetterLocked": "✍️ Письмо о намерениях 🔒",
+    "planUpgradeAlert": "Эта функция доступна в планах Pro и Enterprise. Пожалуйста, обновите свой план.",
+    "transferBtn": "↗ Передать",
+    "deleteBtn": "🗑 Удалить",
+    "passportSection": "Данные паспорта",
+    "fields": {
+      "fullName": "Полное имя",
+      "phone": "Телефон",
+      "email": "Электронная почта",
+      "birthDate": "Дата рождения",
+      "passportExpiry": "Срок действия",
+      "visa": "Виза",
+      "occupation": "Профессия",
+      "consulate": "Консульство",
+      "appointment": "Запись"
+    },
+    "passportNo": "Номер паспорта",
+    "notEntered": "Не введено",
+    "hide": "Скрыть",
+    "reveal": "🔓 Показать",
+    "portalLink": "🔗 Ссылка на портал клиента",
+    "copy": "Копировать",
+    "copied": "✓ Скопировано",
+    "notesSection": "Заметки консультанта",
+    "noNotes": "Заметок пока нет.",
+    "addNotePlaceholder": "Добавить заметку...",
+    "addNoteBtn": "Добавить заметку",
+    "tabs": {
+      "documents": "📋 Документы",
+      "payment": "💳 Оплата",
+      "whatsapp": "💬 WhatsApp"
+    },
+    "docs": {
+      "noList": "Список документов ещё не создан.",
+      "refreshFromTemplate": "🔄 Обновить документы (из шаблона)",
+      "generateList": "📋 Создать список документов",
+      "completionLabel": "Выполнение документов",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noTemplate": "Одобренный шаблон для этой комбинации не найден.",
+      "status": {
+        "firma": "Компания подготовит",
+        "approved": "Одобрено",
+        "elden": "Будет получено лично",
+        "rejected": "Отклонено",
+        "uploaded": "Загружено — на рассмотрении",
+        "physical": "Ожидается личная передача",
+        "awaiting": "Клиент загрузит"
+      },
+      "badge": {
+        "firma": "Компания",
+        "approved": "✓ Одобрено",
+        "elden": "🤝 Лично",
+        "rejected": "✗ Отклонено"
+      },
+      "viewBtn": "Просмотр",
+      "approveBtn": "✓ Одобрить",
+      "eldenBtn": "🤝 Лично",
+      "rejectBtn": "✗ Отклонить",
+      "refreshBtn": "🔄 Обновить документы",
+      "reminderBtn": "📎 Отправить напоминание о документах",
+      "reminderMsg": "Уважаемый(ая) {name}, просим вас загрузить недостающие документы через ссылку на портал."
+    },
+    "payment": {
+      "total": "Стоимость услуги",
+      "paid": "Оплачено",
+      "remaining": "Остаток",
+      "noteLabel": "Примечание:",
+      "statusLabel": "Статус",
+      "collected": "Собрано",
+      "partial": "Частичная оплата",
+      "waiting": "Ожидание оплаты",
+      "currencyLabel": "Валюта",
+      "totalWithCurrency": "Стоимость услуги ({currency})",
+      "paidWithCurrency": "Оплаченная сумма ({currency})",
+      "editBtn": "💰 Редактировать оплату",
+      "noPayment": "Запись об оплате не найдена.",
+      "addBtn": "+ Добавить платёж",
+      "addModalTitle": "💳 Добавить платёж",
+      "totalAmountLabel": "Общая сумма * ({currency})",
+      "paidAmountLabel": "Оплаченная сумма ({currency})",
+      "notesLabel": "Примечания (необязательно)",
+      "notesPlaceholder": "Заметка об оплате...",
+      "saveBtn": "💳 Сохранить платёж"
+    },
+    "whatsapp": {
+      "sent": "✓ Сообщение отправлено",
+      "errorPrefix": "Ошибка:",
+      "noMessages": "Сообщений пока нет.",
+      "quick": {
+        "docs": "📎 Документы",
+        "docsMsg": "Пожалуйста, загрузите недостающие документы на портал.",
+        "appointment": "📅 Запись",
+        "appointmentMsg": "Ваша запись будет назначена в ближайшее время.",
+        "payment": "💰 Оплата",
+        "paymentMsg": "Просим вас оплатить оставшуюся сумму.",
+        "congrats": "✅ Поздравляем",
+        "congratsMsg": "Ваша визовая заявка завершена. Счастливого пути!"
+      },
+      "placeholder": "Написать сообщение... (Enter для отправки)",
+      "charCount": "{count} символов",
+      "sending": "⏳ Отправка...",
+      "sendBtn": "➤ Отправить"
+    },
+    "appointmentModal": {
+      "title": "📅 Добавить запись",
+      "consulate": "Консульство",
+      "consulatePlaceholder": "Консульство Франции Стамбул",
+      "date": "Дата",
+      "time": "Время",
+      "saveBtn": "Сохранить запись"
+    },
+    "transferModal": {
+      "title": "Передать клиента",
+      "desc": "Какому консультанту вы хотите передать дело {name}?",
+      "consultantLabel": "Консультант",
+      "selectPlaceholder": "Выберите...",
+      "noteLabel": "Примечание (необязательно)",
+      "notePlaceholder": "Почему передаёте?",
+      "sendBtn": "↗ Отправить запрос на передачу",
+      "sending": "Отправка..."
+    },
+    "intentModal": {
+      "title": "✍️ Создать письмо о намерениях",
+      "resultTitle": "Письмо о намерениях",
+      "editBtn": "← Редактировать",
+      "pdfBtn": "📄 Скачать PDF",
+      "travelDate": "Дата поездки",
+      "returnDate": "Дата возвращения",
+      "consulate": "Страна назначения / Консульство",
+      "consulatePlaceholder": "Консульство Германии",
+      "travelPurpose": "Цель поездки",
+      "selectPurpose": "Выберите...",
+      "purposes": {
+        "tourist": "Туризм",
+        "business": "Деловая встреча / Конференция",
+        "student": "Учёба / Образование",
+        "family": "Семья / Друзья",
+        "other": "Другое"
+      },
+      "purposeOtherPlaceholder": "Укажите цель визита...",
+      "accommodation": "Адрес проживания",
+      "accommodationPlaceholder": "Hotel Grand Paris, 12 Rue de Rivoli, Paris",
+      "inviter": "Приглашающий (необязательно)",
+      "inviterPlaceholder": "Ахмет Мюллер (брат, Берлин)",
+      "generateBtn": "✨ Создать письмо",
+      "generating": "✨ Создание...",
+      "editHint": "Вы можете редактировать текст. При нажатии кнопки скачать PDF откроется окно печати."
+    },
+    "deleteModal": {
+      "title": "Удалить клиента",
+      "desc": "{name} и все его записи будут удалены навсегда. Это действие нельзя отменить.",
+      "confirmBtn": "Да, удалить"
+    },
+    "confirmStatusChange": "Вы уверены, что хотите изменить статус на \"{status}\"?"
+  },
+  "languageSwitcher": {
+    "tr": "🇹🇷 Türkçe",
+    "en": "🇬🇧 English",
+    "de": "🇩🇪 Deutsch",
+    "pl": "🇵🇱 Polski",
+    "ar": "🇸🇦 العربية",
+    "ru": "🇷🇺 Русский",
+    "es": "🇪🇸 Español"
+  }
+}

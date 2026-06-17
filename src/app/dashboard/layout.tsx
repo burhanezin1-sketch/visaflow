@@ -6,7 +6,7 @@ import Sidebar from '@/components/Sidebar'
 import SessionTimeout from '@/components/SessionTimeout'
 import { SidebarProvider } from '@/lib/SidebarContext'
 
-const LOCALES = ['tr', 'en', 'de', 'pl'] as const
+const LOCALES = ['tr', 'en', 'de', 'pl', 'ar', 'ru', 'es'] as const
 type Locale = (typeof LOCALES)[number]
 
 async function loadMessages(locale: Locale) {
@@ -14,6 +14,9 @@ async function loadMessages(locale: Locale) {
     case 'en': return (await import('@/messages/en.json')).default
     case 'de': return (await import('@/messages/de.json')).default
     case 'pl': return (await import('@/messages/pl.json')).default
+    case 'ar': return (await import('@/messages/ar.json')).default
+    case 'ru': return (await import('@/messages/ru.json')).default
+    case 'es': return (await import('@/messages/es.json')).default
     default:   return (await import('@/messages/tr.json')).default
   }
 }

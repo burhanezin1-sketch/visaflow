@@ -1,0 +1,615 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "loading": "جارٍ التحميل...",
+    "saving": "جارٍ الحفظ...",
+    "deleting": "جارٍ الحذف...",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "add": "إضافة",
+    "update": "تحديث",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "all": "الكل",
+    "clone": "نسخ",
+    "logout": "تسجيل الخروج",
+    "yes": "نعم",
+    "no": "لا",
+    "optional": "اختياري",
+    "required": "إلزامي",
+    "error": "خطأ",
+    "success": "نجاح",
+    "noData": "لا توجد بيانات",
+    "search": "بحث...",
+    "filter": "تصفية",
+    "new": "+ جديد",
+    "viewAll": "عرض الكل",
+    "viewMore": "+{count} المزيد"
+  },
+  "status": {
+    "missing": "مستندات ناقصة",
+    "appointment_waiting": "انتظار الموعد",
+    "appointment": "تم تحديد الموعد",
+    "approved": "مقبول",
+    "rejected": "مرفوض",
+    "pending": "قيد المراجعة",
+    "waiting": "انتظار",
+    "claimed": "تم الاستلام",
+    "contacted": "سيتم التواصل لاحقاً"
+  },
+  "fields": {
+    "fullName": "الاسم الكامل",
+    "firstName": "الاسم",
+    "lastName": "اللقب",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "country": "الدولة",
+    "visaType": "نوع التأشيرة",
+    "occupation": "المهنة",
+    "notes": "ملاحظات إضافية",
+    "date": "التاريخ",
+    "status": "الحالة",
+    "consultant": "المستشار",
+    "password": "كلمة المرور",
+    "nationality": "الجنسية"
+  },
+  "placeholders": {
+    "firstName": "أحمد",
+    "lastName": "محمد",
+    "phone": "+90 5xx xxx xx xx",
+    "email": "example@email.com",
+    "country": "مثال: فرنسا",
+    "visaType": "مثال: تأشيرة سياحية",
+    "occupation": "مثال: موظف (اختياري)",
+    "notes": "حالة خاصة، معلومات الكفيل، ملاحظات إضافية...",
+    "searchName": "بحث بالاسم...",
+    "loginEmail": "example@company.com"
+  },
+  "sidebar": {
+    "dashboard": "لوحة التحكم",
+    "tasks": "قائمة المهام",
+    "customers": "العملاء",
+    "leads": "العملاء المحتملون",
+    "calendar": "التقويم",
+    "embassyLinks": "روابط السفارات",
+    "templates": "مكتبة القوالب",
+    "consultantPanel": "لوحة المستشار",
+    "transferRequests": "📨 {count} طلب تحويل",
+    "transferFrom": "من {name}",
+    "acceptTransfer": "✓ قبول",
+    "rejectTransfer": "✕ رفض"
+  },
+  "login": {
+    "title": "تسجيل دخول المستشار",
+    "emailLabel": "البريد الإلكتروني",
+    "passwordLabel": "كلمة المرور",
+    "submitBtn": "تسجيل الدخول",
+    "submittingBtn": "جارٍ تسجيل الدخول...",
+    "error": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+  },
+  "dashboard": {
+    "greeting": "صباح الخير، {name} 👋",
+    "stats": {
+      "activeFiles": "الملفات النشطة",
+      "newLead": "عميل جديد",
+      "pendingDocs": "مستندات معلقة",
+      "weeklyAppointment": "مواعيد هذا الأسبوع",
+      "waitingToCall": "انتظار الاتصال",
+      "urgentFollowup": "متابعة عاجلة",
+      "openCalendar": "فتح التقويم"
+    },
+    "pendingDocs": {
+      "title": "📋 مستندات معلقة",
+      "empty": "لا توجد مستندات معلقة ✓"
+    },
+    "recentActivity": {
+      "title": "🕐 آخر العمليات",
+      "empty": "لا يوجد عملاء بعد"
+    }
+  },
+  "musteriler": {
+    "pageTitle": "العملاء",
+    "tabs": {
+      "all": "جميع العملاء",
+      "mine": "عملائي"
+    },
+    "filters": {
+      "allStatuses": "جميع الحالات"
+    },
+    "table": {
+      "headers": {
+        "fullName": "الاسم الكامل",
+        "phone": "الهاتف",
+        "country": "الدولة",
+        "visaType": "نوع التأشيرة",
+        "occupation": "المهنة",
+        "status": "الحالة",
+        "date": "التاريخ"
+      },
+      "empty": {
+        "mine": "لا يوجد عملاء مخصصون لك.",
+        "all": "لا يوجد عملاء بعد."
+      }
+    },
+    "addModal": {
+      "title": "إضافة عميل جديد",
+      "officialVisaWarning": "⚠️ التأشيرة الرسمية مخصصة للموظفين الحكوميين فقط. يمكن لحاملي جوازات السفر الخاصة (الخضراء) أو الخدمية (الرمادية) السفر إلى دول شنغن لمدة تصل إلى 90 يوماً دون تأشيرة.",
+      "servicePrice": "رسوم الخدمة",
+      "noPriceDefined": "لم يتم تحديد سعر لهذا النوع من التأشيرة. يمكنك إضافته من لوحة الإدارة.",
+      "alreadyRegistered": "هذا العميل مسجل بالفعل: {name}",
+      "submitBtn": "حفظ والانتقال إلى الملف"
+    },
+    "occupations": {
+      "calisan": "موظف",
+      "sirket_sahibi": "صاحب عمل / مستقل",
+      "devlet_memuru": "موظف حكومي",
+      "ogrenci": "طالب",
+      "emekli": "متقاعد",
+      "ev_hanimi": "لا يعمل",
+      "ev_hanimi_meslek": "ربة منزل"
+    },
+    "toasts": {
+      "globalTemplateUsed": "✓ تم استخدام القالب العام"
+    },
+    "noTemplate": {
+      "title": "لم يتم العثور على قالب",
+      "description": "لم يتم إنشاء قالب لهذه التوليفة بعد. تم حفظ العميل وقائمة المستندات فارغة الآن.",
+      "similarTitle": "توجد قوالب مشابهة، هل تريد استخدامها؟",
+      "noOccupation": "لم تحدد المهنة",
+      "docCount": "{count} مستند",
+      "globalBadge": "🌐 عام",
+      "useTemplate": "استخدام هذا القالب",
+      "createTemplate": "+ إنشاء قالب",
+      "viewGlobal": "🌐 عرض القوالب العامة",
+      "goToProfile": "الانتقال إلى ملف العميل →",
+      "nationalityMismatch": "لم يتم العثور على قالب خاص بهذه الجنسية. توجد قوالب لتوليفات مماثلة من دول/تأشيرات لجنسيات مختلفة:"
+    }
+  },
+  "sablonlar": {
+    "pageTitle": "مكتبة القوالب",
+    "library": {
+      "title": "📚 قوالب المكتبة",
+      "empty": "لا توجد قوالب عامة معتمدة بعد."
+    },
+    "myTemplates": {
+      "title": "🗂 قوالبي",
+      "newBtn": "+ قالب جديد",
+      "empty": "لم تقم بإنشاء أي قالب بعد."
+    },
+    "actions": {
+      "clone": "نسخ",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleteConfirm": "هل أنت متأكد من حذف هذا القالب؟"
+    },
+    "status": {
+      "pending": "قيد المراجعة",
+      "approved": "معتمد",
+      "rejected": "مرفوض"
+    },
+    "docCount": "{count} مستند",
+    "modal": {
+      "editTitle": "تعديل القالب",
+      "createTitle": "إنشاء قالب جديد",
+      "docsSection": "المستندات",
+      "docNamePlaceholder": "اسم المستند *",
+      "docDescPlaceholder": "وصف (اختياري)",
+      "addDoc": "+ إضافة مستند",
+      "submitCreate": "حفظ (إرسال للمراجعة)",
+      "submitEdit": "تحديث"
+    },
+    "delivery": {
+      "digital": "رقمي",
+      "physical": "يدوي",
+      "firma": "الشركة"
+    }
+  },
+  "gorevler": {
+    "pageTitle": "قائمة المهام",
+    "empty": "🎉 تم إنجاز جميع المهام!",
+    "sections": {
+      "missingDocs": "📋 مستندات ناقصة",
+      "missingPayments": "💰 مدفوعات ناقصة",
+      "emptyDocs": "✓ لا توجد مستندات ناقصة",
+      "emptyPayments": "✓ لا توجد مدفوعات ناقصة"
+    },
+    "tasks": {
+      "sendDocReminder": "إرسال تذكير بالمستندات",
+      "scheduleAppointment": "تحديد موعد",
+      "paymentFollowup": "متابعة الدفع",
+      "passportRenewal": "تحذير تجديد جواز السفر",
+      "missingDocsDesc": "المستندات ناقصة لطلب {country} {visaType}",
+      "appointmentDesc": "في انتظار موعد القنصلية لـ {country} {visaType}",
+      "paymentDesc": "المتبقي: {amount}₺",
+      "passportDesc": "جواز السفر ينتهي في {date}"
+    }
+  },
+  "leads": {
+    "pageTitle": "العملاء المحتملون",
+    "listTitle": "قائمة العملاء المحتملين",
+    "waitingCount": "{count} في الانتظار",
+    "table": {
+      "name": "الاسم الكامل",
+      "wants": "ماذا يريد؟",
+      "consultant": "المستشار",
+      "status": "الحالة",
+      "notAssigned": "غير مخصص",
+      "empty": "لا يوجد عملاء محتملون بعد"
+    },
+    "actions": {
+      "claim": "استلام",
+      "updateStatus": "تحديث الحالة"
+    },
+    "modal": {
+      "title": "تحديث الحالة",
+      "convertToCustomer": "✓ تحويل إلى عميل",
+      "talkLater": "🕐 سيتم التواصل لاحقاً",
+      "cancel": "✕ إلغاء — لن يصبح عميلاً",
+      "visaInfoLabel": "أدخل معلومات التأشيرة:",
+      "addAsCustomer": "✓ إضافة كعميل",
+      "talkLaterConfirm": "🕐 سيتم التواصل لاحقاً",
+      "cancelConfirm": "✕ إلغاء وحذف"
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "نظرة عامة",
+      "totalRevenue": "إجمالي الإيرادات",
+      "uncollected": "غير محصّل",
+      "activeFiles": "الملفات النشطة",
+      "completed": "مكتمل",
+      "monthlyUsage": "استخدام الملفات هذا الشهر",
+      "monthlyTrend": "اتجاه الإيرادات الشهرية",
+      "quickSummary": "ملخص سريع",
+      "countryRevenue": "الإيرادات حسب الدولة",
+      "visaTypeDistribution": "توزيع أنواع التأشيرة"
+    },
+    "summary": {
+      "totalRevenue": "إجمالي الإيرادات",
+      "totalRevenueTL": "إجمالي الإيرادات (₺)",
+      "collected": "المحصّل",
+      "collectedTL": "المحصّل (₺)",
+      "uncollected": "غير المحصّل",
+      "uncollectedTL": "غير المحصّل (₺)",
+      "totalCustomers": "إجمالي العملاء",
+      "completedFiles": "الملفات المكتملة",
+      "ongoing": "جارٍ"
+    },
+    "months": {
+      "0": "يناير", "1": "فبراير", "2": "مارس", "3": "أبريل",
+      "4": "مايو", "5": "يونيو", "6": "يوليو", "7": "أغسطس",
+      "8": "سبتمبر", "9": "أكتوبر", "10": "نوفمبر", "11": "ديسمبر"
+    }
+  },
+  "portal": {
+    "brand": "VECTROPUS",
+    "greeting": "مرحباً {name}",
+    "loading": "جارٍ التحميل...",
+    "invalidLink": "الرابط غير صالح",
+    "invalidLinkDesc": "لم يتم العثور على رابط هذه البوابة.",
+    "tabs": {
+      "documents": "📋 المستندات",
+      "myInfo": "👤 معلوماتي"
+    },
+    "consent": {
+      "title": "🔒 حماية البيانات الشخصية",
+      "subtitle": "يلزم الموافقة للمتابعة",
+      "viewText": "▼ عرض النص",
+      "closeText": "▲ إغلاق",
+      "kvkkTitle": "نص الإخطار بحماية البيانات",
+      "kvkkDear": "عزيزي {name}،",
+      "kvkkIntro": "فيما يلي معلومات حول معالجة بياناتك الشخصية في إطار قانون حماية البيانات الشخصية.",
+      "kvkk1Title": "1. المسؤول عن البيانات",
+      "kvkk1Text": "تقوم شركة الاستشارات التي تدير طلب تأشيرتك بمعالجة بياناتك الشخصية بصفتها المسؤول عن البيانات.",
+      "kvkk2Title": "2. البيانات الشخصية المعالجة",
+      "kvkk2Text": "تتم معالجة الاسم واللقب ورقم الهاتف والبريد الإلكتروني ومعلومات جواز السفر والمستندات المشاركة في إطار طلب التأشيرة.",
+      "kvkk3Title": "3. أغراض المعالجة",
+      "kvkk3Text": "تتم معالجة بياناتك لإدارة إجراءات طلب التأشيرة والحصول على موعد القنصلية وتتبع المستندات والتواصل معك.",
+      "kvkk4Title": "4. النقل",
+      "kvkk4Text": "قد تتم مشاركة بياناتك مع القنصليات والسفارات ذات الصلة والمؤسسات الحكومية المختصة في إطار الالتزام القانوني.",
+      "kvkk5Title": "5. مدة الاحتفاظ",
+      "kvkk5Text": "سيتم الاحتفاظ ببياناتك الشخصية لمدة أقصاها 5 سنوات بعد اكتمال إجراءات طلبك وفقاً للالتزامات القانونية.",
+      "kvkk6Title": "6. حقوقك",
+      "kvkk6Text": "لديك الحق في الوصول إلى بياناتك وتصحيحها وحذفها والاعتراض على معالجتها ونقلها. يمكنك تقديم طلباتك إلى مستشارك.",
+      "checkboxLabel": "لقد قرأت نص الإخطار بحماية البيانات وأوافق على معالجة بياناتي الشخصية للأغراض المحددة.",
+      "continueBtn": "متابعة →"
+    },
+    "documents": {
+      "completionStatus": "حالة الإكمال",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noDocsReady": "لم يتم إعداد قائمة المستندات بعد.",
+      "docStatus": {
+        "firmaBadge": "الشركة",
+        "firmaDesc": "ستقوم شركة الاستشارات بتوفيره.",
+        "eldenBadge": "يدوي",
+        "eldenDesc": "سيتم التسليم يدوياً للمستشار.",
+        "eldenReceivedDesc": "تم الاستلام يدوياً.",
+        "appointmentDayDesc": "يجب التسليم يدوياً في يوم الموعد.",
+        "approvedBadge": "✓ مستلم",
+        "approvedDesc": "تمت الموافقة ✓",
+        "rejectedDesc": "مرفوض — يرجى إعادة الرفع",
+        "uploadAgain": "📎 إعادة الرفع",
+        "uploadedReview": "تم الرفع — قيد المراجعة",
+        "scanning": "🔍 جارٍ الفحص...",
+        "dataRead": "✓ تمت قراءة البيانات",
+        "uploading": "{docName} — جارٍ الرفع...",
+        "uploadedMore": "↑ تم الرفع — يمكنك إضافة المزيد",
+        "uploadBtn": "📎 رفع الملفات",
+        "addMoreBtn": "📎 إضافة المزيد",
+        "digitalUploadBtn": "📎 رفع رقمي",
+        "multipleFilesHint": "يمكنك اختيار ملفات متعددة"
+      }
+    },
+    "myInfo": {
+      "fullNameLabel": "الاسم الكامل",
+      "phoneLabel": "الهاتف",
+      "emailLabel": "البريد الإلكتروني",
+      "saveBtn": "حفظ المعلومات",
+      "savedToast": "✓ تم الحفظ!",
+      "infoNote": "ℹ️ سيتم إرسال التحديثات المتعلقة بطلبك إلى معلومات الاتصال هذه."
+    }
+  },
+  "documentNames": {
+    "Pasaportun orijinali": "جواز السفر الأصلي",
+    "Pasaport fotokopisi": "صورة جواز السفر",
+    "Pasaport aslı ve fotokopisi": "جواز السفر الأصلي وصورته",
+    "Pasaportun orijinali (min. 12 ay geçerli)": "جواز السفر الأصلي (صالح لمدة 12 شهراً على الأقل)",
+    "Pasaportun orijinali (+ varsa eski pasaportlar)": "جواز السفر الأصلي (+ جوازات السفر القديمة إن وجدت)",
+    "Kimlik fotokopisi": "صورة بطاقة الهوية",
+    "2 adet biyometrik fotoğraf": "2 صورة بيومترية",
+    "2 adet biyometrik fotoğraf (35x45mm)": "2 صورة بيومترية (35×45 مم)",
+    "1 adet biyometrik fotoğraf": "1 صورة بيومترية",
+    "1 adet biyometrik fotoğraf (5×5 cm, beyaz fon)": "1 صورة بيومترية (5×5 سم، خلفية بيضاء)",
+    "Seyahat sağlık sigortası (min. 30.000 €)": "تأمين صحي للسفر (الحد الأدنى 30,000 €)",
+    "Seyahat sağlık sigortası": "تأمين صحي للسفر",
+    "Gidiş-dönüş uçak bileti rezervasyonu": "حجز تذكرة طيران ذهاباً وإياباً",
+    "Otel / konaklama rezervasyonu": "حجز فندق / إقامة",
+    "İkametgah belgesi (e-devlet üzerinden barkodlu çıktı)": "وثيقة الإقامة (مطبوعة بباركود من بوابة الحكومة الإلكترونية)",
+    "İkametgah belgesi (e-devlet, barkodlu)": "وثيقة الإقامة (من الحكومة الإلكترونية، بباركود)",
+    "İkametgah belgesi": "وثيقة الإقامة",
+    "Son 3 aylık banka hesap dökümü": "كشف حساب بنكي لآخر 3 أشهر",
+    "Son 6 aylık banka hesap dökümü": "كشف حساب بنكي لآخر 6 أشهر",
+    "Banka hesap dökümü (son 3 ay)": "كشف الحساب البنكي (آخر 3 أشهر)",
+    "Nüfus kayıt örneği (e-devlet üzerinden barkodlu çıktı)": "سجل الأحوال المدنية (مطبوع بباركود من الحكومة الإلكترونية)",
+    "Nüfus kayıt örneği (e-devlet, barkodlu)": "سجل الأحوال المدنية (حكومة إلكترونية، بباركود)",
+    "Nüfus kayıt örneği": "سجل الأحوال المدنية",
+    "Tam vukuatlı nüfus kayıt örneği (e-devlet üzerinden barkodlu çıktı)": "سجل الأحوال المدنية الكامل (بباركود من الحكومة الإلكترونية)",
+    "Vergi levhası": "شهادة التسجيل الضريبي",
+    "Şirket faaliyet belgesi": "شهادة نشاط الشركة",
+    "Şirket faaliyet belgesi (son 3 ay içinde alınmış güncel, e-imzalı/orijinal)": "شهادة نشاط الشركة (حديثة خلال 3 أشهر، موقعة إلكترونياً/أصلية)",
+    "Ticaret sicil gazetesi": "جريدة السجل التجاري",
+    "Ticaret sicil gazetesi (son 6 ay içinde alınmış güncel, tercümeli)": "جريدة السجل التجاري (حديثة خلال 6 أشهر، مترجمة)",
+    "SGK hizmet dökümü (e-devlet üzerinden barkodlu çıktı)": "كشف خدمة الضمان الاجتماعي (بباركود من الحكومة الإلكترونية)",
+    "SGK hizmet dökümü": "كشف خدمة الضمان الاجتماعي",
+    "Maaş bordrosu veya gelir belgesi": "كشف الراتب أو وثيقة الدخل",
+    "Maaş bordrosu (son 3 ay)": "كشف الراتب (آخر 3 أشهر)",
+    "İşveren görev yazısı": "خطاب إثبات العمل",
+    "İşveren yazısı (izin belgesi dahil)": "خطاب صاحب العمل (بما فيه إذن الإجازة)",
+    "Öğrenci belgesi": "وثيقة القيد الدراسي",
+    "Burs belgesi (varsa)": "وثيقة المنحة الدراسية (إن وجدت)",
+    "Ev sahibinden davet mektubu": "خطاب دعوة من المضيف",
+    "Ev sahibinin pasaport / oturma izni fotokopisi": "صورة جواز سفر المضيف / إقامته",
+    "Akrabalık belgesi": "وثيقة صلة القرابة",
+    "Akrabalık belgesi (tercümeli)": "وثيقة صلة القرابة (مترجمة)",
+    "Akrabalık belgesi (tercümeli, Apostilli)": "وثيقة صلة القرابة (مترجمة، مصدّقة بالأبوستيل)",
+    "Doğum belgesi (Apostilli aslı + noterde onaylı tercümesi)": "شهادة الميلاد (أصل الأبوستيل + ترجمة معتمدة من كاتب العدل)",
+    "Doğum belgesi (Apostilli, tercümeli)": "شهادة الميلاد (أبوستيل، مترجمة)",
+    "Transkript Apostilli aslı + tercümesi": "كشف الدرجات الأصلي بالأبوستيل + ترجمته",
+    "Diplomanın Apostilli aslı + noterde onaylı hedef ülke dili veya İngilizce tercümesi": "أصل الشهادة بالأبوستيل + ترجمة معتمدة من كاتب العدل",
+    "Veli/sponsor banka hesap dökümü (son 3 ay)": "كشف حساب بنكي للولي/الكفيل (آخر 3 أشهر)",
+    "Son 6 aylık veli/sponsor banka hesap dökümü": "كشف حساب بنكي للولي/الكفيل لآخر 6 أشهر",
+    "Veli gelir belgesi / maaş bordrosu": "وثيقة دخل الولي / كشف الراتب",
+    "CV / Özgeçmiş": "السيرة الذاتية",
+    "CV / Özgeçmiş (İngilizce)": "السيرة الذاتية (بالإنجليزية)",
+    "Konaklama belgesi": "وثيقة الإقامة",
+    "Konaklama belgesi (kira sözleşmesi)": "وثيقة الإقامة (عقد الإيجار)",
+    "Randevu onay belgesi": "وثيقة تأكيد الموعد",
+    "Vize dilekçesi (İngilizce)": "طلب التأشيرة (بالإنجليزية)",
+    "Şirket evrakları": "وثائق الشركة",
+    "Diploma ve mesleki belgeler": "الشهادات والوثائق المهنية",
+    "İş deneyimi belgeleri": "وثائق الخبرة المهنية"
+  },
+  "elcilik": {
+    "pageDesc": "وصول سريع إلى مواقع القنصليات والتأشيرات الأكثر استخداماً.",
+    "schengen": "🇪🇺 دول شنغن",
+    "nonSchengen": "🌍 دول خارج شنغن",
+    "tools": "🔧 الأدوات والبوابات",
+    "openBtn": "فتح →",
+    "vfsBtn": "VFS →",
+    "asBtn": "AS →"
+  },
+  "takvim": {
+    "pageTitle": "التقويم",
+    "upcoming": "📅 المواعيد القادمة",
+    "past": "المواعيد الماضية",
+    "noUpcoming": "لا توجد مواعيد قادمة.",
+    "headers": {
+      "date": "التاريخ",
+      "time": "الوقت",
+      "customer": "العميل",
+      "consulate": "القنصلية",
+      "visa": "التأشيرة",
+      "status": "الحالة"
+    }
+  },
+  "musteriDetay": {
+    "notFound": "لم يتم العثور على العميل.",
+    "pendingTransferToMe": "📨 طلب تحويل لك",
+    "pendingTransferDesc": "يُراد تحويل ملف {name} إليك.",
+    "transferNote": "ملاحظة: {note}",
+    "accept": "✅ قبول",
+    "decline": "❌ رفض",
+    "pendingTransferSent": "⏳ تم إرسال طلب التحويل، في انتظار موافقة الطرف الآخر.",
+    "consultant": "المستشار:",
+    "notAssigned": "غير مخصص",
+    "changeStatus": "تغيير الحالة...",
+    "addAppointmentBtn": "📅 إضافة موعد",
+    "intentLetterBtn": "✍️ خطاب النية",
+    "intentLetterLocked": "✍️ خطاب النية 🔒",
+    "planUpgradeAlert": "هذه الميزة متاحة في خطط Pro والمؤسسات. يرجى ترقية خطتك.",
+    "transferBtn": "↗ تحويل",
+    "deleteBtn": "🗑 حذف",
+    "passportSection": "معلومات جواز السفر",
+    "fields": {
+      "fullName": "الاسم الكامل",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "birthDate": "تاريخ الميلاد",
+      "passportExpiry": "تاريخ الانتهاء",
+      "visa": "التأشيرة",
+      "occupation": "المهنة",
+      "consulate": "القنصلية",
+      "appointment": "الموعد"
+    },
+    "passportNo": "رقم جواز السفر",
+    "notEntered": "لم يُدخل",
+    "hide": "إخفاء",
+    "reveal": "🔓 إظهار",
+    "portalLink": "🔗 رابط بوابة العميل",
+    "copy": "نسخ",
+    "copied": "✓ تم النسخ",
+    "notesSection": "ملاحظات المستشار",
+    "noNotes": "لا توجد ملاحظات بعد.",
+    "addNotePlaceholder": "إضافة ملاحظة...",
+    "addNoteBtn": "إضافة ملاحظة",
+    "tabs": {
+      "documents": "📋 المستندات",
+      "payment": "💳 الدفع",
+      "whatsapp": "💬 واتساب"
+    },
+    "docs": {
+      "noList": "لم يتم إنشاء قائمة المستندات بعد.",
+      "refreshFromTemplate": "🔄 تحديث المستندات (من القالب)",
+      "generateList": "📋 إنشاء قائمة المستندات",
+      "completionLabel": "إكمال المستندات",
+      "progress": "{completed}/{total} — {percentage}%",
+      "noTemplate": "لم يتم العثور على قالب معتمد لهذه التوليفة.",
+      "status": {
+        "firma": "ستقوم الشركة بالتحضير",
+        "approved": "تمت الموافقة",
+        "elden": "سيتم الاستلام يدوياً",
+        "rejected": "مرفوض",
+        "uploaded": "تم الرفع — قيد المراجعة",
+        "physical": "في انتظار التسليم اليدوي",
+        "awaiting": "سيقوم العميل بالرفع"
+      },
+      "badge": {
+        "firma": "الشركة",
+        "approved": "✓ معتمد",
+        "elden": "🤝 يدوي",
+        "rejected": "✗ مرفوض"
+      },
+      "viewBtn": "عرض",
+      "approveBtn": "✓ موافقة",
+      "eldenBtn": "🤝 يدوي",
+      "rejectBtn": "✗ رفض",
+      "refreshBtn": "🔄 تحديث المستندات",
+      "reminderBtn": "📎 إرسال تذكير بالمستندات",
+      "reminderMsg": "عزيزي {name}، يرجى رفع مستنداتك الناقصة عبر رابط البوابة."
+    },
+    "payment": {
+      "total": "رسوم الخدمة",
+      "paid": "المدفوع",
+      "remaining": "المتبقي",
+      "noteLabel": "ملاحظة:",
+      "statusLabel": "الحالة",
+      "collected": "تم التحصيل",
+      "partial": "دفع جزئي",
+      "waiting": "في انتظار الدفع",
+      "currencyLabel": "العملة",
+      "totalWithCurrency": "رسوم الخدمة ({currency})",
+      "paidWithCurrency": "المبلغ المدفوع ({currency})",
+      "editBtn": "💰 تعديل الدفع",
+      "noPayment": "لم يتم العثور على سجل دفع.",
+      "addBtn": "+ إضافة دفعة",
+      "addModalTitle": "💳 إضافة دفعة",
+      "totalAmountLabel": "المبلغ الإجمالي * ({currency})",
+      "paidAmountLabel": "المبلغ المدفوع ({currency})",
+      "notesLabel": "ملاحظات (اختياري)",
+      "notesPlaceholder": "ملاحظة الدفع...",
+      "saveBtn": "💳 حفظ الدفعة"
+    },
+    "whatsapp": {
+      "sent": "✓ تم إرسال الرسالة",
+      "errorPrefix": "خطأ:",
+      "noMessages": "لا توجد رسائل بعد.",
+      "quick": {
+        "docs": "📎 مستندات",
+        "docsMsg": "يرجى رفع مستنداتك الناقصة على البوابة.",
+        "appointment": "📅 موعد",
+        "appointmentMsg": "سيتم تحديد موعدك قريباً.",
+        "payment": "💰 دفع",
+        "paymentMsg": "يرجى سداد الدفعة المتبقية.",
+        "congrats": "✅ تهانينا",
+        "congratsMsg": "تم إتمام طلب تأشيرتك. رحلة موفقة!"
+      },
+      "placeholder": "اكتب رسالة... (أرسل بـ Enter)",
+      "charCount": "{count} حرف",
+      "sending": "⏳ جارٍ الإرسال...",
+      "sendBtn": "➤ إرسال"
+    },
+    "appointmentModal": {
+      "title": "📅 إضافة موعد",
+      "consulate": "القنصلية",
+      "consulatePlaceholder": "القنصلية الفرنسية إسطنبول",
+      "date": "التاريخ",
+      "time": "الوقت",
+      "saveBtn": "حفظ الموعد"
+    },
+    "transferModal": {
+      "title": "تحويل العميل",
+      "desc": "إلى أي مستشار تريد تحويل ملف {name}؟",
+      "consultantLabel": "المستشار",
+      "selectPlaceholder": "اختر...",
+      "noteLabel": "ملاحظة (اختياري)",
+      "notePlaceholder": "لماذا تحول؟",
+      "sendBtn": "↗ إرسال طلب التحويل",
+      "sending": "جارٍ الإرسال..."
+    },
+    "intentModal": {
+      "title": "✍️ إنشاء خطاب النية",
+      "resultTitle": "خطاب النية",
+      "editBtn": "← تعديل",
+      "pdfBtn": "📄 تحميل PDF",
+      "travelDate": "تاريخ السفر",
+      "returnDate": "تاريخ العودة",
+      "consulate": "الدولة المقصد / القنصلية",
+      "consulatePlaceholder": "القنصلية الألمانية",
+      "travelPurpose": "الغرض من السفر",
+      "selectPurpose": "اختر...",
+      "purposes": {
+        "tourist": "سياحة",
+        "business": "أعمال / مؤتمر",
+        "student": "دراسة / تعليم",
+        "family": "زيارة عائلية / أصدقاء",
+        "other": "أخرى"
+      },
+      "purposeOtherPlaceholder": "حدد الغرض من الزيارة...",
+      "accommodation": "عنوان الإقامة",
+      "accommodationPlaceholder": "Hotel Grand Paris, 12 Rue de Rivoli, Paris",
+      "inviter": "الداعي (اختياري)",
+      "inviterPlaceholder": "أحمد مولر (أخوه، برلين)",
+      "generateBtn": "✨ إنشاء الخطاب",
+      "generating": "✨ جارٍ الإنشاء...",
+      "editHint": "يمكنك تعديل النص. عند الضغط على تحميل PDF ستفتح شاشة الطباعة."
+    },
+    "deleteModal": {
+      "title": "حذف العميل",
+      "desc": "سيتم حذف {name} وجميع سجلاته نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+      "confirmBtn": "نعم، احذف"
+    },
+    "confirmStatusChange": "هل أنت متأكد من تغيير الحالة إلى \"{status}\"؟"
+  },
+  "languageSwitcher": {
+    "tr": "🇹🇷 Türkçe",
+    "en": "🇬🇧 English",
+    "de": "🇩🇪 Deutsch",
+    "pl": "🇵🇱 Polski",
+    "ar": "🇸🇦 العربية",
+    "ru": "🇷🇺 Русский",
+    "es": "🇪🇸 Español"
+  }
+}
