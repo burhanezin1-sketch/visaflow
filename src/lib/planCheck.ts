@@ -11,6 +11,7 @@ export async function checkApplicationLimit(companyId: string): Promise<{ allowe
     .single()
 
   if (!company) return { allowed: true }
+  if (company.plan === 'kurumsal') return { allowed: true }
 
   const limit = APPLICATION_LIMITS[company.plan]
   if (!limit) return { allowed: true }
@@ -47,6 +48,7 @@ export async function checkUserLimit(companyId: string): Promise<{ allowed: bool
     .single()
 
   if (!company) return { allowed: true }
+  if (company.plan === 'kurumsal') return { allowed: true }
 
   const baseLimit = USER_LIMITS[company.plan]
   if (!baseLimit) return { allowed: true }

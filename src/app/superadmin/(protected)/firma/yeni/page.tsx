@@ -124,6 +124,7 @@ export default function YeniFirmaPage() {
                 <select value={firmaForm.plan} onChange={e => setFirmaForm({...firmaForm, plan: e.target.value})} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e8e4da', borderRadius: '8px', fontSize: '13px', background: '#faf8f3', outline: 'none', fontFamily: 'inherit' }}>
                   <option value="basic">Basic</option>
                   <option value="pro">Pro</option>
+                  <option value="kurumsal">⭐ Kurumsal</option>
                 </select>
               </div>
               <button onClick={() => setStep(2)} style={{ width: '100%', padding: '12px', background: '#0d1f35', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>

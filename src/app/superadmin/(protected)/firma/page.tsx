@@ -9,8 +9,9 @@ const PLAN_LIMITS: Record<string, number> = { basic: 30, pro: 100 }
 const PLAN_PRICES: Record<string, number> = { basic: 3499, pro: 5499 }
 
 const PLAN_OPTIONS = [
-  { key: 'basic', label: 'Basic', price: '2.999 TL/ay', features: ['1 Admin + 2 Danışman', '30 Dosya/Ay', 'AI Kısıtlı'] },
-  { key: 'pro', label: 'Pro', price: '5.499 TL/ay', features: ['1 Admin + 4 Danışman', '100 Dosya/Ay', 'Tüm AI Açık'] },
+  { key: 'basic',     label: 'Basic',     price: '2.999 TL/ay', features: ['1 Admin + 2 Danışman', '30 Dosya/Ay', 'AI Kısıtlı'] },
+  { key: 'pro',       label: 'Pro',       price: '5.499 TL/ay', features: ['1 Admin + 4 Danışman', '100 Dosya/Ay', 'Tüm AI Açık'] },
+  { key: 'kurumsal',  label: 'Kurumsal',  price: '9.999 TL/ay', features: ['Sınırsız Danışman', 'Sınırsız Müşteri', 'Tüm AI Açık', 'Logo Özelleştirme'] },
 ]
 
 const PAYMENT_OPTS: Record<string, { bg: string; color: string; label: string }> = {
@@ -229,8 +230,11 @@ export default function FirmaListPage() {
 
                       {/* Plan */}
                       <td style={tdS}>
-                        <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '4px', background: c.plan === 'pro' ? '#312e81' : '#273548', color: c.plan === 'pro' ? '#a5b4fc' : S.muted, textTransform: 'uppercase', display: 'inline-block' }}>
-                          {c.plan || 'basic'}
+                        <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '4px', textTransform: 'uppercase', display: 'inline-block',
+                          background: c.plan === 'kurumsal' ? 'rgba(139,92,246,0.2)' : c.plan === 'pro' ? '#312e81' : '#273548',
+                          color:      c.plan === 'kurumsal' ? '#c4b5fd'              : c.plan === 'pro' ? '#a5b4fc' : S.muted,
+                        }}>
+                          {c.plan === 'kurumsal' ? '⭐ Kurumsal' : c.plan || 'basic'}
                         </span>
                         {trialActive && <div style={{ marginTop: '3px' }}><span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(234,179,8,0.1)', color: '#fbbf24' }}>Deneme: {new Date(c.trial_ends_at).toLocaleDateString('tr-TR')}</span></div>}
                         {trialExpired && <div style={{ marginTop: '3px' }}><span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>Sona Erdi</span></div>}
@@ -250,7 +254,9 @@ export default function FirmaListPage() {
 
                       {/* Aylık Kullanım */}
                       <td style={tdS}>
-                        {limit > 0 ? (
+                        {c.plan === 'kurumsal' ? (
+                          <span style={{ fontSize: '11px', color: '#c4b5fd', fontWeight: '600' }}>∞ Sınırsız</span>
+                        ) : limit > 0 ? (
                           <div style={{ minWidth: '110px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
                               <span style={{ color: S.muted }}>{used}/{limit}</span>
@@ -302,19 +308,29 @@ export default function FirmaListPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' }}>
                     {PLAN_OPTIONS.map(opt => {
                       const isSelected = selectedPlan === opt.key
-                      const isPro = opt.key === 'pro'
-                      const isCurrent = planModal.current === opt.key
+                      const isKurumsal = opt.key === 'kurumsal'
+                      const isPro      = opt.key === 'pro'
+                      const isCurrent  = planModal.current === opt.key
+                      const accentColor = isKurumsal ? '#8b5cf6' : isPro ? S.accent : '#64748b'
+                      const textColor   = isKurumsal ? '#c4b5fd'  : isPro ? '#a5b4fc' : 'white'
                       return (
-                        <button key={opt.key} onClick={() => setSelectedPlan(opt.key)} style={{ padding: '12px 14px', borderRadius: '10px', border: isSelected ? `2px solid ${isPro ? S.accent : '#64748b'}` : `2px solid ${S.border}`, background: isSelected ? (isPro ? 'rgba(99,102,241,0.1)' : '#273548') : S.bg, cursor: 'pointer', textAlign: 'left', fontFamily: 'system-ui' }}>
+                        <button key={opt.key} onClick={() => setSelectedPlan(opt.key)} style={{
+                          padding: '12px 14px', borderRadius: '10px', cursor: 'pointer',
+                          textAlign: 'left', fontFamily: 'system-ui',
+                          border: isSelected ? `2px solid ${accentColor}` : `2px solid ${S.border}`,
+                          background: isSelected ? (isKurumsal ? 'rgba(139,92,246,0.1)' : isPro ? 'rgba(99,102,241,0.1)' : '#273548') : S.bg,
+                        }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '13px', fontWeight: '700', color: isSelected ? (isPro ? '#a5b4fc' : 'white') : S.muted, textTransform: 'uppercase' }}>{opt.label}</span>
+                              <span style={{ fontSize: '13px', fontWeight: '700', color: isSelected ? textColor : S.muted, textTransform: 'uppercase' }}>
+                                {isKurumsal ? '⭐ ' : ''}{opt.label}
+                              </span>
                               {isCurrent && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: '#273548', color: S.faint }}>Mevcut</span>}
                             </div>
-                            <span style={{ fontSize: '12px', fontWeight: '600', color: isSelected ? (isPro ? '#a5b4fc' : 'white') : S.muted }}>{opt.price}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: isSelected ? textColor : S.muted }}>{opt.price}</span>
                           </div>
                           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                            {opt.features.map(f => <span key={f} style={{ fontSize: '11px', color: isSelected ? (isPro ? '#a5b4fc' : S.muted) : S.faint }}>· {f}</span>)}
+                            {opt.features.map(f => <span key={f} style={{ fontSize: '11px', color: isSelected ? textColor : S.faint }}>✓ {f}</span>)}
                           </div>
                         </button>
                       )
