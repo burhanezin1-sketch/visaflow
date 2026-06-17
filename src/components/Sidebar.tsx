@@ -222,14 +222,14 @@ export default function Sidebar() {
               fontWeight: isActive ? '500' : '400',
               cursor: 'pointer',
               ...(isRTL
-                ? { borderRight: isActive ? '4px solid #60a5fa' : '4px solid transparent', borderLeft: 'none' }
-                : { borderLeft: isActive ? '4px solid #60a5fa' : '4px solid transparent' }),
+                ? { borderRight: isActive ? '4px solid var(--brand-secondary, #60a5fa)' : '4px solid transparent', borderLeft: 'none' }
+                : { borderLeft: isActive ? '4px solid var(--brand-secondary, #60a5fa)' : '4px solid transparent' }),
               background: isActive ? 'rgba(96,165,250,0.14)' : 'transparent',
               transition: 'all 0.18s',
               marginBottom: '1px',
             }}
           >
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? '#60a5fa' : 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? 'var(--brand-secondary, #60a5fa)' : 'rgba(255,255,255,0.18)', flexShrink: 0 }} />
             <span style={{ flex: 1 }}>{item.label}</span>
             {item.badge === 'lead' && leadCount > 0 && (
               <span style={{ background: '#a32d2d', color: 'white', fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '10px' }}>{leadCount}</span>
@@ -265,7 +265,7 @@ export default function Sidebar() {
         <div style={{
           position: 'fixed', top: 0, bottom: 0, width: '260px',
           ...(isRTL ? { right: 0 } : { left: 0 }),
-          background: '#0e1524', zIndex: 300,
+          background: 'var(--brand-primary, #0e1524)', zIndex: 300,
           transform: isOpen ? 'translateX(0)' : isRTL ? 'translateX(100%)' : 'translateX(-100%)',
           transition: 'transform 0.25s ease',
           display: 'flex', flexDirection: 'column',
@@ -279,7 +279,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div style={{ width: '220px', flexShrink: 0, background: '#0e1524', padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+    <div style={{ width: '220px', flexShrink: 0, background: 'var(--brand-primary, #0e1524)', padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
       <div style={{ position: 'absolute', top: 0, bottom: 0, width: '1px', background: 'rgba(255,255,255,0.05)', ...(isRTL ? { left: 0 } : { right: 0 }) }} />
       {innerContent}
     </div>

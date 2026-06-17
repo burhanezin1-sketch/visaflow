@@ -47,13 +47,19 @@ export async function GET(req: NextRequest) {
     }
 
     let companyLogo: string | null = null
+    let brandPrimary: string | null = null
+    let brandSecondary: string | null = null
     if (application?.company_id) {
       const { data: co } = await supabase
-        .from('companies').select('logo_url').eq('id', application.company_id).maybeSingle()
+        .from('companies').select('logo_url, plan, primary_color, secondary_color').eq('id', application.company_id).maybeSingle()
       companyLogo = co?.logo_url ?? null
+      if (co?.plan === 'kurumsal') {
+        brandPrimary   = co.primary_color   ?? null
+        brandSecondary = co.secondary_color ?? null
+      }
     }
 
-    return NextResponse.json({ client: safeClient, application, userSubmittedDocs, companyLogo })
+    return NextResponse.json({ client: safeClient, application, userSubmittedDocs, companyLogo, brandPrimary, brandSecondary })
   } catch (err: any) {
     console.error('[portal-data]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

@@ -28,7 +28,9 @@ export default function PortalPage() {
 
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
-  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
+  const [companyLogo, setCompanyLogo]       = useState<string | null>(null)
+  const [brandPrimary, setBrandPrimary]     = useState<string | null>(null)
+  const [brandSecondary, setBrandSecondary] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showConsent, setShowConsent] = useState(false)
   const [consentSaving, setConsentSaving] = useState(false)
@@ -60,6 +62,8 @@ export default function PortalPage() {
         setApplication(data.application)
         setUserSubmittedDocs(data.userSubmittedDocs || [])
         setCompanyLogo(data.companyLogo || null)
+        setBrandPrimary(data.brandPrimary || null)
+        setBrandSecondary(data.brandSecondary || null)
       } catch (err) {
         console.error('[portal] fetchClient error', err)
       }
@@ -197,16 +201,22 @@ export default function PortalPage() {
     setUploading(prev => ({ ...prev, [idx]: false }))
   }
 
+  const portalBg = brandPrimary && brandSecondary
+    ? `linear-gradient(135deg, ${brandPrimary}, ${brandSecondary})`
+    : brandPrimary
+      ? brandPrimary
+      : 'linear-gradient(135deg, #0d1f35, #1a3a5c)'
+
   // ── Loading ──
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', fontFamily: 'system-ui' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: portalBg, fontFamily: 'system-ui' }}>
       <div style={{ color: 'white', fontSize: '14px' }}>{t('loading')}</div>
     </div>
   )
 
   // ── Invalid link ──
   if (!client) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', fontFamily: 'system-ui' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: portalBg, fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', textAlign: 'center', maxWidth: '320px' }}>
         <div style={{ fontSize: '32px', marginBottom: '1rem' }}>❌</div>
         <h2 style={{ fontSize: '16px', marginBottom: '8px' }}>{t('invalidLink')}</h2>
@@ -217,10 +227,10 @@ export default function PortalPage() {
 
   // ── KVKK consent ──
   if (showConsent) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: portalBg, padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '480px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
 
-        <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
+        <div style={{ background: portalBg, padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
           {/* Language switcher */}
           <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
             <LanguageSwitcher light />
@@ -303,11 +313,11 @@ export default function PortalPage() {
   const yuzde = toplam > 0 ? Math.round((tamamlanan / toplam) * 100) : 0
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
+    <div style={{ minHeight: '100vh', background: portalBg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'system-ui' }}>
       <div style={{ background: 'white', borderRadius: '20px', width: '440px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
 
         {/* Header */}
-        <div style={{ background: 'linear-gradient(135deg, #0d1f35, #1a3a5c)', padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
+        <div style={{ background: portalBg, padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
           {/* Language switcher — top right */}
           <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
             <LanguageSwitcher light />
