@@ -5,7 +5,7 @@ ALTER TABLE user_submitted_docs ADD COLUMN IF NOT EXISTS physical_delivery_confi
 
 -- Mevcut fiziksel evraklar için marked_physical_at = created_at
 UPDATE user_submitted_docs
-SET marked_physical_at = created_at
+SET marked_physical_at = now()
 WHERE delivery_type = 'physical' AND marked_physical_at IS NULL;
 
 -- Yeni insert'lerde otomatik set et
