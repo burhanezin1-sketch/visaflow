@@ -67,6 +67,15 @@ export default function FirmaListPage() {
 
   const [deleting, setDeleting] = useState<string | null>(null)
 
+  type ColorModal = {
+    id: string; name: string
+    sidebarBg: string; sidebarText: string; buttonBg: string; buttonText: string
+    logoUrl: string
+  }
+  const [colorModal, setColorModal]   = useState<ColorModal | null>(null)
+  const [colorSaving, setColorSaving] = useState(false)
+  const [colorSuccess, setColorSuccess] = useState(false)
+
   const router = useRouter()
   const now = new Date()
 
@@ -136,6 +145,41 @@ export default function FirmaListPage() {
     await supabase.from('companies').update({ trial_ends_at: val }).eq('id', editTrialId)
     setCompanies(prev => prev.map(c => c.id === editTrialId ? { ...c, trial_ends_at: val } : c))
     setEditTrialId(null)
+  }
+
+  function openColorModal(c: any) {
+    setColorSuccess(false)
+    setColorModal({
+      id: c.id, name: c.name,
+      sidebarBg:   c.sidebar_bg_color   || '#0e1524',
+      sidebarText: c.sidebar_text_color || '#ffffff',
+      buttonBg:    c.button_color       || '#1a3a5c',
+      buttonText:  c.button_text_color  || '#ffffff',
+      logoUrl:     c.logo_url           || '',
+    })
+  }
+
+  async function saveColors() {
+    if (!colorModal) return
+    setColorSaving(true)
+    const { error } = await supabase.from('companies').update({
+      sidebar_bg_color:   colorModal.sidebarBg   || null,
+      sidebar_text_color: colorModal.sidebarText || null,
+      button_color:       colorModal.buttonBg    || null,
+      button_text_color:  colorModal.buttonText  || null,
+    }).eq('id', colorModal.id)
+    setColorSaving(false)
+    if (!error) {
+      setColorSuccess(true)
+      setCompanies(prev => prev.map(c => c.id === colorModal.id ? {
+        ...c,
+        sidebar_bg_color:   colorModal.sidebarBg,
+        sidebar_text_color: colorModal.sidebarText,
+        button_color:       colorModal.buttonBg,
+        button_text_color:  colorModal.buttonText,
+      } : c))
+      setTimeout(() => setColorModal(null), 800)
+    }
   }
 
   async function deleteFirma(companyId: string, name: string) {
@@ -276,6 +320,9 @@ export default function FirmaListPage() {
                       <td style={tdS}>
                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                           <button onClick={() => openPlanModal(c.id, c.name, c.plan)} className="fp-btn-ghost">Plan</button>
+                          {c.plan === 'kurumsal' && (
+                            <button onClick={() => openColorModal(c)} className="fp-btn-ghost" style={{ color: '#c4b5fd' }}>🎨 Renk</button>
+                          )}
                           <button onClick={() => { setEditNoteId(c.id); setEditNoteText(c.notes || '') }} className="fp-btn-ghost" style={{ color: c.notes ? '#a5b4fc' : S.muted }}>Not</button>
                           <button onClick={() => { setEditTrialId(c.id); setEditTrialDate(c.trial_ends_at ? c.trial_ends_at.split('T')[0] : '') }} className="fp-btn-ghost" style={{ color: trialActive ? '#fbbf24' : S.muted }}>Deneme</button>
                           <button onClick={() => deleteFirma(c.id, c.name)} disabled={deleting === c.id} className="fp-btn-danger" style={{ opacity: deleting === c.id ? 0.5 : 1 }}>
@@ -382,6 +429,112 @@ export default function FirmaListPage() {
                 <button onClick={() => setEditTrialId(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
                 <button onClick={saveTrial} className="fp-btn-primary" style={{ flex: 2 }}>Kaydet</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Marka Kimliği / Renk Modal */}
+        {colorModal && (
+          <div style={modalOverlay}>
+            <div style={{ ...modalBox, width: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
+              {colorSuccess ? (
+                <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#4ade80' }}>✓ Marka kimliği kaydedildi</div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: 0 }}>🎨 Marka Kimliği</h3>
+                    <p style={{ fontSize: '13px', color: S.muted, marginTop: '3px' }}>{colorModal.name}</p>
+                  </div>
+
+                  {/* Renk seçiciler */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '1.25rem' }}>
+                    {([
+                      { label: 'Sidebar Arka Plan', key: 'sidebarBg' as const },
+                      { label: 'Sidebar Yazı',      key: 'sidebarText' as const },
+                      { label: 'Buton Rengi',       key: 'buttonBg' as const },
+                      { label: 'Buton Yazı Rengi',  key: 'buttonText' as const },
+                    ]).map(({ label, key }) => (
+                      <div key={key}>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <input
+                            type="color"
+                            value={colorModal[key]}
+                            onChange={e => setColorModal(prev => prev ? { ...prev, [key]: e.target.value } : prev)}
+                            style={{ width: '36px', height: '32px', border: `1px solid ${S.border}`, borderRadius: '6px', cursor: 'pointer', padding: '2px', background: 'transparent' }}
+                          />
+                          <input
+                            type="text"
+                            value={colorModal[key]}
+                            onChange={e => setColorModal(prev => prev ? { ...prev, [key]: e.target.value } : prev)}
+                            maxLength={7}
+                            className="fp-inp"
+                            style={{ ...inpS, flex: 1, fontFamily: 'monospace', fontSize: '12px' }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Canlı önizleme */}
+                  <div style={{ marginBottom: '1.25rem', borderRadius: '10px', overflow: 'hidden', border: `1px solid ${S.border}`, display: 'flex' }}>
+                    {/* Mini sidebar */}
+                    <div style={{ width: '120px', background: colorModal.sidebarBg, padding: '10px 0', flexShrink: 0 }}>
+                      <div style={{ padding: '0 10px 8px', borderBottom: `1px solid rgba(255,255,255,0.08)`, marginBottom: '6px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: '600', color: colorModal.sidebarText }}>Firma Adı</div>
+                        <div style={{ fontSize: '9px', color: colorModal.sidebarText, opacity: 0.5, marginTop: '2px' }}>danışman</div>
+                      </div>
+                      {['Dashboard', 'Müşteriler', 'Görevler'].map((item, i) => (
+                        <div key={item} style={{
+                          padding: '6px 10px', fontSize: '10px',
+                          color: i === 0 ? colorModal.sidebarText : `${colorModal.sidebarText}70`,
+                          borderLeft: i === 0 ? `3px solid ${colorModal.buttonBg}` : '3px solid transparent',
+                          background: i === 0 ? `${colorModal.buttonBg}20` : 'transparent',
+                        }}>
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                    {/* Main area preview */}
+                    <div style={{ flex: 1, padding: '12px', background: '#f5f5f7', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#0d1f35' }}>Ana Alan Önizleme</div>
+                      <button style={{ alignSelf: 'flex-start', padding: '5px 12px', background: colorModal.buttonBg, color: colorModal.buttonText, border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'default' }}>
+                        Kaydet
+                      </button>
+                      <button style={{ alignSelf: 'flex-start', padding: '5px 12px', background: colorModal.buttonBg, color: colorModal.buttonText, border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'default', opacity: 0.7 }}>
+                        Yeni Müşteri Ekle
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Logo URL */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Logo URL (mevcut)</label>
+                    <input
+                      type="text"
+                      value={colorModal.logoUrl}
+                      readOnly
+                      placeholder="Logo henüz yüklenmemiş"
+                      className="fp-inp"
+                      style={{ ...inpS, fontSize: '11px', color: colorModal.logoUrl ? S.muted : S.faint }}
+                    />
+                    {colorModal.logoUrl && (
+                      <div style={{ marginTop: '6px' }}>
+                        <img src={colorModal.logoUrl} alt="Logo" style={{ height: '28px', objectFit: 'contain', filter: 'none', opacity: 0.8 }} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => setColorModal(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
+                    <button onClick={saveColors} disabled={colorSaving} className="fp-btn-primary" style={{ flex: 2 }}>
+                      {colorSaving ? 'Kaydediliyor...' : '🎨 Marka Kimliğini Kaydet'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

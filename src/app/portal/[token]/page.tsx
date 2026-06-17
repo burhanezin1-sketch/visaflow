@@ -28,9 +28,11 @@ export default function PortalPage() {
 
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
-  const [companyLogo, setCompanyLogo]       = useState<string | null>(null)
-  const [brandPrimary, setBrandPrimary]     = useState<string | null>(null)
-  const [brandSecondary, setBrandSecondary] = useState<string | null>(null)
+  const [companyLogo, setCompanyLogo]     = useState<string | null>(null)
+  const [sidebarBg, setSidebarBg]         = useState<string | null>(null)
+  const [sidebarText, setSidebarText]     = useState<string | null>(null)
+  const [buttonBg, setButtonBg]           = useState<string | null>(null)
+  const [buttonText, setButtonText]       = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showConsent, setShowConsent] = useState(false)
   const [consentSaving, setConsentSaving] = useState(false)
@@ -62,8 +64,10 @@ export default function PortalPage() {
         setApplication(data.application)
         setUserSubmittedDocs(data.userSubmittedDocs || [])
         setCompanyLogo(data.companyLogo || null)
-        setBrandPrimary(data.brandPrimary || null)
-        setBrandSecondary(data.brandSecondary || null)
+        setSidebarBg(data.sidebarBg || null)
+        setSidebarText(data.sidebarText || null)
+        setButtonBg(data.buttonBg || null)
+        setButtonText(data.buttonText || null)
       } catch (err) {
         console.error('[portal] fetchClient error', err)
       }
@@ -201,11 +205,9 @@ export default function PortalPage() {
     setUploading(prev => ({ ...prev, [idx]: false }))
   }
 
-  const portalBg = brandPrimary && brandSecondary
-    ? `linear-gradient(135deg, ${brandPrimary}, ${brandSecondary})`
-    : brandPrimary
-      ? brandPrimary
-      : 'linear-gradient(135deg, #0d1f35, #1a3a5c)'
+  const portalBg = sidebarBg
+    ? sidebarBg
+    : 'linear-gradient(135deg, #0d1f35, #1a3a5c)'
 
   // ── Loading ──
   if (loading) return (
@@ -292,7 +294,7 @@ export default function PortalPage() {
             disabled={!consentChecked || consentSaving}
             style={{
               width: '100%', padding: '13px',
-              background: !consentChecked ? '#e8e4da' : consentSaving ? '#9aaabb' : '#0d1f35',
+              background: !consentChecked ? '#e8e4da' : consentSaving ? '#9aaabb' : (buttonBg || '#0d1f35'),
               color: !consentChecked ? '#9aaabb' : 'white',
               border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '600',
               cursor: !consentChecked || consentSaving ? 'not-allowed' : 'pointer',
@@ -376,7 +378,7 @@ export default function PortalPage() {
               border: 'none', background: activeTab === key ? '#faf8f3' : 'white',
               cursor: 'pointer', fontFamily: 'inherit',
               color: activeTab === key ? '#0d1f35' : '#9aaabb',
-              borderBottom: activeTab === key ? '2px solid #c9a84c' : '2px solid transparent',
+              borderBottom: activeTab === key ? `2px solid ${buttonBg || '#c9a84c'}` : '2px solid transparent',
             }}>{label}</button>
           ))}
         </div>

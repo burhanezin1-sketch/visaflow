@@ -14,18 +14,15 @@ export default function AyarlarPage() {
   const [logoUrl, setLogoUrl]         = useState<string | null>(null)
   const [companyName, setCompanyName] = useState('')
   const [uploading, setUploading]     = useState(false)
-  const [colorSaving, setColorSaving] = useState(false)
   const [toast, setToast]             = useState<{ msg: string; ok: boolean } | null>(null)
   const [loading, setLoading]         = useState(true)
-  const [primaryColor, setPrimaryColor]     = useState('#1e3a5f')
-  const [secondaryColor, setSecondaryColor] = useState('#2563eb')
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!companyId) return
     supabase
       .from('companies')
-      .select('name, plan, logo_url, primary_color, secondary_color')
+      .select('name, plan, logo_url')
       .eq('id', companyId)
       .single()
       .then(({ data }) => {
@@ -33,8 +30,6 @@ export default function AyarlarPage() {
           setCompanyName(data.name || '')
           setPlan(data.plan || '')
           setLogoUrl(data.logo_url || null)
-          if (data.primary_color)   setPrimaryColor(data.primary_color)
-          if (data.secondary_color) setSecondaryColor(data.secondary_color)
         }
         setLoading(false)
       })
@@ -78,23 +73,6 @@ export default function AyarlarPage() {
     }
   }
 
-  async function saveColors() {
-    setColorSaving(true)
-    try {
-      const res = await fetch('/api/save-brand-colors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ primary_color: primaryColor, secondary_color: secondaryColor }),
-      })
-      const data = await res.json()
-      if (!res.ok) { showToast(data.error || 'Kayıt başarısız', false); return }
-      showToast('✓ Marka renkleri kaydedildi — sayfayı yenileyin')
-    } catch {
-      showToast('Bağlantı hatası', false)
-    } finally {
-      setColorSaving(false)
-    }
-  }
 
   if (companyLoading || loading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -227,96 +205,6 @@ export default function AyarlarPage() {
             )}
           </div>
 
-          {/* Marka Renkleri */}
-          <div style={{ background: 'white', border: '1px solid #e2e2e8', borderRadius: '12px', padding: '1.25rem', marginTop: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Marka Renkleri</h3>
-              {!isKurumsal && (
-                <span style={{ fontSize: '11px', background: '#f3e8ff', color: '#5b21b6', padding: '2px 8px', borderRadius: '20px', fontWeight: '600' }}>
-                  ⭐ Kurumsal
-                </span>
-              )}
-            </div>
-
-            {!isKurumsal ? (
-              <div style={{ background: '#faf8ff', border: '1px solid #e9d8fd', borderRadius: '10px', padding: '1.25rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🎨</div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#5b21b6', marginBottom: '4px' }}>Kurumsal Pakete Özel</div>
-                <div style={{ fontSize: '12px', color: '#9aaabb', lineHeight: '1.5' }}>
-                  Sidebar, portal başlığı ve ana butonlarda kendi marka renklerinizi kullanmak için Kurumsal plana geçin.
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Renk seçiciler */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#5a6a7a', marginBottom: '6px' }}>Ana Renk (Sidebar, Portal başlığı)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="color"
-                        value={primaryColor}
-                        onChange={e => setPrimaryColor(e.target.value)}
-                        style={{ width: '40px', height: '36px', border: '1.5px solid #e2e2e8', borderRadius: '6px', cursor: 'pointer', padding: '2px' }}
-                      />
-                      <input
-                        type="text"
-                        value={primaryColor}
-                        onChange={e => setPrimaryColor(e.target.value)}
-                        maxLength={7}
-                        style={{ flex: 1, padding: '8px 10px', border: '1.5px solid #e2e2e8', borderRadius: '6px', fontSize: '12px', fontFamily: 'monospace', outline: 'none' }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#5a6a7a', marginBottom: '6px' }}>Vurgu Rengi (Aktif menü, butonlar)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input
-                        type="color"
-                        value={secondaryColor}
-                        onChange={e => setSecondaryColor(e.target.value)}
-                        style={{ width: '40px', height: '36px', border: '1.5px solid #e2e2e8', borderRadius: '6px', cursor: 'pointer', padding: '2px' }}
-                      />
-                      <input
-                        type="text"
-                        value={secondaryColor}
-                        onChange={e => setSecondaryColor(e.target.value)}
-                        maxLength={7}
-                        style={{ flex: 1, padding: '8px 10px', border: '1.5px solid #e2e2e8', borderRadius: '6px', fontSize: '12px', fontFamily: 'monospace', outline: 'none' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Canlı önizleme */}
-                <div style={{ marginBottom: '1rem', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e2e8' }}>
-                  <div style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.7)' }} />
-                    <span style={{ fontSize: '12px', color: 'white', fontWeight: '500' }}>Önizleme — Sidebar / Portal başlığı</span>
-                  </div>
-                  <div style={{ padding: '10px 16px', background: '#f5f5f7', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <div style={{ width: '4px', height: '24px', borderRadius: '2px', background: secondaryColor }} />
-                    <span style={{ fontSize: '12px', color: '#0d1f35' }}>Aktif menü öğesi</span>
-                    <button style={{ marginLeft: 'auto', padding: '5px 12px', background: secondaryColor, color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'default' }}>
-                      Kaydet
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={saveColors}
-                  disabled={colorSaving}
-                  style={{
-                    width: '100%', padding: '10px', background: colorSaving ? '#9aaabb' : '#1a3a5c',
-                    color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px',
-                    fontWeight: '500', cursor: colorSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  {colorSaving ? 'Kaydediliyor...' : '🎨 Marka Renklerini Kaydet'}
-                </button>
-              </>
-            )}
-          </div>
         </div>
       </div>
     </div>

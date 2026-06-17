@@ -39,17 +39,23 @@ export default async function DashboardLayout({
   const locale: Locale = (cookieLocale && LOCALES.includes(cookieLocale)) ? cookieLocale : 'tr'
   const messages = await loadMessages(locale)
 
-  // Kurumsal marka renkleri
-  let brandPrimary = '#0e1524'
-  let brandSecondary = '#60a5fa'
+  // Kurumsal marka renkleri — fallback = Vectropus defaults
+  let sidebarBg   = '#0e1524'
+  let sidebarText = 'rgba(255,255,255,0.92)'
+  let buttonBg    = '#1a3a5c'
+  let buttonText  = '#ffffff'
   try {
     const { data: ud } = await supabase.from('users').select('company_id').eq('id', user.id).maybeSingle()
     if (ud?.company_id) {
       const { data: co } = await supabase
-        .from('companies').select('plan, primary_color, secondary_color').eq('id', ud.company_id).maybeSingle()
+        .from('companies')
+        .select('plan, sidebar_bg_color, sidebar_text_color, button_color, button_text_color')
+        .eq('id', ud.company_id).maybeSingle()
       if (co?.plan === 'kurumsal') {
-        if (co.primary_color)   brandPrimary   = co.primary_color
-        if (co.secondary_color) brandSecondary = co.secondary_color
+        if (co.sidebar_bg_color)   sidebarBg   = co.sidebar_bg_color
+        if (co.sidebar_text_color) sidebarText = co.sidebar_text_color
+        if (co.button_color)       buttonBg    = co.button_color
+        if (co.button_text_color)  buttonText  = co.button_text_color
       }
     }
   } catch { /* renk çekme hatası — fallback kullan */ }
@@ -58,8 +64,10 @@ export default async function DashboardLayout({
     <NextIntlClientProvider locale={locale} messages={messages}>
       <SidebarProvider>
         <div style={{
-          '--brand-primary':   brandPrimary,
-          '--brand-secondary': brandSecondary,
+          '--sidebar-bg':   sidebarBg,
+          '--sidebar-text': sidebarText,
+          '--button-bg':    buttonBg,
+          '--button-text':  buttonText,
           display: 'flex',
           minHeight: '100vh',
           background: '#e9eef6',
