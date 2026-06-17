@@ -22,6 +22,7 @@ export default function Sidebar() {
     ? document.cookie.includes('NEXT_LOCALE=ar')
     : false
   const [companyName, setCompanyName] = useState('')
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
   const [leadCount, setLeadCount] = useState(0)
   const [transferCount, setTransferCount] = useState(0)
   const [userName, setUserName] = useState('')
@@ -38,6 +39,7 @@ export default function Sidebar() {
     { label: t('calendar'),     href: '/dashboard/takvim' },
     { label: t('embassyLinks'), href: '/dashboard/elcilik' },
     { label: t('templates'),    href: '/dashboard/sablonlar' },
+    { label: t('settings'),     href: '/dashboard/ayarlar' },
   ]
 
   // Close drawer on navigation
@@ -57,8 +59,11 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (!companyId) return
-    supabase.from('companies').select('name').eq('id', companyId).single().then(({ data }) => {
-      if (data) setCompanyName(data.name)
+    supabase.from('companies').select('name, logo_url').eq('id', companyId).single().then(({ data }) => {
+      if (data) {
+        setCompanyName(data.name)
+        setCompanyLogo(data.logo_url || null)
+      }
     })
   }, [companyId])
 
@@ -143,6 +148,16 @@ export default function Sidebar() {
   const innerContent = (
     <>
       <div style={{ padding: '0 1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', marginBottom: '0.75rem' }}>
+        {companyLogo && (
+          <div style={{ marginBottom: '8px' }}>
+            <img
+              src={companyLogo}
+              alt={companyName}
+              style={{ height: '32px', maxWidth: '140px', objectFit: 'contain', display: 'block', filter: 'brightness(0) invert(1)', opacity: 0.9 }}
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+            />
+          </div>
+        )}
         <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>{companyName || '...'}</div>
         <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>{userName || '...'}</div>
       </div>

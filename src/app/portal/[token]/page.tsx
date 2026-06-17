@@ -28,6 +28,7 @@ export default function PortalPage() {
 
   const [client, setClient] = useState<any>(null)
   const [application, setApplication] = useState<any>(null)
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showConsent, setShowConsent] = useState(false)
   const [consentSaving, setConsentSaving] = useState(false)
@@ -58,6 +59,7 @@ export default function PortalPage() {
         if (data.client.consent_approved !== true) setShowConsent(true)
         setApplication(data.application)
         setUserSubmittedDocs(data.userSubmittedDocs || [])
+        setCompanyLogo(data.companyLogo || null)
       } catch (err) {
         console.error('[portal] fetchClient error', err)
       }
@@ -312,26 +314,37 @@ export default function PortalPage() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
-            <svg width="44" height="44" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="40" cy="40" r="37" stroke="white" strokeWidth="2.5"/>
-              <circle cx="40" cy="40" r="27" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-              <polygon points="40,4 45.5,37 40,31 34.5,37" fill="white"/>
-              <polygon points="40,76 45.5,43 40,49 34.5,43" fill="rgba(255,255,255,0.3)"/>
-              <line x1="3" y1="40" x2="13" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <line x1="67" y1="40" x2="77" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <line x1="40" y1="3" x2="40" y2="9" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <line x1="40" y1="71" x2="40" y2="77" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <line x1="14" y1="14" x2="19" y2="19" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
-              <line x1="66" y1="14" x2="61" y2="19" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
-              <line x1="14" y1="66" x2="19" y2="61" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
-              <line x1="66" y1="66" x2="61" y2="61" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
-              <circle cx="40" cy="40" r="3.5" fill="white"/>
-              <circle cx="40" cy="40" r="1.5" fill="#0d1f35"/>
-            </svg>
+            {companyLogo ? (
+              <img
+                src={companyLogo}
+                alt="Logo"
+                style={{ height: '48px', maxWidth: '160px', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.9 }}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+              />
+            ) : (
+              <svg width="44" height="44" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="40" r="37" stroke="white" strokeWidth="2.5"/>
+                <circle cx="40" cy="40" r="27" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+                <polygon points="40,4 45.5,37 40,31 34.5,37" fill="white"/>
+                <polygon points="40,76 45.5,43 40,49 34.5,43" fill="rgba(255,255,255,0.3)"/>
+                <line x1="3" y1="40" x2="13" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="67" y1="40" x2="77" y2="40" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="40" y1="3" x2="40" y2="9" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="40" y1="71" x2="40" y2="77" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="14" y1="14" x2="19" y2="19" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+                <line x1="66" y1="14" x2="61" y2="19" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+                <line x1="14" y1="66" x2="19" y2="61" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+                <line x1="66" y1="66" x2="61" y2="61" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+                <circle cx="40" cy="40" r="3.5" fill="white"/>
+                <circle cx="40" cy="40" r="1.5" fill="#0d1f35"/>
+              </svg>
+            )}
           </div>
-          <h2 style={{ color: 'white', fontFamily: "'Playfair Display', serif", fontSize: '18px', fontWeight: '400', letterSpacing: '3px', marginBottom: '12px' }}>
-            {t('brand')}
-          </h2>
+          {!companyLogo && (
+            <h2 style={{ color: 'white', fontFamily: "'Playfair Display', serif", fontSize: '18px', fontWeight: '400', letterSpacing: '3px', marginBottom: '12px' }}>
+              {t('brand')}
+            </h2>
+          )}
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
             {t('greeting', { name: '' })
               .replace('', '')}{' '}

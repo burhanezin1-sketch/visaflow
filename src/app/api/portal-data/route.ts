@@ -46,7 +46,14 @@ export async function GET(req: NextRequest) {
       userSubmittedDocs = usd || []
     }
 
-    return NextResponse.json({ client: safeClient, application, userSubmittedDocs })
+    let companyLogo: string | null = null
+    if (application?.company_id) {
+      const { data: co } = await supabase
+        .from('companies').select('logo_url').eq('id', application.company_id).maybeSingle()
+      companyLogo = co?.logo_url ?? null
+    }
+
+    return NextResponse.json({ client: safeClient, application, userSubmittedDocs, companyLogo })
   } catch (err: any) {
     console.error('[portal-data]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
