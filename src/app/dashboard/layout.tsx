@@ -47,6 +47,7 @@ export default async function DashboardLayout({
           minHeight: '100vh',
           background: '#e9eef6',
           fontFamily: "'Outfit', 'system-ui', sans-serif",
+          direction: locale === 'ar' ? 'rtl' : 'ltr',
         }}>
           <Sidebar />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>

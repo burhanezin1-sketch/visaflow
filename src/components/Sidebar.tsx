@@ -18,6 +18,9 @@ export default function Sidebar() {
   const { isOpen, close } = useSidebar()
   const t = useTranslations('sidebar')
   const tc = useTranslations('common')
+  const isRTL = typeof document !== 'undefined'
+    ? document.cookie.includes('NEXT_LOCALE=ar')
+    : false
   const [companyName, setCompanyName] = useState('')
   const [leadCount, setLeadCount] = useState(0)
   const [transferCount, setTransferCount] = useState(0)
@@ -203,7 +206,9 @@ export default function Sidebar() {
               color: isActive ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.42)',
               fontWeight: isActive ? '500' : '400',
               cursor: 'pointer',
-              borderLeft: isActive ? '4px solid #60a5fa' : '4px solid transparent',
+              ...(isRTL
+                ? { borderRight: isActive ? '4px solid #60a5fa' : '4px solid transparent', borderLeft: 'none' }
+                : { borderLeft: isActive ? '4px solid #60a5fa' : '4px solid transparent' }),
               background: isActive ? 'rgba(96,165,250,0.14)' : 'transparent',
               transition: 'all 0.18s',
               marginBottom: '1px',
@@ -243,9 +248,10 @@ export default function Sidebar() {
         )}
         {/* Slide-in drawer */}
         <div style={{
-          position: 'fixed', top: 0, left: 0, bottom: 0, width: '260px',
+          position: 'fixed', top: 0, bottom: 0, width: '260px',
+          ...(isRTL ? { right: 0 } : { left: 0 }),
           background: '#0e1524', zIndex: 300,
-          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transform: isOpen ? 'translateX(0)' : isRTL ? 'translateX(100%)' : 'translateX(-100%)',
           transition: 'transform 0.25s ease',
           display: 'flex', flexDirection: 'column',
           padding: '1.25rem 0',
@@ -259,7 +265,7 @@ export default function Sidebar() {
 
   return (
     <div style={{ width: '220px', flexShrink: 0, background: '#0e1524', padding: '1.25rem 0', display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
-      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '1px', background: 'rgba(255,255,255,0.05)' }} />
+      <div style={{ position: 'absolute', top: 0, bottom: 0, width: '1px', background: 'rgba(255,255,255,0.05)', ...(isRTL ? { left: 0 } : { right: 0 }) }} />
       {innerContent}
     </div>
   )
