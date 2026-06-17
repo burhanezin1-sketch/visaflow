@@ -693,14 +693,9 @@ export default function MusteriDetayPage() {
                           </div>
                           {isPhysical && (
                             <div style={{ marginTop: '5px', paddingLeft: '26px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              {evrak.marked_physical_at && (
-                                <span style={{ fontSize: '10px', color: '#9aaabb' }}>
-                                  📅 İşaretlendi: {fmtDate(evrak.marked_physical_at)}
-                                </span>
-                              )}
                               {evrak.physical_delivery_confirmed ? (
                                 <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '2px 8px', borderRadius: '20px', border: '1px solid #a8e6c1' }}>
-                                  ✅ Getirildi — {fmtDate(evrak.physical_delivery_confirmed_at)}
+                                  ✅ Getirildi
                                 </span>
                               ) : physicalDismissed.has(evrak.id) ? (
                                 <span style={{ fontSize: '10px', color: '#9aaabb', background: '#f5f5f7', padding: '2px 8px', borderRadius: '20px' }}>

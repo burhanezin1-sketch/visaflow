@@ -59,11 +59,6 @@ function GorevItem({ gorev, onToggle, onNavigate, onConfirm, confirming, compact
         <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: compact ? 'nowrap' : 'normal' }}>
           <strong>{gorev.client_name}</strong> — {gorev.aciklama}
         </div>
-        {isElden && gorev.marked_physical_at && (
-          <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '3px' }}>
-            📅 İşaretlendi: {fmtDate(gorev.marked_physical_at)}
-          </div>
-        )}
       </div>
       <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
         <button onClick={() => onNavigate(gorev.client_id)}

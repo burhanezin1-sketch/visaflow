@@ -415,16 +415,6 @@ export default function PortalPage() {
                             <div style={{ fontSize: '11px', color: doc.physical_delivery_confirmed ? '#1a7a45' : '#9aaabb', marginTop: '2px' }}>
                               {doc.physical_delivery_confirmed ? t('documents.docStatus.eldenReceivedDesc') : t('documents.docStatus.appointmentDayDesc')}
                             </div>
-                            {doc.marked_physical_at && (
-                              <div style={{ fontSize: '10px', color: '#b0b8c4', marginTop: '3px' }}>
-                                📅 {new Date(doc.marked_physical_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                {doc.physical_delivery_confirmed && doc.physical_delivery_confirmed_at && (
-                                  <span style={{ marginLeft: '6px', color: '#1a7a45', fontWeight: '600' }}>
-                                    · ✅ {new Date(doc.physical_delivery_confirmed_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                  </span>
-                                )}
-                              </div>
-                            )}
                           </div>
                           <span style={{ fontSize: '10px', color: doc.physical_delivery_confirmed ? '#1a7a45' : '#92600a', fontWeight: '600', background: doc.physical_delivery_confirmed ? '#edfaf3' : '#fff8ec', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
                             {doc.physical_delivery_confirmed ? t('documents.docStatus.approvedBadge') : t('documents.docStatus.eldenBadge')}
