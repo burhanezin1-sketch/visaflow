@@ -49,6 +49,7 @@ export default function MusteriDetayPage() {
   const [linkKopyalandi, setLinkKopyalandi] = useState(false)
   const [userSubmittedDocs, setUserSubmittedDocs] = useState<any[]>([])
   const [docActionSaving, setDocActionSaving] = useState<Record<string, boolean>>({})
+  const [physicalDismissed, setPhysicalDismissed] = useState<Set<string>>(new Set())
   const [evrakHata, setEvrakHata] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState('')
   const [companyPlan, setCompanyPlan] = useState('')
@@ -267,7 +268,11 @@ export default function MusteriDetayPage() {
     logAction(companyId!, currentUser?.id, currentUserName, `Başvuru durumu: ${statusMap[val] || val}`, 'application', application.id, client?.full_name)
   }
 
-  async function callDocAction(docId: string, docName: string, action: 'approve' | 'reject' | 'elden', logMsg: string) {
+  function fmtDate(iso: string) {
+    return new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+
+  async function callDocAction(docId: string, docName: string, action: 'approve' | 'reject' | 'elden' | 'confirm_physical', logMsg: string) {
     if (!application) return
     setDocActionSaving(prev => ({ ...prev, [docId]: true }))
     setEvrakHata(null)
@@ -298,6 +303,9 @@ export default function MusteriDetayPage() {
   }
   function eldenDoc(docId: string, docName: string) {
     return callDocAction(docId, docName, 'elden', `Evrak elden teslim: ${docName}`)
+  }
+  function confirmPhysicalDelivery(docId: string, docName: string) {
+    return callDocAction(docId, docName, 'confirm_physical', `Fiziksel teslim onaylandı: ${docName}`)
   }
 
   async function evraklariYenile() {
@@ -618,7 +626,8 @@ export default function MusteriDetayPage() {
                       const isDone     = isFirma || isApproved || isElden
 
                       return (
-                        <div key={evrak.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
+                        <div key={evrak.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                             {isFirma ? (
                               <span style={{ fontSize: '14px', flexShrink: 0 }}>🏢</span>
@@ -679,6 +688,42 @@ export default function MusteriDetayPage() {
                               </>
                             )}
                           </div>
+                          </div>
+                          {isPhysical && (
+                            <div style={{ marginTop: '5px', paddingLeft: '26px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              {evrak.marked_physical_at && (
+                                <span style={{ fontSize: '10px', color: '#9aaabb' }}>
+                                  📅 İşaretlendi: {fmtDate(evrak.marked_physical_at)}
+                                </span>
+                              )}
+                              {evrak.physical_delivery_confirmed ? (
+                                <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '2px 8px', borderRadius: '20px', border: '1px solid #a8e6c1' }}>
+                                  ✅ Getirildi — {fmtDate(evrak.physical_delivery_confirmed_at)}
+                                </span>
+                              ) : physicalDismissed.has(evrak.id) ? (
+                                <span style={{ fontSize: '10px', color: '#9aaabb', background: '#f5f5f7', padding: '2px 8px', borderRadius: '20px' }}>
+                                  ⏳ Henüz Getirilmedi
+                                </span>
+                              ) : isStaff ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ fontSize: '10px', color: '#5a6a7a' }}>Getirildi mi?</span>
+                                  <button
+                                    onClick={() => confirmPhysicalDelivery(evrak.id, evrak.doc_name)}
+                                    disabled={saving}
+                                    style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '600', background: '#edfaf3', color: '#1a7a45', border: '1px solid #a8e6c1', borderRadius: '20px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
+                                  >
+                                    ✅ Getirildi
+                                  </button>
+                                  <button
+                                    onClick={() => setPhysicalDismissed(prev => new Set([...prev, evrak.id]))}
+                                    style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '600', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '20px', cursor: 'pointer' }}
+                                  >
+                                    ❌ Getirilmedi
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
                         </div>
                       )
                     })}

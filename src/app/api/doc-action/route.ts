@@ -40,9 +40,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 })
     }
 
-    const newStatus = ACTION_STATUS[action]
-    if (!newStatus) return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-
     // Verify application belongs to caller's company
     const { data: appData } = await supabase
       .from('applications')
@@ -52,6 +49,24 @@ export async function POST(req: NextRequest) {
     if (!appData || appData.company_id !== userData.company_id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    if (action === 'confirm_physical') {
+      const { error } = await supabase
+        .from('user_submitted_docs')
+        .update({
+          physical_delivery_confirmed: true,
+          physical_delivery_confirmed_at: new Date().toISOString(),
+          physical_delivery_confirmed_by: user.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', docId)
+        .eq('application_id', applicationId)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ success: true })
+    }
+
+    const newStatus = ACTION_STATUS[action]
+    if (!newStatus) return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 
     const { error } = await supabase
       .from('user_submitted_docs')
