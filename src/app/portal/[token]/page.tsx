@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { useTranslations, useMessages } from 'next-intl'
+import { useTranslations, useMessages, useLocale } from 'next-intl'
+import { tField } from '@/lib/fieldMappings'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 // startsWith ile eşleşir — DB'deki parantez içi sıralamadan bağımsız
@@ -18,6 +19,7 @@ function isMultiUploadDoc(docName: string) {
 
 export default function PortalPage() {
   const { token } = useParams()
+  const locale = useLocale()
   const t = useTranslations('portal')
   const tc = useTranslations('common')
   const messages = useMessages()
@@ -336,7 +338,7 @@ export default function PortalPage() {
             <strong style={{ color: 'white' }}>{client.full_name}</strong>
           </p>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginTop: '2px' }}>
-            {application?.country} — {application?.visa_type}
+            {application?.country ? tField(application.country, 'country', locale) : ''} — {application?.visa_type ? tField(application.visa_type, 'visaType', locale) : ''}
           </p>
         </div>
 

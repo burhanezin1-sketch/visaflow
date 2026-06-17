@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { logAction } from '@/lib/activityLog'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { tField } from '@/lib/fieldMappings'
 
 type Doc = { doc_name: string; delivery_type: string; description: string }
 type Template = {
@@ -31,6 +32,7 @@ const emptyDoc = (): Doc => ({ doc_name: '', delivery_type: 'digital', descripti
 
 export default function SablonlarPage() {
   const isMobile = useIsMobile()
+  const locale = useLocale()
   const t = useTranslations('sablonlar')
   const tc = useTranslations('common')
   const tf = useTranslations('fields')
@@ -189,10 +191,10 @@ export default function SablonlarPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#0d1f35', marginBottom: '2px' }}>
-              {tp.country} · {tp.visa_type}
+              {tField(tp.country, 'country', locale)} · {tField(tp.visa_type, 'visaType', locale)}
             </div>
             <div style={{ fontSize: '11px', color: '#9aaabb' }}>
-              {tp.occupation} · {tp.nationality || 'Türkiye Cumhuriyeti'} · {t('docCount', { count: (tp.docs || []).length })}
+              {tp.occupation ? tField(tp.occupation, 'occupation', locale) : '—'} · {tp.nationality || 'Türkiye Cumhuriyeti'} · {t('docCount', { count: (tp.docs || []).length })}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '5px', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>

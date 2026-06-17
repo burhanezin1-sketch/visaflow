@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { tField } from '@/lib/fieldMappings'
 
 type Doc = { doc_name: string; delivery_type: string; description: string }
 type Template = {
@@ -33,6 +34,12 @@ export default function SuperadminSablonlar() {
   const [error, setError]           = useState<string | null>(null)
   const [tab, setTab]               = useState<TabKey>('sablonlar')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [locale, setLocale]         = useState('tr')
+
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]*)/)
+    if (match) setLocale(match[1])
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -150,7 +157,7 @@ export default function SuperadminSablonlar() {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: S.text, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {t.country} · {t.visa_type} · {t.occupation || '—'} · {(t as any).nationality || 'Türkiye Cumhuriyeti'}
+                      {tField(t.country, 'country', locale)} · {tField(t.visa_type, 'visaType', locale)} · {t.occupation ? tField(t.occupation, 'occupation', locale) : '—'} · {(t as any).nationality || 'Türkiye Cumhuriyeti'}
                     </div>
                     <div style={{ fontSize: '12px', color: S.muted, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                       <span>🏢 {t.companies?.name ?? 'Firma bilinmiyor'}</span>
@@ -193,7 +200,7 @@ export default function SuperadminSablonlar() {
                           color: DELIVERY_COLORS[d.delivery_type] ?? S.muted,
                           border: `1px solid ${DELIVERY_COLORS[d.delivery_type] ?? S.border}`,
                         }}>
-                          {d.delivery_type}
+                          {tField(d.delivery_type, 'deliveryType', locale)}
                         </span>
                         <div>
                           <div style={{ fontSize: '12px', color: S.text, fontWeight: '500' }}>{d.doc_name}</div>

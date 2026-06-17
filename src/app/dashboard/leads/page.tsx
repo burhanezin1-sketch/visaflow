@@ -6,7 +6,8 @@ import Topbar from '@/components/Topbar'
 import { useRouter } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { tField } from '@/lib/fieldMappings'
 
 function formatPrice(price: number, currency: string = 'TRY') {
   const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -21,6 +22,7 @@ const toTitleCase = (str: string) =>
 export default function LeadsPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
+  const locale = useLocale()
   const t = useTranslations('leads')
   const tc = useTranslations('common')
   const ts = useTranslations('status')
@@ -521,10 +523,10 @@ export default function LeadsPage() {
                   <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid rgba(188,204,226,0.5)', borderRadius: '10px', marginBottom: '6px', gap: '8px' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '13px', fontWeight: '500', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {tpl.country} · {tpl.visa_type}
+                        {tField(tpl.country, 'country', locale)} · {tField(tpl.visa_type, 'visaType', locale)}
                       </div>
                       <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                        {tpl.occupation || tm('noTemplate.noOccupation')}
+                        {tpl.occupation ? tField(tpl.occupation, 'occupation', locale) : tm('noTemplate.noOccupation')}
                         {tpl.nationality && <span style={{ marginLeft: '4px' }}>· {tpl.nationality}</span>}
                         {' · '}{tm('noTemplate.docCount', { count: (tpl.docs || []).length })}
                         {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>{tm('noTemplate.globalBadge')}</span>}
