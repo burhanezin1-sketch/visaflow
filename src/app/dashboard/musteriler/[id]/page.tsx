@@ -7,13 +7,15 @@ import { useRouter, useParams } from 'next/navigation'
 import { useCompany } from '@/lib/useCompany'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { tField } from '@/lib/fieldMappings'
 
 export default function MusteriDetayPage() {
   const { id } = useParams()
   const router = useRouter()
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
+  const locale = useLocale()
   const t = useTranslations('musteriDetay')
   const tc = useTranslations('common')
   const ts = useTranslations('status')
@@ -520,8 +522,8 @@ export default function MusteriDetayPage() {
                 [t('fields.email'),       client.email],
                 [t('fields.birthDate'),   client.birth_date ? new Date(client.birth_date).toLocaleDateString('tr-TR') : '-'],
                 [t('fields.passportExpiry'), client.passport_expiry ? new Date(client.passport_expiry).toLocaleDateString('tr-TR') : '-'],
-                [t('fields.visa'),        application?.country && application?.visa_type ? `${application.country} ${application.visa_type}` : (application?.country || application?.visa_type || '-')],
-                [t('fields.occupation'),  occupationLabels[application?.occupation] || '-'],
+                [t('fields.visa'),        application?.country && application?.visa_type ? `${tField(application.country, 'country', locale)} ${tField(application.visa_type, 'visaType', locale)}` : (application?.country ? tField(application.country, 'country', locale) : application?.visa_type ? tField(application.visa_type, 'visaType', locale) : '-')],
+                [t('fields.occupation'),  occupationLabels[application?.occupation] || (application?.occupation ? tField(application.occupation, 'occupation', locale) : '-')],
                 [t('fields.consulate'),   application?.consulate || '-'],
                 ...(application?.appointment_date ? [[t('fields.appointment'), new Date(application.appointment_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })]] : []),
               ].map(([label, value]) => (
@@ -920,7 +922,7 @@ export default function MusteriDetayPage() {
             {niyetStep === 'form' ? (
               <>
                 <h3 style={{ fontSize: '17px', fontWeight: '600', marginBottom: '4px', color: '#0d1f35' }}>{t('intentModal.title')}</h3>
-                <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '1.5rem' }}>{client.full_name} — {application?.country} {application?.visa_type}</p>
+                <p style={{ fontSize: '12px', color: '#9aaabb', marginBottom: '1.5rem' }}>{client.full_name} — {application?.country ? tField(application.country, 'country', locale) : ''} {application?.visa_type ? tField(application.visa_type, 'visaType', locale) : ''}</p>
 
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
                   <div style={{ flex: 1 }}>

@@ -8,7 +8,8 @@ import { useCompany } from '@/lib/useCompany'
 import { checkApplicationLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { tField } from '@/lib/fieldMappings'
 
 function formatPrice(price: number, currency: string = 'TRY') {
   const sym: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' }
@@ -24,6 +25,7 @@ const toTitleCase = (str: string) => {
 export default function MusterilerPage() {
   const { companyId, loading: companyLoading } = useCompany()
   const isMobile = useIsMobile()
+  const locale = useLocale()
   const t = useTranslations('musteriler')
   const tc = useTranslations('common')
   const ts = useTranslations('status')
@@ -470,9 +472,9 @@ export default function MusterilerPage() {
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{c.full_name}</td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid rgba(188,204,226,0.35)', color: '#5a6a7a' }}>{c.phone}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{app?.country || '-'}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{app?.visa_type || '-'}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid rgba(188,204,226,0.35)', color: '#5a6a7a' }}>{occupationLabels[app?.occupation] || app?.occupation || '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{app?.country ? tField(app.country, 'country', locale) : '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>{app?.visa_type ? tField(app.visa_type, 'visaType', locale) : '-'}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '12px', borderBottom: '1px solid rgba(188,204,226,0.35)', color: '#5a6a7a' }}>{occupationLabels[app?.occupation] || (app?.occupation ? tField(app.occupation, 'occupation', locale) : '-')}</td>
                       <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.35)' }}>
                         <span style={{ background: s.bg, color: s.color, fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px' }}>{s.label}</span>
                       </td>
@@ -623,10 +625,10 @@ export default function MusterilerPage() {
                   <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: `1.5px solid ${nationalityMismatch ? '#f0d896' : '#e2e2e8'}`, borderRadius: '8px', marginBottom: '6px', gap: '8px' }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {tpl.country} · {tpl.visa_type}
+                        {tField(tpl.country, 'country', locale)} · {tField(tpl.visa_type, 'visaType', locale)}
                       </div>
                       <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '2px' }}>
-                        {tpl.occupation || t('noTemplate.noOccupation')}
+                        {tpl.occupation ? tField(tpl.occupation, 'occupation', locale) : t('noTemplate.noOccupation')}
                         {tpl.nationality && <span style={{ marginLeft: '4px', color: nationalityMismatch ? '#92600a' : '#9aaabb' }}>· {tpl.nationality}</span>}
                         {' · '}{t('noTemplate.docCount', { count: (tpl.docs || []).length })}
                         {tpl.is_global && <span style={{ marginLeft: '6px', color: '#2563eb', fontWeight: '600' }}>{t('noTemplate.globalBadge')}</span>}
