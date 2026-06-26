@@ -523,6 +523,7 @@ export default function MusteriDetayPage() {
                 [t('fields.birthDate'),   client.birth_date ? new Date(client.birth_date).toLocaleDateString('tr-TR') : '-'],
                 [t('fields.passportExpiry'), client.passport_expiry ? new Date(client.passport_expiry).toLocaleDateString('tr-TR') : '-'],
                 [t('fields.visa'),        application?.country && application?.visa_type ? `${tField(application.country, 'country', locale)} ${tField(application.visa_type, 'visaType', locale)}` : (application?.country ? tField(application.country, 'country', locale) : application?.visa_type ? tField(application.visa_type, 'visaType', locale) : '-')],
+                [t('fields.nationality'), application?.nationality || '-'],
                 [t('fields.occupation'),  occupationLabels[application?.occupation] || (application?.occupation ? tField(application.occupation, 'occupation', locale) : '-')],
                 [t('fields.consulate'),   application?.consulate || '-'],
                 ...(application?.appointment_date ? [[t('fields.appointment'), new Date(application.appointment_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })]] : []),
