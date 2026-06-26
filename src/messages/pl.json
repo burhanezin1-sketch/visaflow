@@ -472,7 +472,8 @@
       "visa": "Wiza",
       "occupation": "Zawód",
       "consulate": "Konsulat",
-      "appointment": "Wizyta"
+      "appointment": "Wizyta",
+      "nationality": "Narodowość"
     },
     "passportNo": "Numer paszportu",
     "notEntered": "Nie wprowadzono",

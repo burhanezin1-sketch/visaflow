@@ -472,7 +472,8 @@
       "visa": "Vize",
       "occupation": "Meslek",
       "consulate": "Konsolosluk",
-      "appointment": "Randevu"
+      "appointment": "Randevu",
+      "nationality": "Uyruk"
     },
     "passportNo": "Pasaport No",
     "notEntered": "Girilmemiş",

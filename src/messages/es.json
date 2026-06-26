@@ -472,7 +472,8 @@
       "visa": "Visa",
       "occupation": "Ocupación",
       "consulate": "Consulado",
-      "appointment": "Cita"
+      "appointment": "Cita",
+      "nationality": "Nacionalidad"
     },
     "passportNo": "Número de pasaporte",
     "notEntered": "No ingresado",

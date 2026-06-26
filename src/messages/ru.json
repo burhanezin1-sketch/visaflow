@@ -472,7 +472,8 @@
       "visa": "Виза",
       "occupation": "Профессия",
       "consulate": "Консульство",
-      "appointment": "Запись"
+      "appointment": "Запись",
+      "nationality": "Гражданство"
     },
     "passportNo": "Номер паспорта",
     "notEntered": "Не введено",

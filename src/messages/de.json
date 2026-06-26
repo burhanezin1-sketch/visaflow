@@ -472,7 +472,8 @@
       "visa": "Visum",
       "occupation": "Beruf",
       "consulate": "Konsulat",
-      "appointment": "Termin"
+      "appointment": "Termin",
+      "nationality": "Staatsangehörigkeit"
     },
     "passportNo": "Reisepassnummer",
     "notEntered": "Nicht angegeben",

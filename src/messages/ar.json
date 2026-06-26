@@ -472,7 +472,8 @@
       "visa": "التأشيرة",
       "occupation": "المهنة",
       "consulate": "القنصلية",
-      "appointment": "الموعد"
+      "appointment": "الموعد",
+      "nationality": "الجنسية"
     },
     "passportNo": "رقم جواز السفر",
     "notEntered": "لم يُدخل",

@@ -472,7 +472,8 @@
       "visa": "Visa",
       "occupation": "Occupation",
       "consulate": "Consulate",
-      "appointment": "Appointment"
+      "appointment": "Appointment",
+      "nationality": "Nationality"
     },
     "passportNo": "Passport No",
     "notEntered": "Not entered",
