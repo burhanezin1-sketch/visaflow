@@ -51,7 +51,7 @@ export default function MusteriDetayPage() {
   const [linkKopyalandi, setLinkKopyalandi] = useState(false)
   const [userSubmittedDocs, setUserSubmittedDocs] = useState<any[]>([])
   const [docActionSaving, setDocActionSaving] = useState<Record<string, boolean>>({})
-  const [physicalDismissed, setPhysicalDismissed] = useState<Set<string>>(new Set())
+  const [docEditMode, setDocEditMode] = useState<Set<string>>(new Set())
   const [evrakHata, setEvrakHata] = useState<string | null>(null)
   const [currentUserName, setCurrentUserName] = useState('')
   const [companyPlan, setCompanyPlan] = useState('')
@@ -287,12 +287,19 @@ export default function MusteriDetayPage() {
       })
       const data = await res.json()
       if (!res.ok) { setEvrakHata(`${t('docs.status.rejected')}: ${data.error}`); return }
+      // Optimistik güncelleme — sayfadan çıkmadan durum hemen yansır
+      const statusMap: Record<string, string> = { approve: 'approved', reject: 'rejected', elden: 'elden' }
+      if (statusMap[action]) {
+        setUserSubmittedDocs(prev => prev.map(d => d.id === docId ? { ...d, status: statusMap[action] } : d))
+      }
     } catch (err: any) {
       setEvrakHata(`Hata: ${err.message}`)
       return
     } finally {
       setDocActionSaving(prev => ({ ...prev, [docId]: false }))
     }
+    // Edit mode'dan çıkar
+    setDocEditMode(prev => { const s = new Set(prev); s.delete(docId); return s })
     await fetchAll()
     logAction(companyId!, currentUser?.id, currentUserName, logMsg, 'document', application.id, client?.full_name)
   }
@@ -619,25 +626,26 @@ export default function MusteriDetayPage() {
                     </div>
 
                     {userSubmittedDocs.map((evrak) => {
-                      const saving = !!docActionSaving[evrak.id]
-                      const isFirma    = evrak.delivery_type === 'firma'
-                      const isPhysical = evrak.delivery_type === 'physical'
-                      const isApproved = evrak.status === 'approved'
-                      const isRejected = evrak.status === 'rejected'
-                      const isElden    = evrak.status === 'elden'
-                      const hasFile    = !!evrak.file_url
-                      const isDone     = isFirma || isApproved || isElden
+                      const saving      = !!docActionSaving[evrak.id]
+                      const isFirma     = evrak.delivery_type === 'firma'
+                      const isPhysical  = evrak.delivery_type === 'physical'
+                      const isApproved  = evrak.status === 'approved'
+                      const isRejected  = evrak.status === 'rejected'
+                      const isElden     = evrak.status === 'elden'
+                      const hasFile     = !!evrak.file_url
+                      const isDone      = isFirma || isApproved || isElden || isRejected
+                      const isInEditMode = docEditMode.has(evrak.id)
+                      const showActions  = isStaff && !isFirma && (!isDone || isInEditMode)
 
                       return (
-                        <div key={evrak.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div key={evrak.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                             {isFirma ? (
                               <span style={{ fontSize: '14px', flexShrink: 0 }}>🏢</span>
                             ) : isApproved ? (
                               <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
                             ) : isElden ? (
-                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fff8ec', border: '1.5px solid #f0a500', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>🤝</div>
+                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#edfaf3', border: '1.5px solid #1a7a45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a7a45', flexShrink: 0 }}>✓</div>
                             ) : isRejected ? (
                               <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
                             ) : hasFile ? (
@@ -650,21 +658,21 @@ export default function MusteriDetayPage() {
                             <div style={{ minWidth: 0 }}>
                               <div style={{ fontSize: '13px', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evrak.doc_name}</div>
                               <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
-                                {isFirma    ? t('docs.status.firma')
-                                  : isApproved ? t('docs.status.approved')
-                                  : isElden    ? t('docs.status.elden')
-                                  : isRejected ? t('docs.status.rejected')
-                                  : hasFile    ? t('docs.status.uploaded')
-                                  : isPhysical ? t('docs.status.physical')
-                                  : t('docs.status.awaiting')}
+                                {isFirma     ? t('docs.status.firma')
+                                 : isApproved ? t('docs.status.approved')
+                                 : isElden    ? 'Elden teslim alındı'
+                                 : isRejected ? t('docs.status.rejected')
+                                 : hasFile    ? t('docs.status.uploaded')
+                                 : isPhysical ? t('docs.status.physical')
+                                 : t('docs.status.awaiting')}
                               </div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
                             {isFirma    && <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.firma')}</span>}
-                            {isApproved && <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.approved')}</span>}
-                            {isElden    && <span style={{ fontSize: '10px', color: '#92600a', fontWeight: '600', background: '#fff8ec', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.elden')}</span>}
-                            {isRejected && <span style={{ fontSize: '10px', color: '#c0392b', fontWeight: '600', background: '#fef0ee', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.rejected')}</span>}
+                            {isApproved && !isInEditMode && <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.approved')}</span>}
+                            {isElden    && !isInEditMode && <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>✅ Elden Teslim Alındı</span>}
+                            {isRejected && !isInEditMode && <span style={{ fontSize: '10px', color: '#c0392b', fontWeight: '600', background: '#fef0ee', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.rejected')}</span>}
                             {hasFile && evrak.file_url && (() => {
                               let urls: string[]
                               try { const p = JSON.parse(evrak.file_url); urls = Array.isArray(p) ? p : [evrak.file_url] }
@@ -675,53 +683,31 @@ export default function MusteriDetayPage() {
                                 </a>
                               ))
                             })()}
-                            {isStaff && !isFirma && !isDone && (
+                            {/* Durum aksiyon butonları */}
+                            {showActions && (
                               <>
                                 <button onClick={() => approveDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
                                   {saving ? '...' : t('docs.approveBtn')}
                                 </button>
-                                <button onClick={() => eldenDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#fff8ec', color: '#92600a', border: '1px solid #f0d08a', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                  {t('docs.eldenBtn')}
+                                <button onClick={() => eldenDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#edfaf3', color: '#1a7a45', border: '1px solid #a8e6c1', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
+                                  🤝 Elden
                                 </button>
-                                {!isRejected && (
-                                  <button onClick={() => rejectDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                    {t('docs.rejectBtn')}
-                                  </button>
-                                )}
+                                <button onClick={() => rejectDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
+                                  {t('docs.rejectBtn')}
+                                </button>
                               </>
                             )}
+                            {/* Geri al butonu — tamamlanmış evraklarda */}
+                            {isStaff && !isFirma && isDone && !isInEditMode && (
+                              <button
+                                onClick={() => setDocEditMode(prev => new Set([...prev, evrak.id]))}
+                                title="Durumu değiştir"
+                                style={{ padding: '3px 7px', fontSize: '11px', background: 'transparent', color: '#9aaabb', border: '1px solid #e2e2e8', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                              >
+                                ↩
+                              </button>
+                            )}
                           </div>
-                          </div>
-                          {isPhysical && (
-                            <div style={{ marginTop: '5px', paddingLeft: '26px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              {evrak.physical_delivery_confirmed ? (
-                                <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '2px 8px', borderRadius: '20px', border: '1px solid #a8e6c1' }}>
-                                  ✅ Getirildi
-                                </span>
-                              ) : physicalDismissed.has(evrak.id) ? (
-                                <span style={{ fontSize: '10px', color: '#9aaabb', background: '#f5f5f7', padding: '2px 8px', borderRadius: '20px' }}>
-                                  ⏳ Henüz Getirilmedi
-                                </span>
-                              ) : isStaff ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <span style={{ fontSize: '10px', color: '#5a6a7a' }}>Getirildi mi?</span>
-                                  <button
-                                    onClick={() => confirmPhysicalDelivery(evrak.id, evrak.doc_name)}
-                                    disabled={saving}
-                                    style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '600', background: '#edfaf3', color: '#1a7a45', border: '1px solid #a8e6c1', borderRadius: '20px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
-                                  >
-                                    ✅ Getirildi
-                                  </button>
-                                  <button
-                                    onClick={() => setPhysicalDismissed(prev => new Set([...prev, evrak.id]))}
-                                    style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '600', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '20px', cursor: 'pointer' }}
-                                  >
-                                    ❌ Getirilmedi
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
-                          )}
                         </div>
                       )
                     })}
