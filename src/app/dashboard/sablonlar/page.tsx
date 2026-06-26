@@ -49,6 +49,7 @@ export default function SablonlarPage() {
   const [editTpl, setEditTpl]       = useState<Template | null>(null)
   const [saving, setSaving]         = useState(false)
   const [form, setForm] = useState({ country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', docs: [emptyDoc()] })
+  const [updateToast, setUpdateToast] = useState<string | null>(null)
 
   useEffect(() => { init() }, [])
 
@@ -82,36 +83,79 @@ export default function SablonlarPage() {
     setShowModal(true)
   }
 
+  async function findMatchingApps(country: string, visaType: string, occupation: string, nationality: string) {
+    if (!companyId) return []
+    const { data } = await supabase
+      .from('applications')
+      .select('id')
+      .eq('company_id', companyId)
+      .ilike('country', country)
+      .ilike('visa_type', visaType)
+      .ilike('occupation', occupation)
+      .ilike('nationality', nationality)
+    return (data || []).map((a: any) => a.id)
+  }
+
+  async function applyDocsToApps(appIds: string[], docs: Doc[]) {
+    for (const appId of appIds) {
+      await supabase.from('user_submitted_docs').delete().eq('application_id', appId)
+      await supabase.from('user_submitted_docs').insert(
+        docs.map(d => ({
+          application_id: appId,
+          doc_name: d.doc_name,
+          delivery_type: d.delivery_type,
+          description: d.description || '',
+          status: 'pending',
+        }))
+      )
+    }
+  }
+
   async function save() {
     if (!companyId || !form.country || !form.visa_type || !form.occupation) return
     setSaving(true)
     const validDocs = form.docs.filter(d => d.doc_name.trim())
+    const nat = form.nationality || 'Türkiye Cumhuriyeti'
+
+    // Eşleşen mevcut müşterileri bul
+    const matchingAppIds = await findMatchingApps(form.country, form.visa_type, form.occupation, nat)
+
     if (editTpl) {
       await supabase.from('visa_templates').update({
         country: form.country, visa_type: form.visa_type,
-        occupation: form.occupation, nationality: form.nationality || 'Türkiye Cumhuriyeti',
+        occupation: form.occupation, nationality: nat,
         docs: validDocs,
       }).eq('id', editTpl.id)
     } else {
       await supabase.from('visa_templates').insert({
         company_id: companyId, country: form.country,
         visa_type: form.visa_type, occupation: form.occupation,
-        nationality: form.nationality || 'Türkiye Cumhuriyeti',
+        nationality: nat,
         docs: validDocs, status: 'approved', is_global: false,
       })
       logAction(
-        companyId,
-        userId,
-        userName,
-        `${userName} tarafından ${form.country} + ${form.visa_type} + ${form.occupation} (${form.nationality || 'Türkiye Cumhuriyeti'}) şablonu oluşturuldu`,
-        'visa_template',
-        null,
+        companyId, userId, userName,
+        `${userName} tarafından ${form.country} + ${form.visa_type} + ${form.occupation} (${nat}) şablonu oluşturuldu`,
+        'visa_template', null,
         `${form.country} + ${form.visa_type} + ${form.occupation}`
       )
     }
+
     setSaving(false)
     setShowModal(false)
     init()
+
+    // Eşleşen müşteri varsa onay sor ve güncelle
+    if (matchingAppIds.length > 0) {
+      const onay = confirm(
+        `Bu şablon ${matchingAppIds.length} müşterinizle eşleşiyor. Tüm müşterilerin evrak listesi güncellensin mi?`
+      )
+      if (onay) {
+        await applyDocsToApps(matchingAppIds, validDocs)
+        setUpdateToast(`✓ ${matchingAppIds.length} müşterinin evrak listesi güncellendi`)
+        setTimeout(() => setUpdateToast(null), 4000)
+      }
+    }
   }
 
   async function del(id: string) {
@@ -234,6 +278,16 @@ export default function SablonlarPage() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {updateToast && (
+        <div style={{
+          position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+          background: '#1a7a45', color: 'white', padding: '10px 20px', borderRadius: '8px',
+          fontSize: '13px', fontWeight: '500', zIndex: 10000,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap',
+        }}>
+          {updateToast}
+        </div>
+      )}
       <Topbar title={t('pageTitle')} />
       <div style={{ padding: isMobile ? '0.75rem' : '1.5rem', overflowY: 'auto', flex: 1, background: '#e9eef6' }}>
         {loading ? <div style={{ color: '#9aaabb', fontSize: '13px' }}>{tc('loading')}</div> : (
