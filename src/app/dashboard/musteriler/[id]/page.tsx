@@ -70,33 +70,48 @@ export default function MusteriDetayPage() {
   async function fetchAll() {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
-    const { data: { user } } = await supabase.auth.getUser()
-    setCurrentUser(user)
-    const { data: clientData } = await supabase.from('clients').select('*, users(full_name)').eq('id', id).maybeSingle()
-    const { data: appArr } = await supabase.from('applications').select('*').eq('client_id', id).order('created_at', { ascending: false })
-    const appData = appArr?.[0] ?? null
-    const { data: paymentArr } = await supabase.from('payments').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
-    const paymentData = paymentArr?.[0] ?? null
-    const { data: notesData } = await supabase.from('notes').select('*').eq('application_id', appData?.id ?? 'none').order('created_at', { ascending: false })
-    const { data: waData } = await supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false })
-    const { data: usersData } = await supabase.from('users').select('*').eq('company_id', companyId)
-    const { data: companyData } = await supabase.from('companies').select('plan').eq('id', companyId).single()
-    const { data: transferArr } = await supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').order('created_at', { ascending: false })
-    const transferData = transferArr?.[0] ?? null
-    let usdData: any[] = []
-    if (appData?.id) {
-      try {
-        const usdRes = await fetch(`/api/user-docs?application_id=${appData.id}`)
-        if (usdRes.ok) {
-          const usdJson = await usdRes.json()
-          usdData = usdJson.docs || []
-        }
-      } catch (e) {
-        console.error('[fetchAll] user-docs fetch error', e)
-      }
-    }
 
-    console.log('[fetchAll] application.occupation:', appData?.occupation)
+    // 1. Paralel: kullanıcı kimliği + client + app + company + danışmanlar + transfer
+    const [
+      { data: { user } },
+      { data: clientData },
+      { data: appArr },
+      { data: usersData },
+      { data: companyData },
+      { data: transferArr },
+      { data: waData },
+    ] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from('clients').select('*, users(full_name)').eq('id', id).maybeSingle(),
+      supabase.from('applications').select('*').eq('client_id', id).order('created_at', { ascending: false }),
+      supabase.from('users').select('*').eq('company_id', companyId),
+      supabase.from('companies').select('plan, logo_url, sidebar_bg_color, sidebar_text_color, button_color, button_text_color, panel_bg_color').eq('id', companyId).single(),
+      supabase.from('transfer_requests').select('*').eq('client_id', id).eq('status', 'pending').order('created_at', { ascending: false }),
+      supabase.from('wa_messages').select('*').eq('client_id', id).order('sent_at', { ascending: false }),
+    ])
+
+    setCurrentUser(user)
+    const appData = appArr?.[0] ?? null
+    const transferData = transferArr?.[0] ?? null
+
+    // 2. Paralel: app'e bağlı sorgular + evraklar
+    const appId = appData?.id ?? 'none'
+    const [
+      { data: paymentArr },
+      { data: notesData },
+      usdData,
+    ] = await Promise.all([
+      supabase.from('payments').select('*').eq('application_id', appId).order('created_at', { ascending: false }),
+      supabase.from('notes').select('*').eq('application_id', appId).order('created_at', { ascending: false }),
+      appData?.id
+        ? fetch(`/api/user-docs?application_id=${appData.id}`)
+            .then(r => r.ok ? r.json().then(j => j.docs || []) : [])
+            .catch(() => [])
+        : Promise.resolve([]),
+    ])
+
+    const paymentData = paymentArr?.[0] ?? null
+
     setClient(clientData)
     setApplication(appData)
     setPayment(paymentData)

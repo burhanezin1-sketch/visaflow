@@ -83,14 +83,14 @@ export default function MusterilerPage() {
   useEffect(() => {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
-    fetchData()
-    fetchPrices()
+    fetchData()     // bağımsız — paralel başlasın
+    fetchPrices()   // bağımsız — paralel başlasın
   }, [companyId, companyLoading])
 
   async function fetchData() {
     const { data } = await supabase
       .from('clients')
-      .select('*, applications(*)')
+      .select('*, applications(id, country, visa_type, occupation, nationality, status, appointment_date, consulate, created_at)')
       .eq('company_id', companyId)
       .order('created_at', { ascending: false })
     setClients(data || [])
@@ -99,15 +99,11 @@ export default function MusterilerPage() {
   }
 
   async function fetchPrices() {
-    const { data } = await supabase
-      .from('service_prices')
-      .select('*')
-      .eq('company_id', companyId)
+    const [{ data }, { data: sur }] = await Promise.all([
+      supabase.from('service_prices').select('*').eq('company_id', companyId),
+      supabase.from('nationality_surcharges').select('*').eq('company_id', companyId),
+    ])
     setPrices(data || [])
-    const { data: sur } = await supabase
-      .from('nationality_surcharges')
-      .select('*')
-      .eq('company_id', companyId)
     setSurcharges(sur || [])
   }
 
