@@ -3,11 +3,17 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
+type Step = 'login' | 'mfa'
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [totpCode, setTotpCode] = useState('')
+  const [error, setError]       = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [step, setStep]         = useState<Step>('login')
+  const [factorId, setFactorId]     = useState('')
+  const [challengeId, setChallengeId] = useState('')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -22,175 +28,106 @@ export default function LoginPage() {
       return
     }
 
-    if (data.session) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.session.user.id)
-        .single()
+    // MFA kayıtlı mı kontrol et
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
 
-      if (userData?.role === 'admin') {
-        window.location.href = '/admin'
-      } else {
-        window.location.href = '/dashboard'
+    if (aal?.nextLevel === 'aal2' && aal.nextLevel !== aal.currentLevel) {
+      // MFA gerekiyor — kullanıcının faktörünü bul
+      const { data: factors } = await supabase.auth.mfa.listFactors()
+      const totp = factors?.totp?.[0]
+      if (!totp) {
+        setError('MFA faktörü bulunamadı. Lütfen destek ile iletişime geçin.')
+        setLoading(false)
+        return
       }
+      const { data: challenge, error: chalErr } = await supabase.auth.mfa.challenge({ factorId: totp.id })
+      if (chalErr || !challenge) {
+        setError('MFA challenge başlatılamadı. Tekrar deneyin.')
+        setLoading(false)
+        return
+      }
+      setFactorId(totp.id)
+      setChallengeId(challenge.id)
+      setStep('mfa')
+      setLoading(false)
+      return
     }
+
+    // MFA yok — direkt yönlendir
+    await redirect(data.session?.user.id)
+  }
+
+  async function handleMfa(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    const { error } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId,
+      code: totpCode.replace(/\s/g, ''),
+    })
+
+    if (error) {
+      setError('Kod hatalı veya süresi dolmuş. Tekrar deneyin.')
+      setLoading(false)
+      return
+    }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    await redirect(user?.id)
+  }
+
+  async function redirect(userId?: string) {
+    if (!userId) { window.location.href = '/login'; return }
+    const { data: userData } = await supabase
+      .from('users').select('role').eq('id', userId).single()
+    window.location.href = userData?.role === 'admin' ? '/admin' : '/dashboard'
   }
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400&display=swap');
-
-        .vp-screen {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 48px 24px;
-          position: relative;
-          overflow: hidden;
-          background: #0d1b2e;
-        }
-
-        .vp-card {
-          background: #ffffff;
-          border-radius: 16px;
-          width: 100%;
-          max-width: 400px;
-          padding: 48px 40px 44px;
-          position: relative;
-          z-index: 1;
-        }
-
-        .vp-logo-row {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 14px;
-          margin-bottom: 32px;
-        }
-
-        .vp-wordmark {
-          font-family: 'Playfair Display', serif;
-          font-weight: 400;
-          font-size: 28px;
-          letter-spacing: 4px;
-          color: #0d1b2e;
-          line-height: 1;
-        }
-
-        .vp-tagline {
-          font-size: 11px;
-          color: #8a9bb0;
-          letter-spacing: 2px;
-          text-align: center;
-          margin-bottom: 36px;
-          font-family: system-ui, sans-serif;
-        }
-
-        .vp-divider {
-          height: 0.5px;
-          background: #e8edf2;
-          margin-bottom: 32px;
-        }
-
-        .vp-label {
-          display: block;
-          font-size: 11px;
-          color: #6b7c93;
-          letter-spacing: 1px;
-          margin-bottom: 6px;
-          font-family: system-ui, sans-serif;
-          text-transform: uppercase;
-        }
-
-        .vp-input {
-          width: 100%;
-          height: 44px;
-          border: 1px solid #dde3ea;
-          border-radius: 8px;
-          padding: 0 14px;
-          font-size: 14px;
-          color: #0d1b2e;
-          background: #f8fafc;
-          margin-bottom: 20px;
-          font-family: system-ui, sans-serif;
-          outline: none;
-          box-sizing: border-box;
-          transition: border-color 0.15s;
-        }
-
-        .vp-input:focus {
-          border-color: #185FA5;
-          background: #fff;
-        }
-
-        .vp-btn {
-          width: 100%;
-          height: 46px;
-          background: #0d1b2e;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-size: 12px;
-          letter-spacing: 2.5px;
-          font-family: system-ui, sans-serif;
-          cursor: pointer;
-          transition: background 0.15s, opacity 0.15s;
-        }
-
-        .vp-btn:hover:not(:disabled) { background: #162840; }
-        .vp-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-
-        .vp-error {
-          font-size: 12px;
-          color: #c0392b;
-          margin-bottom: 12px;
-          text-align: center;
-          font-family: system-ui, sans-serif;
-        }
+        .vp-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:48px 24px; position:relative; overflow:hidden; background:#0d1b2e; }
+        .vp-card { background:#ffffff; border-radius:16px; width:100%; max-width:400px; padding:48px 40px 44px; position:relative; z-index:1; }
+        .vp-logo-row { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:32px; }
+        .vp-wordmark { font-family:'Playfair Display',serif; font-weight:400; font-size:28px; letter-spacing:4px; color:#0d1b2e; line-height:1; }
+        .vp-tagline { font-size:11px; color:#8a9bb0; letter-spacing:2px; text-align:center; margin-bottom:36px; font-family:system-ui,sans-serif; }
+        .vp-divider { height:0.5px; background:#e8edf2; margin-bottom:32px; }
+        .vp-label { display:block; font-size:11px; color:#6b7c93; letter-spacing:1px; margin-bottom:6px; font-family:system-ui,sans-serif; text-transform:uppercase; }
+        .vp-input { width:100%; height:44px; border:1px solid #dde3ea; border-radius:8px; padding:0 14px; font-size:14px; color:#0d1b2e; background:#f8fafc; margin-bottom:20px; font-family:system-ui,sans-serif; outline:none; box-sizing:border-box; transition:border-color 0.15s; }
+        .vp-input:focus { border-color:#185FA5; background:#fff; }
+        .vp-input-otp { width:100%; height:56px; border:2px solid #dde3ea; border-radius:10px; padding:0 14px; font-size:24px; font-weight:600; color:#0d1b2e; background:#f8fafc; margin-bottom:20px; font-family:monospace; outline:none; box-sizing:border-box; text-align:center; letter-spacing:6px; transition:border-color 0.15s; }
+        .vp-input-otp:focus { border-color:#185FA5; background:#fff; }
+        .vp-btn { width:100%; height:46px; background:#0d1b2e; color:#ffffff; border:none; border-radius:8px; font-size:12px; letter-spacing:2.5px; font-family:system-ui,sans-serif; cursor:pointer; transition:background 0.15s,opacity 0.15s; }
+        .vp-btn:hover:not(:disabled) { background:#162840; }
+        .vp-btn:disabled { opacity:0.7; cursor:not-allowed; }
+        .vp-btn-ghost { width:100%; height:40px; background:transparent; color:#8a9bb0; border:none; font-size:12px; font-family:system-ui,sans-serif; cursor:pointer; margin-top:8px; }
+        .vp-error { font-size:12px; color:#c0392b; margin-bottom:12px; text-align:center; font-family:system-ui,sans-serif; }
+        .vp-mfa-hint { font-size:12px; color:#6b7c93; text-align:center; margin-bottom:24px; font-family:system-ui,sans-serif; line-height:1.6; }
       `}</style>
 
       <div className="vp-screen">
-        {/* Arka plan SVG */}
-        <svg
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-          viewBox="0 0 680 600"
-          preserveAspectRatio="xMidYMid slice"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none' }} viewBox="0 0 680 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <rect x="0" y="0" width="340" height="600" fill="#0a1625" opacity="0.6"/>
           <rect x="400" y="320" width="280" height="280" fill="#112236" opacity="0.8"/>
-
-          {/* Sağ üst çemberler */}
           <circle cx="580" cy="80" r="120" fill="none" stroke="#1a3050" strokeWidth="0.8"/>
           <circle cx="580" cy="80" r="80" fill="none" stroke="#1a3050" strokeWidth="0.5"/>
           <circle cx="580" cy="80" r="40" fill="none" stroke="#1f3a5e" strokeWidth="0.5"/>
-
-          {/* Sol alt pusula detayı */}
           <circle cx="80" cy="520" r="100" fill="none" stroke="#152840" strokeWidth="0.8"/>
           <circle cx="80" cy="520" r="65" fill="none" stroke="#152840" strokeWidth="0.5"/>
           <line x1="80" y1="420" x2="80" y2="620" stroke="#152840" strokeWidth="0.5"/>
           <line x1="-20" y1="520" x2="180" y2="520" stroke="#152840" strokeWidth="0.5"/>
-
-          {/* Yatay zemin çizgileri */}
           <line x1="0" y1="200" x2="680" y2="200" stroke="#142035" strokeWidth="0.5"/>
           <line x1="0" y1="400" x2="680" y2="400" stroke="#142035" strokeWidth="0.5"/>
-
-          {/* Sağ alt diagonal */}
           <line x1="480" y1="600" x2="680" y2="400" stroke="#1a3050" strokeWidth="0.5"/>
           <line x1="520" y1="600" x2="680" y2="440" stroke="#1a3050" strokeWidth="0.5"/>
-          <line x1="560" y1="600" x2="680" y2="480" stroke="#1a3050" strokeWidth="0.5"/>
-
-          {/* Mavi nokta vurguları */}
           <circle cx="490" cy="48" r="3" fill="#185FA5" opacity="0.7"/>
           <circle cx="510" cy="62" r="2" fill="#185FA5" opacity="0.4"/>
-          <circle cx="470" cy="66" r="2" fill="#185FA5" opacity="0.3"/>
         </svg>
 
         <div className="vp-card">
-          {/* Logo */}
           <div className="vp-logo-row">
             <svg width="36" height="36" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="40" cy="40" r="37" stroke="#0d1b2e" strokeWidth="2.5"/>
@@ -211,36 +148,52 @@ export default function LoginPage() {
             <span className="vp-wordmark">VECTROPUS</span>
           </div>
 
-          <p className="vp-tagline">DANIŞMAN GİRİŞİ</p>
-          <div className="vp-divider"/>
-
-          <form onSubmit={handleLogin}>
-            <label className="vp-label">E-posta</label>
-            <input
-              className="vp-input"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="ornek@sirket.com"
-              required
-            />
-
-            <label className="vp-label">Şifre</label>
-            <input
-              className="vp-input"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-
-            {error && <p className="vp-error">{error}</p>}
-
-            <button className="vp-btn" type="submit" disabled={loading}>
-              {loading ? 'GİRİŞ YAPILIYOR...' : 'GİRİŞ YAP'}
-            </button>
-          </form>
+          {step === 'login' ? (
+            <>
+              <p className="vp-tagline">DANIŞMAN GİRİŞİ</p>
+              <div className="vp-divider"/>
+              <form onSubmit={handleLogin}>
+                <label className="vp-label">E-posta</label>
+                <input className="vp-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="ornek@sirket.com" required />
+                <label className="vp-label">Şifre</label>
+                <input className="vp-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+                {error && <p className="vp-error">{error}</p>}
+                <button className="vp-btn" type="submit" disabled={loading}>
+                  {loading ? 'GİRİŞ YAPILIYOR...' : 'GİRİŞ YAP'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <p className="vp-tagline">İKİ FAKTÖRLÜ DOĞRULAMA</p>
+              <div className="vp-divider"/>
+              <p className="vp-mfa-hint">
+                Google Authenticator veya Authy uygulamasını açın<br/>
+                ve gösterilen <strong>6 haneli kodu</strong> girin.
+              </p>
+              <form onSubmit={handleMfa}>
+                <label className="vp-label">Doğrulama Kodu</label>
+                <input
+                  className="vp-input-otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={totpCode}
+                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  autoFocus
+                  required
+                />
+                {error && <p className="vp-error">{error}</p>}
+                <button className="vp-btn" type="submit" disabled={loading || totpCode.length < 6}>
+                  {loading ? 'DOĞRULANÜYOR...' : 'DOĞRULA'}
+                </button>
+                <button type="button" className="vp-btn-ghost" onClick={() => { setStep('login'); setError(''); setTotpCode('') }}>
+                  ← Geri dön
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </>
