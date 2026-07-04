@@ -70,7 +70,7 @@ export default function FirmaListPage() {
   type ColorModal = {
     id: string; name: string
     sidebarBg: string; sidebarText: string; buttonBg: string; buttonText: string
-    panelBg: string
+    panelBg: string; panelText: string
     logoUrl: string
   }
   const [colorModal, setColorModal]   = useState<ColorModal | null>(null)
@@ -159,6 +159,7 @@ export default function FirmaListPage() {
       buttonBg:    c.button_color       || '#1a3a5c',
       buttonText:  c.button_text_color  || '#ffffff',
       panelBg:     c.panel_bg_color     || '#e9eef6',
+      panelText:   c.panel_text_color   || '#0d1f35',
       logoUrl:     c.logo_url           || '',
     })
   }
@@ -172,6 +173,7 @@ export default function FirmaListPage() {
       button_color:       colorModal.buttonBg    || null,
       button_text_color:  colorModal.buttonText  || null,
       panel_bg_color:     colorModal.panelBg     || null,
+      panel_text_color:   colorModal.panelText   || null,
     }).eq('id', colorModal.id)
     setColorSaving(false)
     if (!error) {
@@ -457,6 +459,7 @@ export default function FirmaListPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '1.25rem' }}>
                     {([
                       { label: 'Panel Arka Plan',   key: 'panelBg' as const },
+                      { label: 'Panel Yazı Rengi',  key: 'panelText' as const },
                       { label: 'Sidebar Arka Plan', key: 'sidebarBg' as const },
                       { label: 'Sidebar Yazı',      key: 'sidebarText' as const },
                       { label: 'Buton Rengi',       key: 'buttonBg' as const },
@@ -505,7 +508,7 @@ export default function FirmaListPage() {
                     </div>
                     {/* Main area preview */}
                     <div style={{ flex: 1, padding: '12px', background: colorModal.panelBg, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: '600', color: '#0d1f35' }}>Ana Alan Önizleme</div>
+                      <div style={{ fontSize: '11px', fontWeight: '600', color: colorModal.panelText }}>Ana Alan Önizleme</div>
                       <button style={{ alignSelf: 'flex-start', padding: '5px 12px', background: colorModal.buttonBg, color: colorModal.buttonText, border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'default' }}>
                         Kaydet
                       </button>
