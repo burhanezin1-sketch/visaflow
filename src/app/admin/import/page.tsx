@@ -8,15 +8,17 @@ import { checkApplicationLimit } from '@/lib/planCheck'
 
 // ── Kolon eşleştirme ──────────────────────────────────────────────────────────
 const TARGET_COLS = [
-  { key: 'full_name',    label: 'Ad Soyad',    required: true  },
-  { key: 'phone',        label: 'Telefon',      required: false },
-  { key: 'email',        label: 'E-posta',      required: false },
-  { key: 'country',      label: 'Ülke',         required: false },
-  { key: 'visa_type',    label: 'Vize Tipi',    required: false },
-  { key: 'occupation',   label: 'Meslek',       required: false },
-  { key: 'nationality',  label: 'Uyruk',        required: false },
-  { key: 'passport_no',  label: 'Pasaport No',  required: false },
-  { key: 'notes',        label: 'Notlar',       required: false },
+  { key: 'full_name',        label: 'Ad Soyad',                        required: true  },
+  { key: 'phone',            label: 'Telefon',                         required: false },
+  { key: 'email',            label: 'E-posta',                         required: false },
+  { key: 'country',          label: 'Ülke',                            required: false },
+  { key: 'visa_type',        label: 'Vize Tipi',                       required: false },
+  { key: 'occupation',       label: 'Meslek',                          required: false },
+  { key: 'nationality',      label: 'Uyruk',                           required: false },
+  { key: 'passport_no',      label: 'Pasaport No',                     required: false },
+  { key: 'birth_date',       label: 'Doğum Tarihi (GG.AA.YYYY)',       required: false },
+  { key: 'passport_expiry',  label: 'Pasaport Son Geçerlilik (GG.AA.YYYY)', required: false },
+  { key: 'notes',            label: 'Notlar',                          required: false },
 ] as const
 
 type TargetKey = (typeof TARGET_COLS)[number]['key']
@@ -25,11 +27,11 @@ interface ParsedRow { [col: string]: string }
 interface ImportResult { row: number; name: string; status: 'ok' | 'skip' | 'error'; message: string }
 
 // ── Şablon verisi ──────────────────────────────────────────────────────────────
-const TEMPLATE_HEADERS = ['Ad Soyad', 'Telefon', 'Email', 'Ülke', 'Vize Tipi', 'Meslek', 'Uyruk', 'Pasaport No', 'Notlar']
+const TEMPLATE_HEADERS = ['Ad Soyad', 'Telefon', 'Email', 'Ülke', 'Vize Tipi', 'Meslek', 'Uyruk', 'Pasaport No', 'Doğum Tarihi', 'Pasaport Son Geçerlilik', 'Notlar']
 const TEMPLATE_EXAMPLE = [
-  ['Ahmet Yılmaz',  '+90 555 111 22 33', 'ahmet@example.com', 'Almanya', 'Turistik', 'calisan',  'Türkiye Cumhuriyeti',    'TR1234567', 'Acele dosya'],
-  ['Fatma Kaya',    '+90 532 444 55 66', 'fatma@example.com', 'Fransa',  'Turistik', 'ogrenci',  'Türkiye Cumhuriyeti',    'TR7654321', ''],
-  ['Mariam Hassan', '+90 541 777 88 99', 'mariam@example.com', 'Almanya', 'Turistik', 'calisan', 'Suriye Arap Cumhuriyeti', '',          ''],
+  ['Ahmet Yılmaz',  '+90 555 111 22 33', 'ahmet@example.com',  'Almanya', 'Turistik', 'Çalışan',  'Türkiye Cumhuriyeti',    'TR1234567', '15.03.1990', '20.07.2030', 'Acele dosya'],
+  ['Fatma Kaya',    '+90 532 444 55 66', 'fatma@example.com',  'Fransa',  'Turistik', 'Öğrenci',  'Türkiye Cumhuriyeti',    'TR7654321', '22.09.1995', '15.12.2028', ''],
+  ['Mariam Hassan', '+90 541 777 88 99', 'mariam@example.com', 'Almanya', 'Turistik', 'Çalışan',  'Suriye Arap Cumhuriyeti', '',          '',           '',           ''],
 ]
 
 export default function ImportPage() {
@@ -90,7 +92,9 @@ export default function ImportPage() {
       else if (n.includes('vize') || n.includes('visa'))                                 autoMap[h] = 'visa_type'
       else if (n.includes('meslek') || n.includes('occupation') || n.includes('job'))    autoMap[h] = 'occupation'
       else if (n.includes('uyruk') || n.includes('nationality') || n.includes('vatandaş')) autoMap[h] = 'nationality'
+      else if ((n.includes('pasaport') || n.includes('passport')) && (n.includes('son') || n.includes('geçer') || n.includes('expiry') || n.includes('expir'))) autoMap[h] = 'passport_expiry'
       else if (n.includes('pasaport') || n.includes('passport'))                         autoMap[h] = 'passport_no'
+      else if (n.includes('doğum') || n.includes('dogum') || n.includes('birth'))       autoMap[h] = 'birth_date'
       else if (n.includes('not'))                                                         autoMap[h] = 'notes'
       else autoMap[h] = ''
     }
@@ -106,6 +110,15 @@ export default function ImportPage() {
     e.preventDefault(); setDragOver(false)
     const f = e.dataTransfer.files?.[0]
     if (f) processFile(f)
+  }
+
+  // GG.AA.YYYY → YYYY-MM-DD (PostgreSQL DATE)
+  function parseTrDate(s: string): string | null {
+    if (!s) return null
+    const m = s.trim().match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/)
+    if (!m) return null
+    const [, d, mo, y] = m
+    return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`
   }
 
   // ── İçe Aktar ───────────────────────────────────────────────────────────────
@@ -146,14 +159,16 @@ export default function ImportPage() {
         continue
       }
 
-      const phone       = get('phone')
-      const email       = get('email')
-      const country     = get('country')
-      const visaType    = get('visa_type')
-      const occupation  = get('occupation')
-      const nationality = get('nationality') || 'Türkiye Cumhuriyeti'
-      const passportNo  = get('passport_no')
-      const notes       = get('notes')
+      const phone          = get('phone')
+      const email          = get('email')
+      const country        = get('country')
+      const visaType       = get('visa_type')
+      const occupation     = get('occupation')
+      const nationality    = get('nationality') || 'Türkiye Cumhuriyeti'
+      const passportNo     = get('passport_no')
+      const birthDate      = parseTrDate(get('birth_date'))
+      const passportExpiry = parseTrDate(get('passport_expiry'))
+      const notes          = get('notes')
 
       // Telefon duplikat kontrolü
       if (phone) {
@@ -170,12 +185,14 @@ export default function ImportPage() {
       const { data: client, error: clientErr } = await supabase
         .from('clients')
         .insert({
-          company_id:  companyId,
-          danisan_id:  user?.id,
-          full_name:   fullName,
-          phone:       phone || null,
-          email:       email || null,
-          passport_no: passportNo || null,
+          company_id:      companyId,
+          danisan_id:      user?.id,
+          full_name:       fullName,
+          phone:           phone || null,
+          email:           email || null,
+          passport_no:     passportNo || null,
+          birth_date:      birthDate || null,
+          passport_expiry: passportExpiry || null,
         })
         .select().single()
 
