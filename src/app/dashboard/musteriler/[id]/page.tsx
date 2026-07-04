@@ -325,7 +325,7 @@ export default function MusteriDetayPage() {
     // 4-way: country + visa_type + occupation + nationality
     const { data: ownTpl } = await supabase
       .from('visa_templates').select('docs')
-      .eq('company_id', companyId).neq('status', 'rejected')
+      .eq('company_id', companyId).eq('status', 'approved')
       .ilike('country', application.country).ilike('visa_type', application.visa_type)
       .ilike('occupation', application.occupation || '').ilike('nationality', nat)
       .limit(1).maybeSingle()

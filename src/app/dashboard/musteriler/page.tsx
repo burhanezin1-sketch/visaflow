@@ -233,7 +233,7 @@ export default function MusterilerPage() {
           .from('visa_templates')
           .select('docs')
           .eq('company_id', companyId)
-          .neq('status', 'rejected')
+          .eq('status', 'approved')
           .ilike('country', form.country)
           .ilike('visa_type', form.visa_type)
           .ilike('occupation', form.occupation || '')

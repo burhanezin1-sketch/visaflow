@@ -249,16 +249,21 @@ export default function ImportPage() {
           const nat = nationality || 'Türkiye Cumhuriyeti'
           let matchedDocs: any[] | null = null
 
+          console.log('[import şablon ara]', { country, visa_type: visaType, occupation, nationality: nat })
+
+          // 1. Firmanın onaylı şablonu
           const { data: ownTpl } = await supabase
             .from('visa_templates').select('docs')
-            .eq('company_id', companyId).neq('status', 'rejected')
+            .eq('company_id', companyId).eq('status', 'approved')
             .ilike('country', country).ilike('visa_type', visaType)
             .ilike('occupation', occupation || '').ilike('nationality', nat)
             .limit(1).maybeSingle()
 
           if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
             matchedDocs = ownTpl.docs
+            console.log('[import şablon sonuç] firma şablonu bulundu, evrak sayısı:', matchedDocs.length)
           } else {
+            // 2. Global onaylı şablon
             const { data: globalTpl } = await supabase
               .from('visa_templates').select('docs')
               .eq('is_global', true).eq('status', 'approved')
@@ -267,9 +272,13 @@ export default function ImportPage() {
               .limit(1).maybeSingle()
             if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
               matchedDocs = globalTpl.docs
+              console.log('[import şablon sonuç] global şablon bulundu, evrak sayısı:', matchedDocs.length)
+            } else {
+              console.log('[import şablon sonuç] şablon bulunamadı — evrak listesi boş bırakılıyor')
             }
           }
 
+          // Şablon bulunursa yaz, bulunamazsa HİÇBİR ŞEY YAZMA
           if (matchedDocs) {
             await supabase.from('user_submitted_docs').delete().eq('application_id', appId)
             await supabase.from('user_submitted_docs').insert(
@@ -281,14 +290,6 @@ export default function ImportPage() {
                 status:         'pending',
               }))
             )
-          } else {
-            // Fallback: RPC (3-katmanlı eski sistem)
-            await supabase.rpc('get_visa_documents', {
-              p_application_id: appId,
-              p_country:        country,
-              p_visa_type:      visaType,
-              p_occupation:     occupation || null,
-            })
           }
 
           // ── Ödeme kaydı: hizmet bedeli + uyruk ek ücreti ──
