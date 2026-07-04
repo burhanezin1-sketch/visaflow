@@ -32,13 +32,19 @@ export default function DashboardPage() {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
     async function fetchData() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const [
+        { data: { user } },
+        { data: clientsData },
+        { data: leadsData },
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('clients').select('id, full_name, applications(id, country, visa_type, status)').eq('company_id', companyId).order('created_at', { ascending: false }),
+        supabase.from('leads').select('id, status').eq('status', 'waiting').eq('company_id', companyId),
+      ])
       if (user) {
         const { data: userData } = await supabase.from('users').select('full_name').eq('id', user.id).single()
         if (userData?.full_name) setUserName(userData.full_name.split(' ')[0])
       }
-      const { data: clientsData } = await supabase.from('clients').select('*, applications(*)').eq('company_id', companyId)
-      const { data: leadsData } = await supabase.from('leads').select('*').eq('status', 'waiting').eq('company_id', companyId)
       setClients(clientsData || [])
       setLeads(leadsData || [])
       setLoading(false)

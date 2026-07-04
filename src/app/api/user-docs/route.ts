@@ -22,20 +22,12 @@ export async function GET(req: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // Caller's company
-  const { data: userData } = await admin
-    .from('users')
-    .select('company_id')
-    .eq('id', user.id)
-    .maybeSingle()
+  // Paralel: kullanıcı şirketi + başvuru şirketi doğrulaması
+  const [{ data: userData }, { data: appData }] = await Promise.all([
+    admin.from('users').select('company_id').eq('id', user.id).maybeSingle(),
+    admin.from('applications').select('company_id').eq('id', applicationId).maybeSingle(),
+  ])
   if (!userData?.company_id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  // Verify application belongs to caller's company
-  const { data: appData } = await admin
-    .from('applications')
-    .select('company_id')
-    .eq('id', applicationId)
-    .maybeSingle()
   if (!appData || appData.company_id !== userData.company_id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

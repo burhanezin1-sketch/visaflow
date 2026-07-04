@@ -53,10 +53,8 @@ export default function LeadsPage() {
   useEffect(() => {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
-    fetchData()
-    fetchPrices()
-    fetchCurrentUser()
-    fetchUsers()
+    // Bağımsız 4 fonksiyon paralel başlasın
+    Promise.all([fetchData(), fetchPrices(), fetchCurrentUser(), fetchUsers()])
   }, [companyId, companyLoading])
 
   async function fetchCurrentUser() {
@@ -88,9 +86,11 @@ export default function LeadsPage() {
   }
 
   async function fetchPrices() {
-    const { data } = await supabase.from('service_prices').select('*').eq('company_id', companyId)
+    const [{ data }, { data: sur }] = await Promise.all([
+      supabase.from('service_prices').select('*').eq('company_id', companyId),
+      supabase.from('nationality_surcharges').select('*').eq('company_id', companyId),
+    ])
     setPrices(data || [])
-    const { data: sur } = await supabase.from('nationality_surcharges').select('*').eq('company_id', companyId)
     setSurcharges(sur || [])
   }
 

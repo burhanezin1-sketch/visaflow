@@ -31,15 +31,15 @@ export default function AdminMusterilerPage() {
   }, [companyId])
 
   async function fetchData() {
-    const { data: clientsData } = await supabase
-      .from('clients')
-      .select('*, applications(*), users(full_name)')
-      .eq('company_id', companyId)
-      .order('created_at', { ascending: false })
-    const { data: usersData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('company_id', companyId)
+    const [{ data: clientsData }, { data: usersData }] = await Promise.all([
+      supabase.from('clients')
+        .select('id, full_name, phone, email, created_at, danisan_id, applications(id, country, visa_type, status, created_at), users(full_name)')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false }),
+      supabase.from('users')
+        .select('id, full_name, role')
+        .eq('company_id', companyId),
+    ])
     setClients(clientsData || [])
     setFiltered(clientsData || [])
     setDanismanlar(usersData || [])

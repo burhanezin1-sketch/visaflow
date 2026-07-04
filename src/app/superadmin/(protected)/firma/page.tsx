@@ -92,10 +92,12 @@ export default function FirmaListPage() {
 
   async function fetchAll() {
     setLoading(true)
-    const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false })
+    const [{ data }, { data: users }] = await Promise.all([
+      supabase.from('companies').select('*').order('created_at', { ascending: false }),
+      supabase.from('users').select('company_id'),
+    ])
     const list = data || []
     setCompanies(list)
-    const { data: users } = await supabase.from('users').select('company_id')
     const counts: Record<string, number> = {}
     users?.forEach((u: any) => { counts[u.company_id] = (counts[u.company_id] || 0) + 1 })
     setUserCounts(counts)

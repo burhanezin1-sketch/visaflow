@@ -57,13 +57,15 @@ export default function SablonlarPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     setUserId(user.id)
-    const { data: ud } = await supabase.from('users').select('company_id, full_name').eq('id', user.id).single()
+
+    const [{ data: ud }, { data }] = await Promise.all([
+      supabase.from('users').select('company_id, full_name').eq('id', user.id).single(),
+      supabase.from('visa_templates').select('*').order('created_at', { ascending: false }),
+    ])
+
     const cid = ud?.company_id ?? null
     setCompanyId(cid)
     setUserName(ud?.full_name || user.email || '')
-
-    const { data } = await supabase
-      .from('visa_templates').select('*').order('created_at', { ascending: false })
 
     const all = (data || []) as Template[]
     setGlobalTpls(all.filter(tp => tp.is_global && tp.status === 'approved'))
@@ -97,7 +99,8 @@ export default function SablonlarPage() {
   }
 
   async function applyDocsToApps(appIds: string[], docs: Doc[]) {
-    for (const appId of appIds) {
+    // Her uygulama için delete+insert paralel çalıştır
+    await Promise.all(appIds.map(async appId => {
       await supabase.from('user_submitted_docs').delete().eq('application_id', appId)
       await supabase.from('user_submitted_docs').insert(
         docs.map(d => ({
@@ -108,7 +111,7 @@ export default function SablonlarPage() {
           status: 'pending',
         }))
       )
-    }
+    }))
   }
 
   async function save() {

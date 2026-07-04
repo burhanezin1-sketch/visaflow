@@ -27,25 +27,17 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(accessToken)
     if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Caller's company
-    const { data: userData } = await supabase
-      .from('users')
-      .select('company_id, role')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (!userData) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
     const { docId, action, applicationId } = await req.json()
     if (!docId || !action || !applicationId) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 })
     }
 
-    // Verify application belongs to caller's company
-    const { data: appData } = await supabase
-      .from('applications')
-      .select('company_id')
-      .eq('id', applicationId)
-      .maybeSingle()
+    // Paralel: kullanıcı şirketi + başvuru şirketi doğrulaması
+    const [{ data: userData }, { data: appData }] = await Promise.all([
+      supabase.from('users').select('company_id, role').eq('id', user.id).maybeSingle(),
+      supabase.from('applications').select('company_id').eq('id', applicationId).maybeSingle(),
+    ])
+    if (!userData) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     if (!appData || appData.company_id !== userData.company_id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -75,17 +75,14 @@ export default function Sidebar() {
   }, [userId, companyId])
 
   async function fetchCounts() {
-    const { count: lc } = await supabase
-      .from('leads').select('*', { count: 'exact', head: true })
-      .eq('status', 'waiting')
-      .eq('company_id', companyId)
+    const [{ count: lc }, { data: tr }] = await Promise.all([
+      supabase.from('leads').select('*', { count: 'exact', head: true })
+        .eq('status', 'waiting').eq('company_id', companyId),
+      supabase.from('transfer_requests')
+        .select('id, client_id, from_user, to_user, note, clients(full_name)')
+        .eq('to_user', userId).eq('status', 'pending'),
+    ])
     setLeadCount(lc || 0)
-
-    const { data: tr } = await supabase
-      .from('transfer_requests')
-      .select('id, client_id, from_user, to_user, note, clients(full_name)')
-      .eq('to_user', userId)
-      .eq('status', 'pending')
 
     if (!tr || tr.length === 0) {
       setTransfers([])
