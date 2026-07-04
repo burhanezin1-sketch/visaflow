@@ -314,6 +314,16 @@ export default function ImportPage() {
                 : null,
             })
           }
+
+          // ── Danışman notu ──
+          if (notes && appId) {
+            await supabase.from('notes').insert({
+              company_id:     companyId,
+              application_id: appId,
+              user_id:        user?.id || null,
+              content:        notes,
+            })
+          }
         }
       }
 
