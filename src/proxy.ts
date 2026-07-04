@@ -72,7 +72,7 @@ function makeAdminClient() {
 // UUID format check (v4)
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const pathLower = pathname.toLowerCase()
 
@@ -138,28 +138,40 @@ export async function middleware(request: NextRequest) {
     return makeRedirect(pathname.startsWith('/superadmin') ? '/superadmin/login' : '/login')
   }
 
-  // ── 2. /superadmin rol kontrolü ────────────────────────────────
+  // ── 2. Rol bazlı panel izolasyonu ──────────────────────────────
+  // Paralel: superadmin kontrolü + firma kullanıcısı kontrolü
+  const adminClient = makeAdminClient()
+  const [{ data: saRow }, { data: userRow }] = await Promise.all([
+    adminClient.from('superadmins').select('id').eq('id', user.id).maybeSingle(),
+    adminClient.from('users').select('role, company_id').eq('id', user.id).maybeSingle(),
+  ])
+
+  const isSuperAdmin = !!saRow
+  const isFirmaUser  = !!userRow
+
+  // Superadmin → dashboard veya admin paneline erişemez
+  if (isSuperAdmin && (pathLower.startsWith('/dashboard') || pathLower.startsWith('/admin'))) {
+    return makeRedirect('/superadmin/dashboard')
+  }
+
+  // Superadmin gerektiren path → superadmin değilse login
   if (pathLower.startsWith('/superadmin')) {
-    try {
-      const admin = makeAdminClient()
-      const { data: sa } = await admin
-        .from('superadmins').select('id').eq('id', user.id).maybeSingle()
-      if (!sa) return makeRedirect('/superadmin/login')
-    } catch {
-      return makeRedirect('/superadmin/login')
-    }
+    if (!isSuperAdmin) return makeRedirect('/superadmin/login')
+  }
+
+  // Firma kullanıcısı → superadmin paneline erişemez
+  if (isFirmaUser && pathLower.startsWith('/superadmin')) {
+    return makeRedirect('/login')
+  }
+
+  // Firma kullanıcısı değil VE superadmin de değil → login
+  if (!isSuperAdmin && !isFirmaUser) {
+    return makeRedirect('/login')
   }
 
   // ── 3. /admin rol kontrolü ─────────────────────────────────────
   if (pathLower.startsWith('/admin')) {
-    try {
-      const admin = makeAdminClient()
-      const { data: userData } = await admin
-        .from('users').select('role').eq('id', user.id).maybeSingle()
-      if (!userData || userData.role !== 'admin') return makeRedirect('/dashboard')
-    } catch {
-      return makeRedirect('/dashboard')
-    }
+    if (!userRow || userRow.role !== 'admin') return makeRedirect('/dashboard')
   }
 
   // ── 4. IDOR: /dashboard/musteriler/[id] ───────────────────────

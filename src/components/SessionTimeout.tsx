@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
-const TIMEOUT_MS = 45 * 60 * 1000       // 45 dakika
+const TIMEOUT_MS = 30 * 60 * 1000       // 30 dakika
 const WARNING_BEFORE_MS = 5 * 60 * 1000  // timeout'tan 5 dk önce uyarı
 
 export default function SessionTimeout() {
