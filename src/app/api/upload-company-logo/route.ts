@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 function getAdmin() {
   return createClient(
@@ -12,6 +13,8 @@ function getAdmin() {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'upload-company-logo', 10)
+  if (limited) return limited
   const cookieStore = await cookies()
   const userClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,6 +68,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const limited = rateLimit(req, 'upload-company-logo', 10)
+  if (limited) return limited
   const cookieStore = await cookies()
   const userClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

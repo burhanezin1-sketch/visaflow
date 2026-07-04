@@ -222,6 +222,7 @@ export default function MusteriDetayPage() {
   }
 
   async function deleteClient() {
+    logAction(companyId!, currentUser?.id, currentUserName, `Müşteri silindi`, 'client', String(id), client?.full_name)
     await supabase.from('notes').delete().eq('application_id', application?.id)
     await supabase.from('wa_messages').delete().eq('client_id', id)
     await supabase.from('payments').delete().eq('application_id', application?.id)

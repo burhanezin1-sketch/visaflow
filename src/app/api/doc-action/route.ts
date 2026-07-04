@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 function getAdmin() {
   return createClient(
@@ -16,6 +17,8 @@ const ACTION_STATUS: Record<string, string> = {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'doc-action', 60)
+  if (limited) return limited
   try {
     const authHeader = req.headers.get('authorization')
     const accessToken = authHeader?.replace('Bearer ', '')

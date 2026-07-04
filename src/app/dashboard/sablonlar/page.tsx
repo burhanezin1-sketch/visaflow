@@ -176,6 +176,7 @@ export default function SablonlarPage() {
       alert('Silme başarısız: RLS politikası engelledi. Migration uygulandı mı kontrol edin.')
       return
     }
+    logAction(companyId!, userId, userName, `Şablon silindi`, 'visa_template', id, null)
     init()
   }
 

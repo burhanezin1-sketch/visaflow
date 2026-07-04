@@ -2,8 +2,11 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, 'pending-physical-docs', 60)
+  if (limited) return limited
   const cookieStore = await cookies()
   const userClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

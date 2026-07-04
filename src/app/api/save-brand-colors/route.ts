@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 function getAdmin() {
   return createClient(
@@ -14,6 +15,8 @@ function getAdmin() {
 const HEX_RE = /^#[0-9a-fA-F]{3,8}$/
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'save-brand-colors', 30)
+  if (limited) return limited
   const cookieStore = await cookies()
   const userClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

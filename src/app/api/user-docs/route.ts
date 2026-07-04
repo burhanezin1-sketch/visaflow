@@ -2,8 +2,11 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, 'user-docs', 120)
+  if (limited) return limited
   const applicationId = req.nextUrl.searchParams.get('application_id')
   if (!applicationId) return NextResponse.json({ error: 'Missing application_id' }, { status: 400 })
 
