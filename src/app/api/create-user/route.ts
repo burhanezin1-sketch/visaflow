@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const { full_name, email, password, role, company_id } = await req.json()
 
-  const ALLOWED_ROLES = ['admin', 'consultant']
+  const ALLOWED_ROLES = ['admin', 'danisan']
   if (!ALLOWED_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Geçersiz rol' }, { status: 400 })
   }
