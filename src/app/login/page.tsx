@@ -87,7 +87,7 @@ export default function LoginPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     })
     setLoading(false)
-    if (error) { setError('E-posta gönderilemedi. Adresi kontrol edin.'); return }
+    if (error) { setError(error.message); return }
     setStep('sent')
   }
 
