@@ -150,6 +150,15 @@ export default function FirmaListPage() {
     setEditTrialId(null)
   }
 
+  async function endTrialNow() {
+    if (!editTrialId) return
+    if (!confirm('Demo süresi hemen bitirilecek. Emin misiniz?')) return
+    const val = new Date().toISOString()
+    await supabase.from('companies').update({ trial_ends_at: val }).eq('id', editTrialId)
+    setCompanies(prev => prev.map(c => c.id === editTrialId ? { ...c, trial_ends_at: val } : c))
+    setEditTrialId(null)
+  }
+
   function openColorModal(c: any) {
     setColorSuccess(false)
     setColorModal({
@@ -432,10 +441,16 @@ export default function FirmaListPage() {
                 <input type="date" value={editTrialDate} onChange={e => setEditTrialDate(e.target.value)} className="fp-inp" style={inpS} />
                 <div style={{ fontSize: '11px', color: S.faint, marginTop: '4px' }}>Boş bırakırsanız deneme süresi kaldırılır.</div>
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                 <button onClick={() => setEditTrialId(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
                 <button onClick={saveTrial} className="fp-btn-primary" style={{ flex: 2 }}>Kaydet</button>
               </div>
+              <button
+                onClick={endTrialNow}
+                style={{ width: '100%', padding: '9px', background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                ⛔ Demo'yu Hemen Bitir
+              </button>
             </div>
           </div>
         )}
