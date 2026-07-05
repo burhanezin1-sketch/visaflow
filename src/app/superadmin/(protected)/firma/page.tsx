@@ -77,6 +77,12 @@ export default function FirmaListPage() {
   const [colorSaving, setColorSaving] = useState(false)
   const [colorSuccess, setColorSuccess] = useState(false)
 
+  type AnnModal = { id: string; name: string }
+  const [annModal, setAnnModal]     = useState<AnnModal | null>(null)
+  const [annForm, setAnnForm]       = useState({ title: '', body: '', imageUrl: '' })
+  const [annSaving, setAnnSaving]   = useState(false)
+  const [annSuccess, setAnnSuccess] = useState(false)
+
   const router = useRouter()
   const now = new Date()
 
@@ -148,6 +154,21 @@ export default function FirmaListPage() {
     await supabase.from('companies').update({ trial_ends_at: val }).eq('id', editTrialId)
     setCompanies(prev => prev.map(c => c.id === editTrialId ? { ...c, trial_ends_at: val } : c))
     setEditTrialId(null)
+  }
+
+  async function sendAnnouncement() {
+    if (!annModal || !annForm.title.trim() || !annForm.body.trim()) return
+    setAnnSaving(true)
+    await supabase.from('company_announcements').insert({
+      company_id: annModal.id,
+      title: annForm.title.trim(),
+      body: annForm.body.trim(),
+      image_url: annForm.imageUrl.trim() || null,
+      active: true,
+    })
+    setAnnSaving(false)
+    setAnnSuccess(true)
+    setTimeout(() => { setAnnModal(null); setAnnForm({ title: '', body: '', imageUrl: '' }); setAnnSuccess(false) }, 1200)
   }
 
   async function endTrialNow() {
@@ -341,6 +362,7 @@ export default function FirmaListPage() {
                           )}
                           <button onClick={() => { setEditNoteId(c.id); setEditNoteText(c.notes || '') }} className="fp-btn-ghost" style={{ color: c.notes ? '#a5b4fc' : S.muted }}>Not</button>
                           <button onClick={() => { setEditTrialId(c.id); setEditTrialDate(c.trial_ends_at ? c.trial_ends_at.split('T')[0] : '') }} className="fp-btn-ghost" style={{ color: trialActive ? '#fbbf24' : S.muted }}>Deneme</button>
+                          <button onClick={() => { setAnnModal({ id: c.id, name: c.name }); setAnnForm({ title: '', body: '', imageUrl: '' }); setAnnSuccess(false) }} className="fp-btn-ghost" style={{ color: '#34d399' }}>📢 Duyuru</button>
                           <button onClick={() => deleteFirma(c.id, c.name)} disabled={deleting === c.id} className="fp-btn-danger" style={{ opacity: deleting === c.id ? 0.5 : 1 }}>
                             {deleting === c.id ? '...' : 'Sil'}
                           </button>
@@ -451,6 +473,67 @@ export default function FirmaListPage() {
               >
                 ⛔ Demo'yu Hemen Bitir
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Duyuru / Kampanya Modal */}
+        {annModal && (
+          <div style={modalOverlay}>
+            <div style={{ ...modalBox, width: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: 0 }}>📢 Duyuru Gönder</h3>
+                  <p style={{ fontSize: '12px', color: S.muted, margin: '3px 0 0' }}>{annModal.name}</p>
+                </div>
+                <button onClick={() => setAnnModal(null)} style={{ background: 'transparent', border: 'none', color: S.muted, fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Başlık *</label>
+                  <input value={annForm.title} onChange={e => setAnnForm(p => ({ ...p, title: e.target.value }))} placeholder="örn: Yaz Kampanyası Başladı!" className="fp-inp" style={inpS} maxLength={80} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Mesaj *</label>
+                  <textarea value={annForm.body} onChange={e => setAnnForm(p => ({ ...p, body: e.target.value }))} placeholder="Duyuru metnini buraya yazın..." className="fp-inp" style={{ ...inpS, minHeight: '90px', resize: 'vertical' } as any} maxLength={500} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Görsel URL <span style={{ fontWeight: 400, textTransform: 'none' }}>(opsiyonel)</span></label>
+                  <input value={annForm.imageUrl} onChange={e => setAnnForm(p => ({ ...p, imageUrl: e.target.value }))} placeholder="https://..." className="fp-inp" style={inpS} />
+                </div>
+
+                {/* Önizleme */}
+                {(annForm.title || annForm.body || annForm.imageUrl) && (
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: S.muted, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Önizleme</div>
+                    <div style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', background: '#0a1420' }}>
+                      {annForm.imageUrl && (
+                        <div style={{ width: '100%', height: '140px', overflow: 'hidden' }}>
+                          <img src={annForm.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        </div>
+                      )}
+                      <div style={{ padding: '14px 16px 16px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: '600', color: '#34d399', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '6px' }}>📢 Duyuru</div>
+                        {annForm.title && <div style={{ fontSize: '15px', fontWeight: '700', color: 'white', marginBottom: '6px', lineHeight: 1.3 }}>{annForm.title}</div>}
+                        {annForm.body && <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{annForm.body}</div>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '1.25rem' }}>
+                <button onClick={() => setAnnModal(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '10px' }}>İptal</button>
+                <button
+                  onClick={sendAnnouncement}
+                  disabled={annSaving || annSuccess || !annForm.title.trim() || !annForm.body.trim()}
+                  className="fp-btn-primary"
+                  style={{ flex: 2, background: annSuccess ? '#1a7a45' : undefined }}
+                >
+                  {annSuccess ? '✓ Gönderildi' : annSaving ? 'Gönderiliyor...' : '📢 Duyuruyu Gönder'}
+                </button>
+              </div>
             </div>
           </div>
         )}

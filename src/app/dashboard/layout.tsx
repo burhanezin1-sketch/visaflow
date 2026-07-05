@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextIntlClientProvider } from 'next-intl'
 import Sidebar from '@/components/Sidebar'
 import SessionTimeout from '@/components/SessionTimeout'
+import AnnouncementPopup from '@/components/AnnouncementPopup'
 import { SidebarProvider } from '@/lib/SidebarContext'
 
 const LOCALES = ['tr', 'en', 'de', 'pl', 'ar', 'ru', 'es'] as const
@@ -45,9 +46,11 @@ export default async function DashboardLayout({
   let buttonBg    = '#1a3a5c'
   let buttonText  = '#ffffff'
   let panelBg     = '#e9eef6'
+  let companyId: string | null = null
   try {
     const { data: ud } = await supabase.from('users').select('company_id').eq('id', user.id).maybeSingle()
     if (ud?.company_id) {
+      companyId = ud.company_id
       const { data: co } = await supabase
         .from('companies')
         .select('plan, sidebar_bg_color, sidebar_text_color, button_color, button_text_color, panel_bg_color')
@@ -82,6 +85,7 @@ export default async function DashboardLayout({
             <SessionTimeout />
             {children}
           </div>
+          {companyId && <AnnouncementPopup companyId={companyId} />}
         </div>
       </SidebarProvider>
     </NextIntlClientProvider>

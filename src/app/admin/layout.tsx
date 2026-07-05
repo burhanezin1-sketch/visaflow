@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import AdminSidebarWrapper from './AdminSidebarWrapper'
 import Topbar from '@/components/Topbar'
 import SessionTimeout from '@/components/SessionTimeout'
+import AnnouncementPopup from '@/components/AnnouncementPopup'
 import { SidebarProvider } from '@/lib/SidebarContext'
 
 const LOCALES = ['tr', 'en', 'de', 'pl', 'ar', 'ru', 'es'] as const
@@ -82,6 +83,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Topbar />
             {children}
           </div>
+          {userData.company_id && <AnnouncementPopup companyId={userData.company_id} />}
         </div>
       </SidebarProvider>
     </NextIntlClientProvider>
