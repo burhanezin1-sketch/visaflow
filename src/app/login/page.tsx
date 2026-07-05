@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-type Step = 'login' | 'mfa'
+type Step = 'login' | 'mfa' | 'forgot' | 'sent'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [totpCode, setTotpCode] = useState('')
+  const [forgotEmail, setForgotEmail] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
   const [step, setStep]         = useState<Step>('login')
@@ -76,6 +77,18 @@ export default function LoginPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     await redirect(user?.id)
+  }
+
+  async function handleForgot(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    setLoading(false)
+    if (error) { setError('E-posta gönderilemedi. Adresi kontrol edin.'); return }
+    setStep('sent')
   }
 
   async function redirect(userId?: string) {
@@ -161,7 +174,46 @@ export default function LoginPage() {
                 <button className="vp-btn" type="submit" disabled={loading}>
                   {loading ? 'GİRİŞ YAPILIYOR...' : 'GİRİŞ YAP'}
                 </button>
+                <button type="button" className="vp-btn-ghost" style={{ marginTop: '4px' }} onClick={() => { setStep('forgot'); setError(''); setForgotEmail(email) }}>
+                  Şifremi Unuttum
+                </button>
               </form>
+            </>
+          ) : step === 'forgot' ? (
+            <>
+              <p className="vp-tagline">ŞİFRE SIFIRLAMA</p>
+              <div className="vp-divider"/>
+              <p className="vp-mfa-hint">
+                Kayıtlı e-posta adresinizi girin.<br/>
+                Şifre sıfırlama bağlantısı gönderilecektir.
+              </p>
+              <form onSubmit={handleForgot}>
+                <label className="vp-label">E-posta</label>
+                <input className="vp-input" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="ornek@sirket.com" required autoFocus />
+                {error && <p className="vp-error">{error}</p>}
+                <button className="vp-btn" type="submit" disabled={loading}>
+                  {loading ? 'GÖNDERİLİYOR...' : 'BAĞLANTI GÖNDER'}
+                </button>
+                <button type="button" className="vp-btn-ghost" onClick={() => { setStep('login'); setError('') }}>
+                  ← Geri dön
+                </button>
+              </form>
+            </>
+          ) : step === 'sent' ? (
+            <>
+              <p className="vp-tagline">E-POSTA GÖNDERİLDİ</p>
+              <div className="vp-divider"/>
+              <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>📬</div>
+                <p className="vp-mfa-hint">
+                  <strong>{forgotEmail}</strong> adresine<br/>
+                  şifre sıfırlama bağlantısı gönderildi.<br/>
+                  Gelen kutunuzu kontrol edin.
+                </p>
+              </div>
+              <button className="vp-btn" type="button" onClick={() => { setStep('login'); setError('') }}>
+                GİRİŞ SAYFASINA DÖN
+              </button>
             </>
           ) : (
             <>
