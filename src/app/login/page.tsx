@@ -93,8 +93,11 @@ export default function LoginPage() {
 
   async function redirect(userId?: string) {
     if (!userId) { window.location.href = '/login'; return }
-    const { data: userData } = await supabase
-      .from('users').select('role').eq('id', userId).single()
+    const [{ data: sa }, { data: userData }] = await Promise.all([
+      supabase.from('superadmins').select('id').eq('id', userId).maybeSingle(),
+      supabase.from('users').select('role').eq('id', userId).maybeSingle(),
+    ])
+    if (sa) { window.location.href = '/superadmin/dashboard'; return }
     window.location.href = userData?.role === 'admin' ? '/admin' : '/dashboard'
   }
 
