@@ -48,7 +48,7 @@ p{color:#5a6a7a;margin:0;font-size:14px;line-height:1.6}</style>
 </div></body></html>`
 
 // ── Public path helpers ─────────────────────────────────────────
-const PUBLIC_EXACT = new Set(['/login', '/superadmin/login'])
+const PUBLIC_EXACT = new Set(['/login', '/superadmin/login', '/reset-password'])
 const PUBLIC_PREFIXES = ['/portal/', '/api/', '/_next/']
 const PUBLIC_EXT = /\.(svg|png|jpg|jpeg|gif|webp|ico)$/
 
