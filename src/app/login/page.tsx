@@ -87,7 +87,17 @@ export default function LoginPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     })
     setLoading(false)
-    if (error) { setError(error.message); return }
+    if (error) {
+      const msg = error.message.toLowerCase()
+      if (msg.includes('rate limit') || msg.includes('too many')) {
+        setError('Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyin.')
+      } else if (msg.includes('invalid redirect')) {
+        setError('Yönlendirme adresi geçersiz. Lütfen destek ile iletişime geçin.')
+      } else {
+        setError('E-posta gönderilemedi: ' + error.message)
+      }
+      return
+    }
     setStep('sent')
   }
 
