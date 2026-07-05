@@ -76,21 +76,50 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const pathLower = pathname.toLowerCase()
 
+  // ── Per-request nonce + CSP ────────────────────────────────────
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const isDev = process.env.NODE_ENV === 'development'
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://irwxcj6j.rcsrv.net",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join('; ')
+
+  // x-nonce → server components can read it via headers()
+  const reqHeaders = new Headers(request.headers)
+  reqHeaders.set('x-nonce', nonce)
+  reqHeaders.set('Content-Security-Policy', csp)
+
   // ── Rate limiting (tüm path grupları) ─────────────────────────
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
     'unknown'
   if (checkRateLimit(ip, pathname)) {
-    return new NextResponse(RATE_LIMIT_HTML, {
+    const rl = new NextResponse(RATE_LIMIT_HTML, {
       status: 429,
       headers: { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '300' },
     })
+    rl.headers.set('Content-Security-Policy', csp)
+    return rl
   }
 
-  if (isPublic(pathname)) return NextResponse.next()
+  if (isPublic(pathname)) {
+    const pub = NextResponse.next({ request: { headers: reqHeaders } })
+    pub.headers.set('Content-Security-Policy', csp)
+    return pub
+  }
 
-  let response = NextResponse.next({ request })
+  let response = NextResponse.next({ request: { headers: reqHeaders } })
+  response.headers.set('Content-Security-Policy', csp)
 
   // ── 1. Auth kontrolü ───────────────────────────────────────────
   // pendingCookies: Supabase'in token yenileme veya silme sırasında
@@ -108,7 +137,8 @@ export async function proxy(request: NextRequest) {
         setAll(cookiesToSet) {
           pendingCookies.push(...cookiesToSet)
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
+          response = NextResponse.next({ request: { headers: reqHeaders } })
+          response.headers.set('Content-Security-Policy', csp)
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
