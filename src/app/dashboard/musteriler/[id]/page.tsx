@@ -298,37 +298,40 @@ export default function MusteriDetayPage() {
     return new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
+  async function refreshDocs(applicationId: string) {
+    try {
+      const fresh = await fetch(`/api/user-docs?application_id=${applicationId}`)
+        .then(r => r.ok ? r.json().then((j: any) => j.docs || []) : null)
+        .catch(() => null)
+      if (fresh !== null) setUserSubmittedDocs(fresh)
+    } catch { /* sessizce geç */ }
+  }
+
   async function callDocAction(docId: string, docName: string, action: 'approve' | 'reject' | 'elden' | 'confirm_physical', logMsg: string) {
     if (!application) return
+    const applicationId = application.id   // kapat — fetchAll'un appArr[0]'ından bağımsız
     setDocActionSaving(prev => ({ ...prev, [docId]: true }))
     setEvrakHata(null)
     try {
       const res = await fetch('/api/doc-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docId, action, applicationId: application.id }),
+        body: JSON.stringify({ docId, action, applicationId }),
       })
       const data = await res.json()
       if (!res.ok) { setEvrakHata(data.error || 'İşlem başarısız'); return }
-      // Optimistik güncelleme
-      const statusMap: Record<string, string> = { approve: 'approved', reject: 'pending', elden: 'elden' }
-      if (statusMap[action]) {
-        setUserSubmittedDocs(prev => prev.map(d =>
-          d.id === docId
-            ? { ...d, status: statusMap[action], ...(action === 'reject' ? { file_url: null } : {}) }
-            : d
-        ))
-      }
+
+      // DB'den sadece evrakları taze çek — fetchAll çağırmıyoruz
+      // fetchAll tüm başvuruları yeniden yükler, appArr[0] farklı başvuruya işaret edebilir
+      await refreshDocs(applicationId)
     } catch (err: any) {
       setEvrakHata(`Hata: ${err.message}`)
       return
     } finally {
       setDocActionSaving(prev => ({ ...prev, [docId]: false }))
     }
-    // Edit mode'dan çıkar
     setDocEditMode(prev => { const s = new Set(prev); s.delete(docId); return s })
-    await fetchAll()
-    logAction(companyId!, currentUser?.id, currentUserName, logMsg, 'document', application.id, client?.full_name)
+    logAction(companyId!, currentUser?.id, currentUserName, logMsg, 'document', applicationId, client?.full_name)
   }
 
   function approveDoc(docId: string, docName: string) {
