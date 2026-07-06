@@ -299,16 +299,15 @@ export default function MusteriDetayPage() {
     setDocActionSaving(prev => ({ ...prev, [docId]: true }))
     setEvrakHata(null)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/doc-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ docId, action, applicationId: application.id }),
       })
       const data = await res.json()
-      if (!res.ok) { setEvrakHata(`${t('docs.status.rejected')}: ${data.error}`); return }
-      // Optimistik güncelleme — sayfadan çıkmadan durum hemen yansır
-      const statusMap: Record<string, string> = { approve: 'approved', reject: 'rejected', elden: 'elden' }
+      if (!res.ok) { setEvrakHata(data.error || 'İşlem başarısız'); return }
+      // Optimistik güncelleme
+      const statusMap: Record<string, string> = { approve: 'approved', reject: 'pending', elden: 'elden' }
       if (statusMap[action]) {
         setUserSubmittedDocs(prev => prev.map(d =>
           d.id === docId
