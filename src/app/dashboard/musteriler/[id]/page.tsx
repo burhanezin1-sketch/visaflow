@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Topbar from '@/components/Topbar'
 import { useRouter, useParams } from 'next/navigation'
@@ -64,6 +64,10 @@ export default function MusteriDetayPage() {
   const [passportRevealed, setPassportRevealed] = useState(false)
   const [passportDecrypted, setPassportDecrypted] = useState<string | null>(null)
   const [passportLoading, setPassportLoading] = useState(false)
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null)
+  const [uploadToast, setUploadToast] = useState<{ msg: string; ok: boolean } | null>(null)
+  const pendingDocRef = useRef<{ id: string; name: string; clientId: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { fetchAll() }, [id, companyId, companyLoading])
 
@@ -331,6 +335,44 @@ export default function MusteriDetayPage() {
   }
   function confirmPhysicalDelivery(docId: string, docName: string) {
     return callDocAction(docId, docName, 'confirm_physical', `Fiziksel teslim onaylandı: ${docName}`)
+  }
+
+  async function handleStaffUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !pendingDocRef.current) return
+    const { id: docId, name: docName, clientId } = pendingDocRef.current
+    setUploadingDocId(docId)
+    e.target.value = ''
+
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('docId', docId)
+    fd.append('clientId', clientId)
+    fd.append('docName', docName)
+
+    try {
+      const res = await fetch('/api/staff-upload-doc', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) { setUploadToast({ msg: data.error || 'Yükleme başarısız', ok: false }); return }
+
+      // Listeyi güncelle
+      setUserSubmittedDocs(prev => prev.map(d => d.id === docId ? { ...d, file_url: data.fileUrl, status: 'pending' } : d))
+
+      const ocrMsg = data.ocrFields?.length > 0 ? ` OCR: ${data.ocrFields.join(', ')} güncellendi.` : ''
+      setUploadToast({ msg: '✓ Dosya yüklendi.' + ocrMsg, ok: true })
+
+      // OCR güncelledi ise müşteri verisini de yenile
+      if (data.ocrFields?.length > 0) {
+        const { data: updated } = await supabase.from('clients').select('*').eq('id', clientId).single()
+        if (updated) setClient(updated)
+      }
+    } catch {
+      setUploadToast({ msg: 'Bağlantı hatası', ok: false })
+    } finally {
+      setUploadingDocId(null)
+      pendingDocRef.current = null
+      setTimeout(() => setUploadToast(null), 4000)
+    }
   }
 
   async function evraklariYenile() {
@@ -610,6 +652,19 @@ export default function MusteriDetayPage() {
 
             {activeTab === 'evrak' && (
               <div style={{ padding: '1.25rem' }}>
+                {/* Gizli dosya input — danışman yükleme */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                  style={{ display: 'none' }}
+                  onChange={handleStaffUpload}
+                />
+                {uploadToast && (
+                  <div style={{ background: uploadToast.ok ? '#edfaf3' : '#fef0ee', border: `1px solid ${uploadToast.ok ? '#a8e6c1' : '#f5c2bb'}`, borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: uploadToast.ok ? '#1a7a45' : '#c0392b' }}>
+                    {uploadToast.msg}
+                  </div>
+                )}
                 {evrakHata && (
                   <div style={{ background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#c0392b' }}>
                     {evrakHata}
@@ -699,6 +754,19 @@ export default function MusteriDetayPage() {
                                 </a>
                               ))
                             })()}
+                            {/* Danışman yükleme butonu */}
+                            {isStaff && !isFirma && (!hasFile || isInEditMode) && (
+                              <button
+                                onClick={() => {
+                                  pendingDocRef.current = { id: evrak.id, name: evrak.doc_name, clientId: client.id }
+                                  fileInputRef.current?.click()
+                                }}
+                                disabled={uploadingDocId === evrak.id}
+                                style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#f0f7ff', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '6px', cursor: uploadingDocId === evrak.id ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: uploadingDocId === evrak.id ? 0.6 : 1 }}
+                              >
+                                {uploadingDocId === evrak.id ? '⏳' : '📎 Yükle'}
+                              </button>
+                            )}
                             {/* Durum aksiyon butonları */}
                             {showActions && (
                               <>
