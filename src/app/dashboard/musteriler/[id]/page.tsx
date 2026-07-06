@@ -303,17 +303,12 @@ export default function MusteriDetayPage() {
       const fresh = await fetch(`/api/user-docs?application_id=${applicationId}`)
         .then(r => r.ok ? r.json().then((j: any) => j.docs || []) : null)
         .catch(() => null)
-      if (fresh !== null) {
-        const approved = fresh.filter((d: any) => d.status === 'approved' || d.status === 'elden')
-        console.log('[refreshDocs]', { applicationId, total: fresh.length, approved: approved.map((d: any) => d.doc_name) })
-        setUserSubmittedDocs(fresh)
-      }
+      if (fresh !== null) setUserSubmittedDocs(fresh)
     } catch { /* sessizce geç */ }
   }
 
   async function callDocAction(docId: string, docName: string, action: 'approve' | 'reject' | 'elden' | 'confirm_physical', logMsg: string) {
-    console.log('[callDocAction]', { docId, action, application: application?.id ?? 'NULL' })
-    if (!application) { console.warn('[callDocAction] application NULL — çıkılıyor'); return }
+    if (!application) return
     const applicationId = application.id   // kapat — fetchAll'un appArr[0]'ından bağımsız
     setDocActionSaving(prev => ({ ...prev, [docId]: true }))
     setEvrakHata(null)
@@ -325,8 +320,6 @@ export default function MusteriDetayPage() {
       })
       const data = await res.json()
       if (!res.ok) { setEvrakHata(data.error || 'İşlem başarısız'); return }
-
-      console.log('[doc-action]', { docId, action, updatedCount: data.updatedCount, updatedRows: data.updatedRows })
 
       // DB'den sadece evrakları taze çek — fetchAll çağırmıyoruz
       // fetchAll tüm başvuruları yeniden yükler, appArr[0] farklı başvuruya işaret edebilir
