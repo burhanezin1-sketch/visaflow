@@ -65,7 +65,7 @@ export default function MusteriDetayPage() {
   const [passportDecrypted, setPassportDecrypted] = useState<string | null>(null)
   const [passportLoading, setPassportLoading] = useState(false)
   const [showBilgiEdit, setShowBilgiEdit] = useState(false)
-  const [bilgiForm, setBilgiForm] = useState({ email: '', birth_date: '', passport_expiry: '', passport_no: '', consulate: '' })
+  const [bilgiForm, setBilgiForm] = useState({ email: '', birth_date: '', passport_issue_date: '', passport_expiry: '', passport_no: '', consulate: '' })
   const [bilgiSaving, setBilgiSaving] = useState(false)
   const [bilgiToast, setBilgiToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null)
@@ -349,11 +349,12 @@ export default function MusteriDetayPage() {
 
   function openBilgiEdit() {
     setBilgiForm({
-      email:           client?.email          || '',
-      birth_date:      client?.birth_date     ? client.birth_date.slice(0, 10) : '',
-      passport_expiry: client?.passport_expiry ? client.passport_expiry.slice(0, 10) : '',
-      passport_no:     '',
-      consulate:       application?.consulate  || '',
+      email:               client?.email               || '',
+      birth_date:          client?.birth_date           ? client.birth_date.slice(0, 10) : '',
+      passport_issue_date: client?.passport_issue_date  ? client.passport_issue_date.slice(0, 10) : '',
+      passport_expiry:     client?.passport_expiry      ? client.passport_expiry.slice(0, 10) : '',
+      passport_no:         '',
+      consulate:           application?.consulate       || '',
     })
     setShowBilgiEdit(true)
     setBilgiToast(null)
@@ -366,13 +367,14 @@ export default function MusteriDetayPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        clientId:      client.id,
-        applicationId: application?.id,
-        email:           bilgiForm.email,
-        birth_date:      bilgiForm.birth_date,
-        passport_expiry: bilgiForm.passport_expiry,
-        passport_no:     bilgiForm.passport_no,
-        consulate:       bilgiForm.consulate,
+        clientId:            client.id,
+        applicationId:       application?.id,
+        email:               bilgiForm.email,
+        birth_date:          bilgiForm.birth_date,
+        passport_issue_date: bilgiForm.passport_issue_date,
+        passport_expiry:     bilgiForm.passport_expiry,
+        passport_no:         bilgiForm.passport_no,
+        consulate:           bilgiForm.consulate,
       }),
     })
     const data = await res.json()
@@ -637,6 +639,7 @@ export default function MusteriDetayPage() {
                 [t('fields.email'),       client.email],
                 [t('fields.birthDate'),   client.birth_date ? new Date(client.birth_date).toLocaleDateString('tr-TR') : '-'],
                 [t('fields.passportExpiry'), client.passport_expiry ? new Date(client.passport_expiry).toLocaleDateString('tr-TR') : '-'],
+                ['Pasaport Verilme Tarihi', client.passport_issue_date ? new Date(client.passport_issue_date).toLocaleDateString('tr-TR') : '-'],
                 [t('fields.visa'),        application?.country && application?.visa_type ? `${tField(application.country, 'country', locale)} ${tField(application.visa_type, 'visaType', locale)}` : (application?.country ? tField(application.country, 'country', locale) : application?.visa_type ? tField(application.visa_type, 'visaType', locale) : '-')],
                 [t('fields.nationality'), application?.nationality || '-'],
                 [t('fields.occupation'),  occupationLabels[application?.occupation] || (application?.occupation ? tField(application.occupation, 'occupation', locale) : '-')],
@@ -1027,6 +1030,7 @@ export default function MusteriDetayPage() {
               {[
                 { label: 'E-posta', key: 'email', type: 'email', placeholder: 'ornek@mail.com' },
                 { label: 'Doğum Tarihi', key: 'birth_date', type: 'date', placeholder: '' },
+                { label: 'Pasaport Verilme Tarihi', key: 'passport_issue_date', type: 'date', placeholder: '' },
                 { label: 'Pasaport Son Geçerlilik', key: 'passport_expiry', type: 'date', placeholder: '' },
                 { label: 'Konsolosluk', key: 'consulate', type: 'text', placeholder: 'örn: Almanya Büyükelçiliği' },
               ].map(({ label, key, type, placeholder }) => (

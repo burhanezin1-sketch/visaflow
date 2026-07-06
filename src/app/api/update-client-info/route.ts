@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       .from('users').select('company_id').eq('id', user.id).maybeSingle()
     if (!staffUser?.company_id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { clientId, applicationId, email, birth_date, passport_expiry, passport_no, consulate } = await req.json()
+    const { clientId, applicationId, email, birth_date, passport_expiry, passport_issue_date, passport_no, consulate } = await req.json()
     if (!clientId) return NextResponse.json({ error: 'clientId gerekli' }, { status: 400 })
 
     // IDOR: müşteri bu şirkete ait mi?
@@ -44,9 +44,10 @@ export async function POST(req: NextRequest) {
 
     // clients tablosunu güncelle
     const clientUpdate: Record<string, any> = {}
-    if (email       !== undefined) clientUpdate.email          = email || null
-    if (birth_date  !== undefined) clientUpdate.birth_date     = birth_date || null
-    if (passport_expiry !== undefined) clientUpdate.passport_expiry = passport_expiry || null
+    if (email               !== undefined) clientUpdate.email               = email || null
+    if (birth_date          !== undefined) clientUpdate.birth_date          = birth_date || null
+    if (passport_issue_date !== undefined) clientUpdate.passport_issue_date = passport_issue_date || null
+    if (passport_expiry     !== undefined) clientUpdate.passport_expiry     = passport_expiry || null
     if (passport_no !== undefined) {
       clientUpdate.passport_no = passport_no
         ? (() => { try { return encrypt(passport_no) } catch { return passport_no } })()
