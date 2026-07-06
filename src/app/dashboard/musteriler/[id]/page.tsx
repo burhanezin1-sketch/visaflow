@@ -310,7 +310,11 @@ export default function MusteriDetayPage() {
       // Optimistik güncelleme — sayfadan çıkmadan durum hemen yansır
       const statusMap: Record<string, string> = { approve: 'approved', reject: 'rejected', elden: 'elden' }
       if (statusMap[action]) {
-        setUserSubmittedDocs(prev => prev.map(d => d.id === docId ? { ...d, status: statusMap[action] } : d))
+        setUserSubmittedDocs(prev => prev.map(d =>
+          d.id === docId
+            ? { ...d, status: statusMap[action], ...(action === 'reject' ? { file_url: null } : {}) }
+            : d
+        ))
       }
     } catch (err: any) {
       setEvrakHata(`Hata: ${err.message}`)

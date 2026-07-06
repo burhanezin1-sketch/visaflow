@@ -63,9 +63,13 @@ export async function POST(req: NextRequest) {
     const newStatus = ACTION_STATUS[action]
     if (!newStatus) return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 
+    // Reddetmede dosyayı temizle — müşteri yeni dosya yükleyebilsin
+    const updatePayload: Record<string, any> = { status: newStatus, updated_at: new Date().toISOString() }
+    if (action === 'reject') updatePayload.file_url = null
+
     const { error } = await supabase
       .from('user_submitted_docs')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('id', docId)
       .eq('application_id', applicationId)
 
