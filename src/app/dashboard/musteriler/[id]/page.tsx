@@ -303,7 +303,11 @@ export default function MusteriDetayPage() {
       const fresh = await fetch(`/api/user-docs?application_id=${applicationId}`)
         .then(r => r.ok ? r.json().then((j: any) => j.docs || []) : null)
         .catch(() => null)
-      if (fresh !== null) setUserSubmittedDocs(fresh)
+      if (fresh !== null) {
+        const approved = fresh.filter((d: any) => d.status === 'approved' || d.status === 'elden')
+        console.log('[refreshDocs]', { applicationId, total: fresh.length, approved: approved.map((d: any) => d.doc_name) })
+        setUserSubmittedDocs(fresh)
+      }
     } catch { /* sessizce geç */ }
   }
 
