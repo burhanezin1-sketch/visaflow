@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
             role: 'user',
             content: [
               { type: 'image', source: { type: 'base64', media_type: file.type as any, data: base64 } },
-              { type: 'text', text: 'Bu pasaport veya kimlik belgesini tara. Yalnızca şu JSON formatını döndür, başka hiçbir metin yazma:\n{"passport_no":"belge numarası","birth_date":"YYYY-MM-DD","passport_expiry":"YYYY-MM-DD"}\nOkuyamadığın alanlar için null yaz. Tarihler YYYY-MM-DD formatında olsun.' }
+              { type: 'text', text: 'Bu pasaport veya kimlik belgesini tara. Yalnızca şu JSON formatını döndür, başka hiçbir metin yazma:\n{"passport_no":"belge numarası","birth_date":"YYYY-MM-DD","passport_issue_date":"YYYY-MM-DD","passport_expiry":"YYYY-MM-DD"}\nOkuyamadığın alanlar için null yaz. Tarihler YYYY-MM-DD formatında olsun.' }
             ]
           }]
         })
@@ -102,6 +102,9 @@ export async function POST(req: NextRequest) {
           }
           if (extracted.birth_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.birth_date)) {
             updateData.birth_date = extracted.birth_date
+          }
+          if (extracted.passport_issue_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.passport_issue_date)) {
+            updateData.passport_issue_date = extracted.passport_issue_date
           }
           if (extracted.passport_expiry && /^\d{4}-\d{2}-\d{2}$/.test(extracted.passport_expiry)) {
             updateData.passport_expiry = extracted.passport_expiry
