@@ -54,6 +54,11 @@ export default function MusterilerPage() {
   const [usingSimilar, setUsingSimilar] = useState(false)
   const [nationalityMismatch, setNationalityMismatch] = useState(false)
   const isSavingRef = useRef(false)
+
+  const [allTemplates, setAllTemplates] = useState<any[]>([])
+  const [tplSearch, setTplSearch] = useState('')
+  const [tplOpen, setTplOpen] = useState(false)
+  const [selectedTpl, setSelectedTpl] = useState<any | null>(null)
   const router = useRouter()
 
   const statusMap: any = {
@@ -83,9 +88,21 @@ export default function MusterilerPage() {
   useEffect(() => {
     if (companyLoading) return
     if (!companyId) { setLoading(false); return }
-    fetchData()     // bağımsız — paralel başlasın
-    fetchPrices()   // bağımsız — paralel başlasın
+    fetchData()
+    fetchPrices()
+    fetchTemplates()
   }, [companyId, companyLoading])
+
+  async function fetchTemplates() {
+    if (!companyId) return
+    const [{ data: firma }, { data: global }] = await Promise.all([
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality, docs').eq('company_id', companyId).eq('status', 'approved').order('country'),
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality, docs').eq('is_global', true).eq('status', 'approved').order('country'),
+    ])
+    const firmaList = (firma || []).map((t: any) => ({ ...t, _source: 'firma' }))
+    const globalList = (global || []).map((t: any) => ({ ...t, _source: 'global' }))
+    setAllTemplates([...firmaList, ...globalList])
+  }
 
   async function fetchData() {
     const { data } = await supabase
@@ -330,6 +347,7 @@ export default function MusterilerPage() {
       await fetchData()
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
+      setSelectedTpl(null); setTplSearch(''); setTplOpen(false)
 
       if (!matchedDocs && resolvedApp && !!(form.country && form.visa_type)) {
         setSavedClientId(clientId)
@@ -519,6 +537,81 @@ export default function MusterilerPage() {
               <label style={labelStyle}>{tf('email')}</label>
               <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder={tp('email')} style={inputStyle} />
             </div>
+
+            {/* Şablon Seçici */}
+            <div style={{ marginBottom: '10px', position: 'relative' }}>
+              <label style={labelStyle}>ŞABLONDAN SEÇ <span style={{ fontWeight: 400, textTransform: 'none', color: '#9aaabb' }}>(opsiyonel)</span></label>
+              <div
+                onClick={() => setTplOpen(o => !o)}
+                style={{ width: '100%', padding: '9px 10px', border: `1.5px solid ${selectedTpl ? '#1a5fa5' : '#e2e2e8'}`, borderRadius: '8px', fontSize: '13px', background: selectedTpl ? '#eef4fb' : '#f5f5f7', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: selectedTpl ? '#1a5fa5' : '#9aaabb', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedTpl ? `${selectedTpl.country} — ${selectedTpl.visa_type}${selectedTpl.occupation ? ` (${selectedTpl.occupation})` : ''}` : 'Şablon seçmek için tıklayın...'}
+                </span>
+                <span style={{ marginLeft: '8px', flexShrink: 0, fontSize: '11px' }}>{tplOpen ? '▲' : '▼'}</span>
+              </div>
+              {tplOpen && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'white', border: '1.5px solid #b8d4f0', borderRadius: '10px', boxShadow: '0 8px 24px rgba(13,31,53,0.12)', marginTop: '4px', overflow: 'hidden' }}>
+                  <div style={{ padding: '8px' }}>
+                    <input
+                      autoFocus
+                      value={tplSearch}
+                      onChange={e => setTplSearch(e.target.value)}
+                      placeholder="Ara: ülke, vize türü, meslek..."
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e2e8', borderRadius: '7px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                      onClick={e => e.stopPropagation()}
+                    />
+                  </div>
+                  <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                    {(() => {
+                      const q = tplSearch.toLowerCase()
+                      const filtered = allTemplates.filter(t =>
+                        !q || t.country?.toLowerCase().includes(q) || t.visa_type?.toLowerCase().includes(q) || t.occupation?.toLowerCase().includes(q)
+                      )
+                      if (filtered.length === 0) return <div style={{ padding: '12px', fontSize: '12px', color: '#9aaabb', textAlign: 'center' }}>Şablon bulunamadı</div>
+                      return filtered.map((tpl, i) => (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            setSelectedTpl(tpl)
+                            setForm(f => ({
+                              ...f,
+                              country:     tpl.country || f.country,
+                              visa_type:   tpl.visa_type || f.visa_type,
+                              occupation:  tpl.occupation || f.occupation,
+                              nationality: tpl.nationality || f.nationality,
+                            }))
+                            setTplOpen(false)
+                            setTplSearch('')
+                          }}
+                          style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f0f7ff')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '')}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {tpl.country} — {tpl.visa_type}
+                            </div>
+                            {tpl.occupation && <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '1px' }}>{tpl.occupation} {tpl.nationality ? `• ${tpl.nationality}` : ''}</div>}
+                          </div>
+                          <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', background: tpl._source === 'firma' ? '#eef4fb' : '#f3e8ff', color: tpl._source === 'firma' ? '#1a5fa5' : '#5b21b6' }}>
+                            {tpl._source === 'firma' ? 'Firma' : 'Global'}
+                          </span>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                  {selectedTpl && (
+                    <div style={{ padding: '8px', borderTop: '1px solid #f0f0f4' }}>
+                      <button onClick={() => { setSelectedTpl(null); setForm(f => ({ ...f, country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti' })); setTplOpen(false) }} style={{ width: '100%', padding: '7px', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        Şablonu Kaldır
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
                 <label style={labelStyle}>{tf('country')}</label>
@@ -584,7 +677,7 @@ export default function MusterilerPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => { setShowModal(false); setLimitError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
+              <button onClick={() => { setShowModal(false); setLimitError(null); setSelectedTpl(null); setTplSearch(''); setTplOpen(false) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
               <button onClick={saveClient} disabled={saving} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(29,78,216,0.25)', transition: 'opacity 0.2s' }}>
                 {saving ? tc('saving') : t('addModal.submitBtn')}
               </button>
