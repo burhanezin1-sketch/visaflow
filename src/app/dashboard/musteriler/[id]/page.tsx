@@ -321,6 +321,8 @@ export default function MusteriDetayPage() {
       const data = await res.json()
       if (!res.ok) { setEvrakHata(data.error || 'İşlem başarısız'); return }
 
+      console.log('[doc-action]', { docId, action, updatedCount: data.updatedCount, updatedRows: data.updatedRows })
+
       // DB'den sadece evrakları taze çek — fetchAll çağırmıyoruz
       // fetchAll tüm başvuruları yeniden yükler, appArr[0] farklı başvuruya işaret edebilir
       await refreshDocs(applicationId)

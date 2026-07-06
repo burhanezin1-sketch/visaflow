@@ -83,15 +83,21 @@ export async function POST(req: NextRequest) {
     // Reddetmede dosyayı sil — temiz başlangıç
     if (action === 'reject') updatePayload.file_url = null
 
-    const { error } = await admin
+    const { data: updatedRows, error } = await admin
       .from('user_submitted_docs')
       .update(updatePayload)
       .eq('id', docId)
       .eq('application_id', applicationId)
+      .select('id, doc_name, status')
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    return NextResponse.json({ success: true })
+    const count = updatedRows?.length ?? 0
+    if (count !== 1) {
+      console.error(`[doc-action] UYARI: ${count} satır güncellendi! docId=${docId} applicationId=${applicationId}`, updatedRows)
+    }
+
+    return NextResponse.json({ success: true, updatedCount: count, updatedRows })
   } catch (err: any) {
     console.error('[doc-action]', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
