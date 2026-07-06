@@ -308,7 +308,8 @@ export default function MusteriDetayPage() {
   }
 
   async function callDocAction(docId: string, docName: string, action: 'approve' | 'reject' | 'elden' | 'confirm_physical', logMsg: string) {
-    if (!application) return
+    console.log('[callDocAction]', { docId, action, application: application?.id ?? 'NULL' })
+    if (!application) { console.warn('[callDocAction] application NULL — çıkılıyor'); return }
     const applicationId = application.id   // kapat — fetchAll'un appArr[0]'ından bağımsız
     setDocActionSaving(prev => ({ ...prev, [docId]: true }))
     setEvrakHata(null)
