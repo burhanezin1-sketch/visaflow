@@ -27,7 +27,7 @@ export default function FiyatlarPage() {
   const [fxRates, setFxRates] = useState<FxRates | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editItem, setEditItem] = useState<any>(null)
-  const [form, setForm] = useState({ country: '', visa_type: '', price: '', currency: 'TRY' })
+  const [form, setForm] = useState({ country: '', visa_type: '', nationality: '', price: '', currency: 'TRY' })
   const [saving, setSaving] = useState(false)
   const [updateToast, setUpdateToast] = useState<string | null>(null)
 
@@ -83,12 +83,14 @@ export default function FiyatlarPage() {
     if (editItem) {
       await supabase.from('service_prices').update({
         country: form.country, visa_type: form.visa_type,
+        nationality: form.nationality || null,
         price: newPrice, currency: newCurrency,
       }).eq('id', editItem.id)
     } else {
       await supabase.from('service_prices').insert({
         company_id: companyId, country: form.country,
-        visa_type: form.visa_type, price: newPrice, currency: newCurrency,
+        visa_type: form.visa_type, nationality: form.nationality || null,
+        price: newPrice, currency: newCurrency,
       })
     }
 
@@ -117,7 +119,7 @@ export default function FiyatlarPage() {
     setSaving(false)
     setShowModal(false)
     setEditItem(null)
-    setForm({ country: '', visa_type: '', price: '', currency: 'TRY' })
+    setForm({ country: '', visa_type: '', nationality: '', price: '', currency: 'TRY' })
     fetchData()
 
     const msg = updatedCount > 0
@@ -183,13 +185,13 @@ export default function FiyatlarPage() {
 
   function openAdd() {
     setEditItem(null)
-    setForm({ country: '', visa_type: '', price: '', currency: 'TRY' })
+    setForm({ country: '', visa_type: '', nationality: '', price: '', currency: 'TRY' })
     setShowModal(true)
   }
 
   function openEdit(p: any) {
     setEditItem(p)
-    setForm({ country: p.country, visa_type: p.visa_type, price: p.price.toString(), currency: p.currency || 'TRY' })
+    setForm({ country: p.country, visa_type: p.visa_type, nationality: p.nationality || '', price: p.price.toString(), currency: p.currency || 'TRY' })
     setShowModal(true)
   }
 
@@ -265,7 +267,7 @@ export default function FiyatlarPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '400px' }}>
               <thead>
                 <tr>
-                  {['Ülke', 'Vize Tipi', 'Fiyat', 'TL Karşılığı', ''].map(h => (
+                  {['Ülke', 'Vize Tipi', 'Uyruk', 'Fiyat', 'TL Karşılığı', ''].map(h => (
                     <th key={h} style={{ fontSize: '10px', color: '#9aaabb', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.8px', padding: '10px 1.25rem', textAlign: 'left', borderBottom: '1px solid #f0f0f4', background: '#f5f5f7' }}>{h}</th>
                   ))}
                 </tr>
@@ -284,6 +286,7 @@ export default function FiyatlarPage() {
                     <tr key={p.id}>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '500', borderBottom: '1px solid #f0f0f4' }}>{p.country}</td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{p.visa_type}</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid #f0f0f4', color: '#5a6a7a' }}>{p.nationality || <span style={{ color: '#d0d0d8' }}>—</span>}</td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #f0f0f4', color: '#1a7a45' }}>
                         {formatPrice(p.price, p.currency || 'TRY')}
                       </td>
@@ -386,6 +389,10 @@ export default function FiyatlarPage() {
             <div style={{ marginBottom: '12px' }}>
               <label style={labelStyle}>Vize Tipi</label>
               <input value={form.visa_type} onChange={e => setForm({ ...form, visa_type: toTitleCase(e.target.value) })} placeholder="ör. Turist Vizesi" style={inputStyle} />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={labelStyle}>Uyruk <span style={{ fontWeight: 400, textTransform: 'none', color: '#b8c8d8' }}>(opsiyonel)</span></label>
+              <input value={form.nationality} onChange={e => setForm({ ...form, nationality: toTitleCase(e.target.value) })} placeholder="ör. Türkiye Cumhuriyeti" style={inputStyle} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', marginBottom: formTRY ? '6px' : '1.25rem', alignItems: 'end' }}>
               <div>
