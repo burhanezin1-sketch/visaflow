@@ -37,8 +37,11 @@ export default function MaliPage() {
         const key = clientId ?? `no_client_${p.id}`
         if (!clientMap.has(key)) clientMap.set(key, p)
 
-        const cur = (p.currency as string | undefined) || 'TRY'
+        // 'TL' olarak kaydedilmiş eski kayıtları 'TRY' olarak normalize et
+        const rawCur = (p.currency as string | undefined) || 'TRY'
+        const cur = rawCur === 'TL' ? 'TRY' : rawCur
         if (!breakdown[cur]) breakdown[cur] = { total: 0, collected: 0 }
+        // ciro = tahsil_edilmiş + tahsil_edilmemiş = total_amount
         breakdown[cur].total += p.total_amount
         breakdown[cur].collected += p.paid_amount
       }

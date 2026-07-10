@@ -39,6 +39,7 @@ export default function Sidebar() {
     { label: t('calendar'),     href: '/dashboard/takvim' },
     { label: t('embassyLinks'), href: '/dashboard/elcilik' },
     { label: t('templates'),    href: '/dashboard/sablonlar' },
+    { label: '💰 Hizmet Fiyatları', href: '/dashboard/hizmet-fiyatlari' },
     { label: t('settings'),     href: '/dashboard/ayarlar' },
   ]
 

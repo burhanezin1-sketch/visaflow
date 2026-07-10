@@ -324,13 +324,15 @@ export default function SuperAdminDashboard() {
 
           {/* Nav */}
           <nav style={{ flex: 1, padding: '0.5rem 0' }}>
-            {/* Şablonlar — öne çıkan link */}
-            <button
-              onClick={() => router.push('/superadmin/sablonlar')}
-              style={{ width: '100%', padding: '9px 1rem', display: 'block', background: '#1e3a5f', borderLeft: `3px solid ${S.accent}`, color: 'white', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '4px' }}
-            >
-              📋 Şablonlar
-            </button>
+            {/* Hızlı linkler */}
+            {[
+              { label: '📋 Şablonlar', href: '/superadmin/sablonlar' },
+              { label: '💰 Hizmet Fiyatları', href: '/superadmin/hizmet-fiyatlari' },
+            ].map(({ label, href }) => (
+              <button key={href} onClick={() => router.push(href)} style={{ width: '100%', padding: '9px 1rem', display: 'block', background: '#1e3a5f', borderLeft: `3px solid ${S.accent}`, color: 'white', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: '4px' }}>
+                {label}
+              </button>
+            ))}
             <div style={{ height: '1px', background: S.border, margin: '4px 0 4px' }} />
             {navItems.map(([key, label]) => {
               const active = activeTab === key

@@ -7,12 +7,25 @@ import { checkUserLimit } from '@/lib/planCheck'
 import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
 
+const CUR_SYM: Record<string, string> = { TRY: '₺', EUR: '€', USD: '$', TL: '₺' }
+
 type DanisanStat = {
   danisan_id: string
   full_name: string
   musteri_sayisi: number
   tamamlanan: number
-  toplam_ciro: number
+  ciro_by_currency: Record<string, number>
+}
+
+function fmtCiro(ciro: Record<string, number>): string {
+  const parts = Object.entries(ciro)
+    .filter(([, v]) => v > 0)
+    .map(([c, v]) => `${CUR_SYM[c] || c}${v.toLocaleString('tr-TR')}`)
+  return parts.length > 0 ? parts.join(' + ') : '—'
+}
+
+function ciroToplam(ciro: Record<string, number>): Record<string, number> {
+  return ciro
 }
 
 export default function EkipPage() {
@@ -68,7 +81,7 @@ export default function EkipPage() {
         full_name: u.full_name || u.email || '—',
         musteri_sayisi: 0,
         tamamlanan: 0,
-        toplam_ciro: 0,
+        ciro_by_currency: {},
       })
     }
 
@@ -84,12 +97,15 @@ export default function EkipPage() {
 
       if (app?.id) {
         const payment = paymentByApp.get(app.id)
-        if (payment) stat.toplam_ciro += payment.total_amount || 0
+        if (payment) {
+          const cur = payment.currency === 'TL' ? 'TRY' : (payment.currency || 'TRY')
+          stat.ciro_by_currency[cur] = (stat.ciro_by_currency[cur] || 0) + (payment.total_amount || 0)
+        }
       }
     }
 
     const statsArr = Array.from(statsMap.values())
-      .sort((a, b) => b.toplam_ciro - a.toplam_ciro)
+      .sort((a, b) => (b.ciro_by_currency['TRY'] || 0) - (a.ciro_by_currency['TRY'] || 0))
 
     setStats(statsArr)
     setUsers(usersData || [])
@@ -107,7 +123,7 @@ export default function EkipPage() {
         data: {
           labels: stats.map(s => s.full_name),
           datasets: [{
-            data: stats.map(s => s.toplam_ciro),
+            data: stats.map(s => s.ciro_by_currency['TRY'] || 0),
             backgroundColor: '#0d1f35',
             borderRadius: 4,
             borderSkipped: false,
@@ -189,7 +205,15 @@ export default function EkipPage() {
   )
 
   const topDanisan = stats.length > 0 ? stats[0] : null
-  const toplamCiro = stats.reduce((sum, s) => sum + s.toplam_ciro, 0)
+
+  // Tüm para birimleri için toplam
+  const toplamByCur: Record<string, number> = {}
+  for (const s of stats) {
+    for (const [cur, val] of Object.entries(s.ciro_by_currency)) {
+      toplamByCur[cur] = (toplamByCur[cur] || 0) + val
+    }
+  }
+  const toplamCiroStr = fmtCiro(toplamByCur)
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -209,11 +233,11 @@ export default function EkipPage() {
           <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}>
             <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>En Yüksek Ciro</div>
             <div style={{ fontSize: '15px', fontWeight: '600', color: '#0d1f35' }}>{topDanisan?.full_name || '—'}</div>
-            <div style={{ fontSize: '12px', color: '#1a7a45', marginTop: '4px' }}>{(topDanisan?.toplam_ciro || 0).toLocaleString('tr-TR')}₺</div>
+            <div style={{ fontSize: '12px', color: '#1a7a45', marginTop: '4px' }}>{fmtCiro(topDanisan?.ciro_by_currency || {})}</div>
           </div>
           <div style={{ background: 'white', border: '1px solid rgba(188,204,226,0.45)', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(15,23,42,0.06)' }}>
             <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Toplam Ekip Cirosu</div>
-            <div style={{ fontSize: '20px', fontWeight: '600', color: '#1a7a45' }}>{toplamCiro.toLocaleString('tr-TR')}₺</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: '#1a7a45', lineHeight: 1.5 }}>{toplamCiroStr}</div>
           </div>
         </div>
 
@@ -244,7 +268,7 @@ export default function EkipPage() {
                       </td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{s?.musteri_sayisi ?? 0}</td>
                       <td style={{ padding: '12px 1.25rem', fontSize: '13px', color: '#1a7a45', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{s?.tamamlanan ?? 0}</td>
-                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{(s?.toplam_ciro ?? 0).toLocaleString('tr-TR')}₺</td>
+                      <td style={{ padding: '12px 1.25rem', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>{fmtCiro(s?.ciro_by_currency || {})}</td>
                       <td style={{ padding: '12px 1.25rem', borderBottom: '1px solid rgba(188,204,226,0.3)' }}>
                         <button onClick={() => danismanSil(u.id)} style={{ padding: '4px 10px', fontSize: '11px', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5b8b0', borderRadius: '6px', cursor: 'pointer' }}>Sil</button>
                       </td>
