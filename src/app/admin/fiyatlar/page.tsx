@@ -31,6 +31,12 @@ export default function FiyatlarPage() {
   const [saving, setSaving] = useState(false)
   const [updateToast, setUpdateToast] = useState<string | null>(null)
 
+  // --- Şablon seçici (fiyat ekleme modalı) ---
+  const [allTemplates, setAllTemplates] = useState<any[]>([])
+  const [tplSearch, setTplSearch]       = useState('')
+  const [tplOpen, setTplOpen]           = useState(false)
+  const [selectedTpl, setSelectedTpl]   = useState<any | null>(null)
+
   // --- Uyruk ek ücretleri ---
   const [surcharges, setSurcharges] = useState<any[]>([])
   const [showSurModal, setShowSurModal] = useState(false)
@@ -43,7 +49,18 @@ export default function FiyatlarPage() {
     fetchData()
     fetchSurcharges()
     fetchFxRates().then(setFxRates)
+    fetchTemplates()
   }, [companyId])
+
+  async function fetchTemplates() {
+    const [{ data: firma }, { data: global }] = await Promise.all([
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality').eq('company_id', companyId).eq('status', 'approved').order('country'),
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality').eq('is_global', true).eq('status', 'approved').order('country'),
+    ])
+    const firmaList  = (firma  || []).map((t: any) => ({ ...t, _source: 'firma' }))
+    const globalList = (global || []).map((t: any) => ({ ...t, _source: 'global' }))
+    setAllTemplates([...firmaList, ...globalList])
+  }
 
   async function fetchData() {
     const { data } = await supabase
@@ -186,12 +203,14 @@ export default function FiyatlarPage() {
   function openAdd() {
     setEditItem(null)
     setForm({ country: '', visa_type: '', nationality: '', price: '', currency: 'TRY' })
+    setSelectedTpl(null); setTplSearch(''); setTplOpen(false)
     setShowModal(true)
   }
 
   function openEdit(p: any) {
     setEditItem(p)
     setForm({ country: p.country, visa_type: p.visa_type, nationality: p.nationality || '', price: p.price.toString(), currency: p.currency || 'TRY' })
+    setSelectedTpl(null); setTplSearch(''); setTplOpen(false)
     setShowModal(true)
   }
 
@@ -381,6 +400,85 @@ export default function FiyatlarPage() {
             <h3 style={{ fontSize: isMobile ? '15px' : '17px', fontWeight: '600', marginBottom: '1.25rem', color: '#0d1f35' }}>
               {editItem ? 'Fiyat Düzenle' : 'Yeni Fiyat Ekle'}
             </h3>
+
+            {/* Şablon seçici */}
+            {!editItem && (
+              <div style={{ marginBottom: '14px', position: 'relative' }}>
+                <label style={labelStyle}>Şablondan Doldur <span style={{ fontWeight: 400, textTransform: 'none', color: '#b8c8d8' }}>(opsiyonel)</span></label>
+                <div
+                  onClick={() => setTplOpen(o => !o)}
+                  style={{ width: '100%', padding: '9px 10px', border: `1.5px solid ${selectedTpl ? '#1a5fa5' : '#e2e2e8'}`, borderRadius: '8px', fontSize: '13px', background: selectedTpl ? '#eef4fb' : '#f5f5f7', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: selectedTpl ? '#1a5fa5' : '#9aaabb', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedTpl ? `${selectedTpl.country} — ${selectedTpl.visa_type}${selectedTpl.occupation ? ` (${selectedTpl.occupation})` : ''}` : 'Şablon seçin, alanlar otomatik dolsun...'}
+                  </span>
+                  <span style={{ marginLeft: '8px', flexShrink: 0, fontSize: '11px' }}>{tplOpen ? '▲' : '▼'}</span>
+                </div>
+                {tplOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 300, background: 'white', border: '1.5px solid #b8d4f0', borderRadius: '10px', boxShadow: '0 8px 24px rgba(13,31,53,0.12)', marginTop: '4px', overflow: 'hidden' }}>
+                    <div style={{ padding: '8px' }}>
+                      <input
+                        autoFocus
+                        value={tplSearch}
+                        onChange={e => setTplSearch(e.target.value)}
+                        placeholder="Ülke, vize türü veya meslek ara..."
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e2e8', borderRadius: '7px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {(() => {
+                        const q = tplSearch.toLowerCase()
+                        const filtered = allTemplates.filter(t =>
+                          !q || t.country?.toLowerCase().includes(q) || t.visa_type?.toLowerCase().includes(q) || t.occupation?.toLowerCase().includes(q)
+                        )
+                        if (filtered.length === 0) return <div style={{ padding: '12px', fontSize: '12px', color: '#9aaabb', textAlign: 'center' }}>Şablon bulunamadı</div>
+                        return filtered.map((tpl, i) => (
+                          <div
+                            key={i}
+                            onClick={() => {
+                              setSelectedTpl(tpl)
+                              setForm(f => ({
+                                ...f,
+                                country:     tpl.country    || f.country,
+                                visa_type:   tpl.visa_type  || f.visa_type,
+                                nationality: tpl.nationality || f.nationality,
+                              }))
+                              setTplOpen(false)
+                              setTplSearch('')
+                            }}
+                            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f0f7ff')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '')}
+                          >
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {tpl.country} — {tpl.visa_type}
+                              </div>
+                              {(tpl.occupation || tpl.nationality) && (
+                                <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '1px' }}>
+                                  {tpl.occupation}{tpl.occupation && tpl.nationality ? ' • ' : ''}{tpl.nationality}
+                                </div>
+                              )}
+                            </div>
+                            <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', background: tpl._source === 'firma' ? '#eef4fb' : '#f3e8ff', color: tpl._source === 'firma' ? '#1a5fa5' : '#5b21b6' }}>
+                              {tpl._source === 'firma' ? 'Firma' : 'Global'}
+                            </span>
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                    {selectedTpl && (
+                      <div style={{ padding: '8px', borderTop: '1px solid #f0f0f4' }}>
+                        <button onClick={() => { setSelectedTpl(null); setForm(f => ({ ...f, country: '', visa_type: '', nationality: '' })); setTplOpen(false) }} style={{ width: '100%', padding: '7px', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          Şablonu Temizle
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ marginBottom: '12px' }}>
               <label style={labelStyle}>Ülke</label>
