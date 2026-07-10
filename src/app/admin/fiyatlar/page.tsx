@@ -54,11 +54,12 @@ export default function FiyatlarPage() {
 
   async function fetchTemplates() {
     const [{ data: firma }, { data: global }] = await Promise.all([
-      supabase.from('visa_templates').select('country, visa_type, occupation, nationality').eq('company_id', companyId).eq('status', 'approved').order('country'),
-      supabase.from('visa_templates').select('country, visa_type, occupation, nationality').eq('is_global', true).eq('status', 'approved').order('country'),
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality').eq('company_id', companyId).order('country'),
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality').eq('is_global', true).order('country'),
     ])
     const firmaList  = (firma  || []).map((t: any) => ({ ...t, _source: 'firma' }))
     const globalList = (global || []).map((t: any) => ({ ...t, _source: 'global' }))
+    // Firma şablonları önce, sonra sadece firmada olmayanlar için global
     setAllTemplates([...firmaList, ...globalList])
   }
 
