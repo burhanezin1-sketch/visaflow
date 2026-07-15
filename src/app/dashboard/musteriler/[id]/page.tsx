@@ -68,9 +68,11 @@ export default function MusteriDetayPage() {
   const [bilgiForm, setBilgiForm] = useState({ full_name: '', phone: '', email: '', birth_date: '', passport_issue_date: '', passport_expiry: '', passport_no: '', consulate: '', country: '', visa_type: '', occupation: '', nationality: '' })
   const [bilgiSaving, setBilgiSaving] = useState(false)
   const [bilgiToast, setBilgiToast] = useState<{ msg: string; ok: boolean } | null>(null)
-  const [tplSearch, setTplSearch] = useState<{ loading: boolean; own: { docs: any[]; label: string } | null; global: { docs: any[]; label: string } | null; searched: boolean }>({ loading: false, own: null, global: null, searched: false })
-  const [tplApply, setTplApply] = useState(true)
-  const [tplChoice, setTplChoice] = useState<'own' | 'global'>('own')
+  const [editAllTemplates, setEditAllTemplates] = useState<any[]>([])
+  const [editTplSearch, setEditTplSearch] = useState('')
+  const [editTplOpen, setEditTplOpen] = useState(false)
+  const [editSelectedTpl, setEditSelectedTpl] = useState<any | null>(null)
+  const [editTplApply, setEditTplApply] = useState(true)
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null)
   const [uploadToast, setUploadToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const pendingDocRef = useRef<{ id: string; name: string; clientId: string } | null>(null)
@@ -367,47 +369,26 @@ export default function MusteriDetayPage() {
     })
     setShowBilgiEdit(true)
     setBilgiToast(null)
-    setTplSearch({ loading: false, own: null, global: null, searched: false })
-    setTplApply(true)
-    setTplChoice('own')
+    setEditSelectedTpl(null)
+    setEditTplSearch('')
+    setEditTplOpen(false)
+    setEditTplApply(true)
+    fetchEditTemplates()
+  }
+
+  async function fetchEditTemplates() {
+    if (!companyId) return
+    const [{ data: firma }, { data: global }] = await Promise.all([
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality, docs').eq('company_id', companyId).order('country'),
+      supabase.from('visa_templates').select('country, visa_type, occupation, nationality, docs').eq('is_global', true).order('country'),
+    ])
+    const firmaList = (firma || []).map((t: any) => ({ ...t, _source: 'firma' }))
+    const globalList = (global || []).map((t: any) => ({ ...t, _source: 'global' }))
+    setEditAllTemplates([...firmaList, ...globalList])
   }
 
   function toTitleCase(s: string) {
     return s.trim().split(' ').map(w => w.length > 0 ? w[0].toUpperCase() + w.slice(1) : '').join(' ')
-  }
-
-  async function searchTemplatesForForm() {
-    if (!companyId) return
-    const country    = bilgiForm.country    ? toTitleCase(bilgiForm.country)    : ''
-    const visa_type  = bilgiForm.visa_type  ? toTitleCase(bilgiForm.visa_type)  : ''
-    const occupation = bilgiForm.occupation ? toTitleCase(bilgiForm.occupation) : ''
-    const nationality = bilgiForm.nationality ? toTitleCase(bilgiForm.nationality) : 'Türkiye Cumhuriyeti'
-    if (!country || !visa_type) return
-
-    setTplSearch({ loading: true, own: null, global: null, searched: false })
-
-    const [{ data: ownRaw }, { data: globalRaw }] = await Promise.all([
-      supabase.from('visa_templates').select('docs, country, visa_type, occupation')
-        .eq('company_id', companyId).eq('status', 'approved')
-        .ilike('country', country).ilike('visa_type', visa_type)
-        .ilike('occupation', occupation || '').ilike('nationality', nationality)
-        .limit(1).maybeSingle(),
-      supabase.from('visa_templates').select('docs, country, visa_type, occupation')
-        .eq('is_global', true).eq('status', 'approved')
-        .ilike('country', country).ilike('visa_type', visa_type)
-        .ilike('occupation', occupation || '').ilike('nationality', nationality)
-        .limit(1).maybeSingle(),
-    ])
-
-    const makeLabel = (r: any) => `${r.country} — ${r.visa_type}${r.occupation ? ` (${r.occupation})` : ''}`
-    const own    = (ownRaw    && Array.isArray(ownRaw.docs)    && ownRaw.docs.length    > 0) ? { docs: ownRaw.docs,    label: makeLabel(ownRaw)    } : null
-    const global = (globalRaw && Array.isArray(globalRaw.docs) && globalRaw.docs.length > 0) ? { docs: globalRaw.docs, label: makeLabel(globalRaw) } : null
-
-    setTplSearch({ loading: false, own, global, searched: true })
-    if (own || global) {
-      setTplApply(true)
-      setTplChoice(own ? 'own' : 'global')
-    }
   }
 
   async function saveBilgi() {
@@ -444,28 +425,22 @@ export default function MusteriDetayPage() {
     if (!res.ok) { setBilgiToast({ msg: data.error || 'Kaydedilemedi', ok: false }); return }
 
     // Seçili şablonu uygula
-    if (tplApply && application?.id) {
-      const selectedDocs = tplChoice === 'own'
-        ? (tplSearch.own?.docs ?? tplSearch.global?.docs)
-        : (tplSearch.global?.docs ?? tplSearch.own?.docs)
-
-      if (selectedDocs?.length) {
-        await supabase.from('user_submitted_docs').delete().eq('application_id', application.id)
-        await supabase.from('user_submitted_docs').insert(
-          selectedDocs.map((d: any) => ({
-            application_id: application.id,
-            doc_name: d.doc_name, delivery_type: d.delivery_type,
-            description: d.description || '', status: 'pending',
-          }))
-        )
-      }
+    if (editSelectedTpl && editTplApply && application?.id && Array.isArray(editSelectedTpl.docs) && editSelectedTpl.docs.length > 0) {
+      await supabase.from('user_submitted_docs').delete().eq('application_id', application.id)
+      await supabase.from('user_submitted_docs').insert(
+        editSelectedTpl.docs.map((d: any) => ({
+          application_id: application.id,
+          doc_name: d.doc_name, delivery_type: d.delivery_type,
+          description: d.description || '', status: 'pending',
+        }))
+      )
     }
 
     setShowBilgiEdit(false)
     await fetchAll()
     setPassportRevealed(false)
     setPassportDecrypted(null)
-    const docsUpdated = tplApply && !!(tplSearch.own || tplSearch.global)
+    const docsUpdated = !!(editSelectedTpl && editTplApply)
     setBilgiToast({ msg: docsUpdated ? '✓ Bilgiler ve evrak listesi güncellendi' : '✓ Bilgiler güncellendi', ok: true })
     setTimeout(() => setBilgiToast(null), 3000)
   }
@@ -1139,114 +1114,131 @@ export default function MusteriDetayPage() {
             {/* Başvuru bilgileri */}
             <div style={{ fontSize: '10px', fontWeight: '700', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px', paddingTop: '6px', borderTop: '1px solid #f0f0f4' }}>Başvuru Bilgileri</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+
+              {/* Şablon dropdown — yeni müşteri formuyla birebir aynı */}
+              <div style={{ position: 'relative' }}>
+                <label style={labelStyle}>ŞABLONDAN SEÇ <span style={{ fontWeight: 400, textTransform: 'none', color: '#9aaabb' }}>(opsiyonel)</span></label>
+                <div
+                  onClick={() => setEditTplOpen(o => !o)}
+                  style={{ width: '100%', padding: '9px 10px', border: `1.5px solid ${editSelectedTpl ? '#1a5fa5' : '#e2e2e8'}`, borderRadius: '8px', fontSize: '13px', background: editSelectedTpl ? '#eef4fb' : '#f5f5f7', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: editSelectedTpl ? '#1a5fa5' : '#9aaabb', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {editSelectedTpl
+                      ? `${editSelectedTpl.country} — ${editSelectedTpl.visa_type}${editSelectedTpl.occupation ? ` (${editSelectedTpl.occupation})` : ''}`
+                      : 'Şablon seçmek için tıklayın...'}
+                  </span>
+                  <span style={{ marginLeft: '8px', flexShrink: 0, fontSize: '11px' }}>{editTplOpen ? '▲' : '▼'}</span>
+                </div>
+                {editTplOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'white', border: '1.5px solid #b8d4f0', borderRadius: '10px', boxShadow: '0 8px 24px rgba(13,31,53,0.12)', marginTop: '4px', overflow: 'hidden' }}>
+                    <div style={{ padding: '8px' }}>
+                      <input
+                        autoFocus
+                        value={editTplSearch}
+                        onChange={e => setEditTplSearch(e.target.value)}
+                        placeholder="Ara: ülke, vize türü, meslek..."
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e2e8', borderRadius: '7px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {(() => {
+                        const q = editTplSearch.toLowerCase()
+                        const filteredTpls = editAllTemplates.filter(t =>
+                          !q || t.country?.toLowerCase().includes(q) || t.visa_type?.toLowerCase().includes(q) || t.occupation?.toLowerCase().includes(q)
+                        )
+                        if (filteredTpls.length === 0) return <div style={{ padding: '12px', fontSize: '12px', color: '#9aaabb', textAlign: 'center' }}>Şablon bulunamadı</div>
+                        return filteredTpls.map((tpl, i) => (
+                          <div
+                            key={i}
+                            onClick={() => {
+                              setEditSelectedTpl(tpl)
+                              setBilgiForm(f => ({
+                                ...f,
+                                country:     tpl.country     || f.country,
+                                visa_type:   tpl.visa_type   || f.visa_type,
+                                occupation:  tpl.occupation  || f.occupation,
+                                nationality: tpl.nationality || f.nationality,
+                              }))
+                              setEditTplOpen(false)
+                              setEditTplSearch('')
+                              setEditTplApply(true)
+                            }}
+                            style={{ padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#f0f7ff')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '')}
+                          >
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {tpl.country} — {tpl.visa_type}
+                              </div>
+                              {tpl.occupation && <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '1px' }}>{tpl.occupation}{tpl.nationality ? ` • ${tpl.nationality}` : ''}</div>}
+                            </div>
+                            <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: '600', padding: '2px 7px', borderRadius: '20px', background: tpl._source === 'firma' ? '#eef4fb' : '#f3e8ff', color: tpl._source === 'firma' ? '#1a5fa5' : '#5b21b6' }}>
+                              {tpl._source === 'firma' ? 'Firma' : 'Global'}
+                            </span>
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                    {editSelectedTpl && (
+                      <div style={{ padding: '8px', borderTop: '1px solid #f0f0f4' }}>
+                        <button
+                          onClick={() => { setEditSelectedTpl(null); setEditTplOpen(false) }}
+                          style={{ width: '100%', padding: '7px', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          Şablonu Kaldır
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Şablon seçiliyse: evrak listesi uygulama checkbox */}
+              {editSelectedTpl && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px 12px', background: '#eef4fb', border: '1px solid #b8d4f0', borderRadius: '8px' }}>
+                  <input type="checkbox" checked={editTplApply} onChange={e => setEditTplApply(e.target.checked)} style={{ accentColor: '#1a5fa5', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a5fa5' }}>Evrak listesini bu şablonla güncelle</div>
+                    <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '1px' }}>
+                      Mevcut evrak listesi silinip şablondaki {editSelectedTpl.docs?.length ?? 0} evrakla yenilenecek.
+                    </div>
+                  </div>
+                </label>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={labelStyle}>Ülke</label>
-                  <input type="text" value={bilgiForm.country} onChange={e => { setBilgiForm(p => ({ ...p, country: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Almanya" style={inputStyle} />
+                  <input type="text" value={bilgiForm.country} onChange={e => setBilgiForm(p => ({ ...p, country: e.target.value }))} placeholder="Almanya" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Vize Türü</label>
-                  <input type="text" value={bilgiForm.visa_type} onChange={e => { setBilgiForm(p => ({ ...p, visa_type: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Schengen" style={inputStyle} />
+                  <input type="text" value={bilgiForm.visa_type} onChange={e => setBilgiForm(p => ({ ...p, visa_type: e.target.value }))} placeholder="Schengen" style={inputStyle} />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={labelStyle}>Meslek</label>
-                  <input type="text" value={bilgiForm.occupation} onChange={e => { setBilgiForm(p => ({ ...p, occupation: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Çalışan" style={inputStyle} />
+                  <input type="text" value={bilgiForm.occupation} onChange={e => setBilgiForm(p => ({ ...p, occupation: e.target.value }))} placeholder="Çalışan" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Uyruk</label>
-                  <input type="text" value={bilgiForm.nationality} onChange={e => { setBilgiForm(p => ({ ...p, nationality: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Türkiye Cumhuriyeti" style={inputStyle} />
+                  <input type="text" value={bilgiForm.nationality} onChange={e => setBilgiForm(p => ({ ...p, nationality: e.target.value }))} placeholder="Türkiye Cumhuriyeti" style={inputStyle} />
                 </div>
               </div>
               <div>
                 <label style={labelStyle}>Konsolosluk</label>
                 <input type="text" value={bilgiForm.consulate} onChange={e => setBilgiForm(p => ({ ...p, consulate: e.target.value }))} placeholder="örn: Almanya Büyükelçiliği" style={inputStyle} />
               </div>
-
-              {/* Şablon Ara butonu */}
-              {(bilgiForm.country || bilgiForm.visa_type) && (
-                <button
-                  onClick={searchTemplatesForForm}
-                  disabled={tplSearch.loading}
-                  style={{ padding: '9px 14px', background: '#f0f7ff', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: tplSearch.loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: tplSearch.loading ? 0.7 : 1 }}
-                >
-                  {tplSearch.loading ? '🔍 Aranıyor...' : '🔍 Şablon Ara'}
-                </button>
-              )}
-
-              {/* Şablon sonucu */}
-              {tplSearch.searched && !tplSearch.loading && (
-                <div style={{ borderRadius: '10px', overflow: 'hidden', border: `1px solid ${(tplSearch.own || tplSearch.global) ? '#b8d4f0' : '#f5c2bb'}` }}>
-                  {(tplSearch.own || tplSearch.global) ? (
-                    <div style={{ background: '#eef4fb', padding: '12px 14px' }}>
-                      {/* Başlık + checkbox */}
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={tplApply}
-                          onChange={e => setTplApply(e.target.checked)}
-                          style={{ marginTop: '2px', accentColor: '#1a5fa5', flexShrink: 0 }}
-                        />
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a5fa5' }}>
-                            ✅ Şablon bulundu — evrak listesini güncelle
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
-                            İşaretliyse kaydet butonuna basınca mevcut evrak listesi bu şablonla değiştirilecek.
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Radio: hem kendi hem global varsa seçim */}
-                      {tplSearch.own && tplSearch.global && tplApply && (
-                        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '22px' }}>
-                          <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '2px' }}>Hangi şablonu kullan?</div>
-                          {[
-                            { val: 'own' as const,    icon: '🏢', text: `Kendi şablonumu kullan`, sub: tplSearch.own.label },
-                            { val: 'global' as const, icon: '🌐', text: `Global şablonu kullan`,  sub: tplSearch.global.label },
-                          ].map(opt => (
-                            <label key={opt.val} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', padding: '8px 10px', borderRadius: '8px', background: tplChoice === opt.val ? '#dbeafe' : 'transparent', border: `1px solid ${tplChoice === opt.val ? '#93c5fd' : 'transparent'}` }}>
-                              <input type="radio" name="tplChoice" value={opt.val} checked={tplChoice === opt.val} onChange={() => setTplChoice(opt.val)} style={{ marginTop: '2px', accentColor: '#1a5fa5' }} />
-                              <div>
-                                <div style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35' }}>{opt.icon} {opt.text}</div>
-                                <div style={{ fontSize: '11px', color: '#5a6a7a' }}>{opt.sub}</div>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Tek şablon varsa sadece label göster */}
-                      {!(tplSearch.own && tplSearch.global) && (
-                        <div style={{ marginTop: '6px', paddingLeft: '22px', fontSize: '11px', color: '#5a6a7a' }}>
-                          {tplSearch.own ? `🏢 ${tplSearch.own.label}` : `🌐 ${tplSearch.global!.label}`}
-                          {' · '}{(tplSearch.own ?? tplSearch.global)!.docs.length} evrak
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ background: '#fff8ec', padding: '12px 14px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#92600a', marginBottom: '4px' }}>
-                        ⚠️ Bu kombinasyon için henüz şablon yok
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#7a5c00' }}>
-                        Şablon oluşturmak için{' '}
-                        <a href="/dashboard/sablonlar" target="_blank" style={{ color: '#1a5fa5', fontWeight: '600' }}>
-                          Şablonlar sayfasına git →
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Alt butonlar */}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowBilgiEdit(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
               <button onClick={saveBilgi} disabled={bilgiSaving} style={{ flex: 2, padding: '10px', background: bilgiSaving ? '#9aaabb' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: bilgiSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                {bilgiSaving ? 'Kaydediliyor...' : (tplApply && (tplSearch.own || tplSearch.global) ? 'Kaydet & Evrakları Güncelle' : 'Kaydet')}
+                {bilgiSaving ? 'Kaydediliyor...' : (editSelectedTpl && editTplApply ? 'Kaydet & Evrakları Güncelle' : 'Kaydet')}
               </button>
             </div>
           </div>
