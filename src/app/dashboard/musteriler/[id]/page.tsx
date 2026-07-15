@@ -65,9 +65,10 @@ export default function MusteriDetayPage() {
   const [passportDecrypted, setPassportDecrypted] = useState<string | null>(null)
   const [passportLoading, setPassportLoading] = useState(false)
   const [showBilgiEdit, setShowBilgiEdit] = useState(false)
-  const [bilgiForm, setBilgiForm] = useState({ email: '', birth_date: '', passport_issue_date: '', passport_expiry: '', passport_no: '', consulate: '' })
+  const [bilgiForm, setBilgiForm] = useState({ full_name: '', phone: '', email: '', birth_date: '', passport_issue_date: '', passport_expiry: '', passport_no: '', consulate: '', country: '', visa_type: '', occupation: '', nationality: '' })
   const [bilgiSaving, setBilgiSaving] = useState(false)
   const [bilgiToast, setBilgiToast] = useState<{ msg: string; ok: boolean } | null>(null)
+  const [templateConfirm, setTemplateConfirm] = useState<{ docs: any[] } | null>(null)
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null)
   const [uploadToast, setUploadToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const pendingDocRef = useRef<{ id: string; name: string; clientId: string } | null>(null)
@@ -349,43 +350,130 @@ export default function MusteriDetayPage() {
 
   function openBilgiEdit() {
     setBilgiForm({
-      email:               client?.email               || '',
-      birth_date:          client?.birth_date           ? client.birth_date.slice(0, 10) : '',
-      passport_issue_date: client?.passport_issue_date  ? client.passport_issue_date.slice(0, 10) : '',
-      passport_expiry:     client?.passport_expiry      ? client.passport_expiry.slice(0, 10) : '',
+      full_name:           client?.full_name            || '',
+      phone:               client?.phone                || '',
+      email:               client?.email                || '',
+      birth_date:          client?.birth_date            ? client.birth_date.slice(0, 10) : '',
+      passport_issue_date: client?.passport_issue_date   ? client.passport_issue_date.slice(0, 10) : '',
+      passport_expiry:     client?.passport_expiry       ? client.passport_expiry.slice(0, 10) : '',
       passport_no:         '',
-      consulate:           application?.consulate       || '',
+      consulate:           application?.consulate        || '',
+      country:             application?.country          || '',
+      visa_type:           application?.visa_type        || '',
+      occupation:          application?.occupation       || '',
+      nationality:         application?.nationality      || 'Türkiye Cumhuriyeti',
     })
     setShowBilgiEdit(true)
     setBilgiToast(null)
+    setTemplateConfirm(null)
+  }
+
+  function toTitleCase(s: string) {
+    return s.trim().split(' ').map(w => w.length > 0 ? w[0].toUpperCase() + w.slice(1) : '').join(' ')
   }
 
   async function saveBilgi() {
     setBilgiSaving(true)
     setBilgiToast(null)
+    setTemplateConfirm(null)
+
+    const country    = bilgiForm.country    ? toTitleCase(bilgiForm.country)    : ''
+    const visa_type  = bilgiForm.visa_type  ? toTitleCase(bilgiForm.visa_type)  : ''
+    const occupation = bilgiForm.occupation ? toTitleCase(bilgiForm.occupation) : ''
+    const nationality = bilgiForm.nationality ? toTitleCase(bilgiForm.nationality) : 'Türkiye Cumhuriyeti'
+
     const res = await fetch('/api/update-client-info', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         clientId:            client.id,
         applicationId:       application?.id,
+        full_name:           bilgiForm.full_name,
+        phone:               bilgiForm.phone,
         email:               bilgiForm.email,
         birth_date:          bilgiForm.birth_date,
         passport_issue_date: bilgiForm.passport_issue_date,
         passport_expiry:     bilgiForm.passport_expiry,
         passport_no:         bilgiForm.passport_no,
         consulate:           bilgiForm.consulate,
+        country,
+        visa_type,
+        occupation,
+        nationality,
       }),
     })
     const data = await res.json()
     setBilgiSaving(false)
     if (!res.ok) { setBilgiToast({ msg: data.error || 'Kaydedilemedi', ok: false }); return }
-    setBilgiToast({ msg: '✓ Bilgiler güncellendi', ok: true })
+
+    // Şablon eşleşmesi: ülke ve vize türü varsa ara
+    if (application?.id && companyId && country && visa_type) {
+      const nat = nationality || 'Türkiye Cumhuriyeti'
+      const { data: ownTpl } = await supabase
+        .from('visa_templates').select('docs')
+        .eq('company_id', companyId).eq('status', 'approved')
+        .ilike('country', country).ilike('visa_type', visa_type)
+        .ilike('occupation', occupation || '').ilike('nationality', nat)
+        .limit(1).maybeSingle()
+
+      let matchedDocs: any[] | null = null
+      if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
+        matchedDocs = ownTpl.docs
+      } else {
+        const { data: globalTpl } = await supabase
+          .from('visa_templates').select('docs')
+          .eq('is_global', true).eq('status', 'approved')
+          .ilike('country', country).ilike('visa_type', visa_type)
+          .ilike('occupation', occupation || '').ilike('nationality', nat)
+          .limit(1).maybeSingle()
+        if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
+          matchedDocs = globalTpl.docs
+        }
+      }
+
+      if (matchedDocs) {
+        // Şablon bulundu — onay bekle, modalı açık tut
+        await fetchAll()
+        setPassportRevealed(false)
+        setPassportDecrypted(null)
+        setTemplateConfirm({ docs: matchedDocs })
+        return
+      } else {
+        // Şablon bulunamadı
+        setBilgiToast({ msg: '✓ Bilgiler güncellendi. Bu kombinasyon için şablon bulunamadı.', ok: true })
+      }
+    } else {
+      setBilgiToast({ msg: '✓ Bilgiler güncellendi', ok: true })
+    }
+
     setShowBilgiEdit(false)
     await fetchAll()
-    // Pasaport decrypt'i sıfırla
     setPassportRevealed(false)
     setPassportDecrypted(null)
+    setTimeout(() => setBilgiToast(null), 3000)
+  }
+
+  async function applyTemplateFromConfirm() {
+    if (!templateConfirm || !application?.id) return
+    await supabase.from('user_submitted_docs').delete().eq('application_id', application.id)
+    await supabase.from('user_submitted_docs').insert(
+      templateConfirm.docs.map((d: any) => ({
+        application_id: application.id,
+        doc_name: d.doc_name, delivery_type: d.delivery_type,
+        description: d.description || '', status: 'pending',
+      }))
+    )
+    setTemplateConfirm(null)
+    setShowBilgiEdit(false)
+    await fetchAll()
+    setBilgiToast({ msg: '✓ Bilgiler ve evrak listesi güncellendi', ok: true })
+    setTimeout(() => setBilgiToast(null), 3000)
+  }
+
+  function dismissTemplateConfirm() {
+    setTemplateConfirm(null)
+    setShowBilgiEdit(false)
+    setBilgiToast({ msg: '✓ Bilgiler güncellendi, evraklar değiştirilmedi', ok: true })
     setTimeout(() => setBilgiToast(null), 3000)
   }
 
@@ -1021,47 +1109,97 @@ export default function MusteriDetayPage() {
 
       {showBilgiEdit && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)', padding: '16px' }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '1.75rem', width: '420px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(13,31,53,0.12)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '1.75rem', width: '460px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(13,31,53,0.12)', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', margin: 0 }}>✏️ Müşteri Bilgilerini Düzenle</h3>
-              <button onClick={() => setShowBilgiEdit(false)} style={{ background: 'none', border: 'none', fontSize: '18px', color: '#9aaabb', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <button onClick={() => { setShowBilgiEdit(false); setTemplateConfirm(null) }} style={{ background: 'none', border: 'none', fontSize: '18px', color: '#9aaabb', cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+            {/* Kişisel bilgiler */}
+            <div style={{ fontSize: '10px', fontWeight: '700', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>Kişisel Bilgiler</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+              <div>
+                <label style={labelStyle}>Ad Soyad</label>
+                <input type="text" value={bilgiForm.full_name} onChange={e => setBilgiForm(p => ({ ...p, full_name: e.target.value }))} placeholder="Ahmet Yılmaz" style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Telefon</label>
+                <input type="tel" value={bilgiForm.phone} onChange={e => setBilgiForm(p => ({ ...p, phone: e.target.value }))} placeholder="+905xx xxx xx xx" style={inputStyle} />
+              </div>
               {[
                 { label: 'E-posta', key: 'email', type: 'email', placeholder: 'ornek@mail.com' },
                 { label: 'Doğum Tarihi', key: 'birth_date', type: 'date', placeholder: '' },
                 { label: 'Pasaport Verilme Tarihi', key: 'passport_issue_date', type: 'date', placeholder: '' },
                 { label: 'Pasaport Son Geçerlilik', key: 'passport_expiry', type: 'date', placeholder: '' },
-                { label: 'Konsolosluk', key: 'consulate', type: 'text', placeholder: 'örn: Almanya Büyükelçiliği' },
               ].map(({ label, key, type, placeholder }) => (
                 <div key={key}>
                   <label style={labelStyle}>{label}</label>
-                  <input
-                    type={type}
-                    value={bilgiForm[key as keyof typeof bilgiForm]}
-                    onChange={e => setBilgiForm(p => ({ ...p, [key]: e.target.value }))}
-                    placeholder={placeholder}
-                    style={inputStyle}
-                  />
+                  <input type={type} value={bilgiForm[key as keyof typeof bilgiForm]} onChange={e => setBilgiForm(p => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} style={inputStyle} />
                 </div>
               ))}
               <div>
                 <label style={labelStyle}>Pasaport No <span style={{ fontWeight: 400, textTransform: 'none', color: '#9aaabb' }}>(boş bırakırsanız değişmez)</span></label>
-                <input
-                  type="text"
-                  value={bilgiForm.passport_no}
-                  onChange={e => setBilgiForm(p => ({ ...p, passport_no: e.target.value.toUpperCase() }))}
-                  placeholder="A12345678"
-                  style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '1px' }}
-                />
+                <input type="text" value={bilgiForm.passport_no} onChange={e => setBilgiForm(p => ({ ...p, passport_no: e.target.value.toUpperCase() }))} placeholder="A12345678" style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '1px' }} />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '1.25rem' }}>
-              <button onClick={() => setShowBilgiEdit(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-              <button onClick={saveBilgi} disabled={bilgiSaving} style={{ flex: 2, padding: '10px', background: bilgiSaving ? '#9aaabb' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: bilgiSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                {bilgiSaving ? 'Kaydediliyor...' : 'Kaydet'}
-              </button>
+
+            {/* Başvuru bilgileri */}
+            <div style={{ fontSize: '10px', fontWeight: '700', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px', paddingTop: '6px', borderTop: '1px solid #f0f0f4' }}>Başvuru Bilgileri</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={labelStyle}>Ülke</label>
+                  <input type="text" value={bilgiForm.country} onChange={e => setBilgiForm(p => ({ ...p, country: e.target.value }))} placeholder="Almanya" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Vize Türü</label>
+                  <input type="text" value={bilgiForm.visa_type} onChange={e => setBilgiForm(p => ({ ...p, visa_type: e.target.value }))} placeholder="Schengen" style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={labelStyle}>Meslek</label>
+                  <input type="text" value={bilgiForm.occupation} onChange={e => setBilgiForm(p => ({ ...p, occupation: e.target.value }))} placeholder="Çalışan" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Uyruk</label>
+                  <input type="text" value={bilgiForm.nationality} onChange={e => setBilgiForm(p => ({ ...p, nationality: e.target.value }))} placeholder="Türkiye Cumhuriyeti" style={inputStyle} />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Konsolosluk</label>
+                <input type="text" value={bilgiForm.consulate} onChange={e => setBilgiForm(p => ({ ...p, consulate: e.target.value }))} placeholder="örn: Almanya Büyükelçiliği" style={inputStyle} />
+              </div>
             </div>
+
+            {/* Şablon eşleşme onayı */}
+            {templateConfirm && (
+              <div style={{ background: '#eef4fb', border: '1px solid #b8d4f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a5fa5', marginBottom: '8px' }}>
+                  ✅ Bu kombinasyon için şablon bulundu. Evrak listesi güncellensin mi?
+                </div>
+                <div style={{ fontSize: '11px', color: '#5a6a7a', marginBottom: '10px' }}>
+                  Mevcut evrak listesi silinip şablondaki {templateConfirm.docs.length} evrakla yenilenecek.
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={applyTemplateFromConfirm} style={{ flex: 1, padding: '8px', background: '#1a5fa5', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
+                    Evet, Güncelle
+                  </button>
+                  <button onClick={dismissTemplateConfirm} style={{ flex: 1, padding: '8px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                    Hayır, Sadece Bilgileri Kaydet
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!templateConfirm && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => { setShowBilgiEdit(false); setTemplateConfirm(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+                <button onClick={saveBilgi} disabled={bilgiSaving} style={{ flex: 2, padding: '10px', background: bilgiSaving ? '#9aaabb' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: bilgiSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                  {bilgiSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

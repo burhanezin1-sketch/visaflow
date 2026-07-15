@@ -32,7 +32,12 @@ export async function POST(req: NextRequest) {
       .from('users').select('company_id').eq('id', user.id).maybeSingle()
     if (!staffUser?.company_id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { clientId, applicationId, email, birth_date, passport_expiry, passport_issue_date, passport_no, consulate } = await req.json()
+    const {
+      clientId, applicationId,
+      full_name, phone, email,
+      birth_date, passport_expiry, passport_issue_date, passport_no,
+      consulate, country, visa_type, occupation, nationality,
+    } = await req.json()
     if (!clientId) return NextResponse.json({ error: 'clientId gerekli' }, { status: 400 })
 
     // IDOR: müşteri bu şirkete ait mi?
@@ -44,6 +49,8 @@ export async function POST(req: NextRequest) {
 
     // clients tablosunu güncelle
     const clientUpdate: Record<string, any> = {}
+    if (full_name           !== undefined && full_name.trim()) clientUpdate.full_name = full_name.trim()
+    if (phone               !== undefined) clientUpdate.phone               = phone || null
     if (email               !== undefined) clientUpdate.email               = email || null
     if (birth_date          !== undefined) clientUpdate.birth_date          = birth_date || null
     if (passport_issue_date !== undefined) clientUpdate.passport_issue_date = passport_issue_date || null
@@ -59,11 +66,17 @@ export async function POST(req: NextRequest) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // applications tablosunu güncelle (konsolosluk)
-    if (applicationId && consulate !== undefined) {
-      await admin.from('applications')
-        .update({ consulate: consulate || null })
-        .eq('id', applicationId)
+    // applications tablosunu güncelle
+    if (applicationId) {
+      const appUpdate: Record<string, any> = {}
+      if (consulate   !== undefined) appUpdate.consulate   = consulate   || null
+      if (country     !== undefined) appUpdate.country     = country     || null
+      if (visa_type   !== undefined) appUpdate.visa_type   = visa_type   || null
+      if (occupation  !== undefined) appUpdate.occupation  = occupation  || null
+      if (nationality !== undefined) appUpdate.nationality = nationality || null
+      if (Object.keys(appUpdate).length > 0) {
+        await admin.from('applications').update(appUpdate).eq('id', applicationId)
+      }
     }
 
     return NextResponse.json({ success: true })
