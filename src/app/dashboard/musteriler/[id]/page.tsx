@@ -68,7 +68,9 @@ export default function MusteriDetayPage() {
   const [bilgiForm, setBilgiForm] = useState({ full_name: '', phone: '', email: '', birth_date: '', passport_issue_date: '', passport_expiry: '', passport_no: '', consulate: '', country: '', visa_type: '', occupation: '', nationality: '' })
   const [bilgiSaving, setBilgiSaving] = useState(false)
   const [bilgiToast, setBilgiToast] = useState<{ msg: string; ok: boolean } | null>(null)
-  const [templateConfirm, setTemplateConfirm] = useState<{ docs: any[] } | null>(null)
+  const [tplSearch, setTplSearch] = useState<{ loading: boolean; own: { docs: any[]; label: string } | null; global: { docs: any[]; label: string } | null; searched: boolean }>({ loading: false, own: null, global: null, searched: false })
+  const [tplApply, setTplApply] = useState(true)
+  const [tplChoice, setTplChoice] = useState<'own' | 'global'>('own')
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null)
   const [uploadToast, setUploadToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const pendingDocRef = useRef<{ id: string; name: string; clientId: string } | null>(null)
@@ -365,17 +367,52 @@ export default function MusteriDetayPage() {
     })
     setShowBilgiEdit(true)
     setBilgiToast(null)
-    setTemplateConfirm(null)
+    setTplSearch({ loading: false, own: null, global: null, searched: false })
+    setTplApply(true)
+    setTplChoice('own')
   }
 
   function toTitleCase(s: string) {
     return s.trim().split(' ').map(w => w.length > 0 ? w[0].toUpperCase() + w.slice(1) : '').join(' ')
   }
 
+  async function searchTemplatesForForm() {
+    if (!companyId) return
+    const country    = bilgiForm.country    ? toTitleCase(bilgiForm.country)    : ''
+    const visa_type  = bilgiForm.visa_type  ? toTitleCase(bilgiForm.visa_type)  : ''
+    const occupation = bilgiForm.occupation ? toTitleCase(bilgiForm.occupation) : ''
+    const nationality = bilgiForm.nationality ? toTitleCase(bilgiForm.nationality) : 'Türkiye Cumhuriyeti'
+    if (!country || !visa_type) return
+
+    setTplSearch({ loading: true, own: null, global: null, searched: false })
+
+    const [{ data: ownRaw }, { data: globalRaw }] = await Promise.all([
+      supabase.from('visa_templates').select('docs, country, visa_type, occupation')
+        .eq('company_id', companyId).eq('status', 'approved')
+        .ilike('country', country).ilike('visa_type', visa_type)
+        .ilike('occupation', occupation || '').ilike('nationality', nationality)
+        .limit(1).maybeSingle(),
+      supabase.from('visa_templates').select('docs, country, visa_type, occupation')
+        .eq('is_global', true).eq('status', 'approved')
+        .ilike('country', country).ilike('visa_type', visa_type)
+        .ilike('occupation', occupation || '').ilike('nationality', nationality)
+        .limit(1).maybeSingle(),
+    ])
+
+    const makeLabel = (r: any) => `${r.country} — ${r.visa_type}${r.occupation ? ` (${r.occupation})` : ''}`
+    const own    = (ownRaw    && Array.isArray(ownRaw.docs)    && ownRaw.docs.length    > 0) ? { docs: ownRaw.docs,    label: makeLabel(ownRaw)    } : null
+    const global = (globalRaw && Array.isArray(globalRaw.docs) && globalRaw.docs.length > 0) ? { docs: globalRaw.docs, label: makeLabel(globalRaw) } : null
+
+    setTplSearch({ loading: false, own, global, searched: true })
+    if (own || global) {
+      setTplApply(true)
+      setTplChoice(own ? 'own' : 'global')
+    }
+  }
+
   async function saveBilgi() {
     setBilgiSaving(true)
     setBilgiToast(null)
-    setTemplateConfirm(null)
 
     const country    = bilgiForm.country    ? toTitleCase(bilgiForm.country)    : ''
     const visa_type  = bilgiForm.visa_type  ? toTitleCase(bilgiForm.visa_type)  : ''
@@ -406,74 +443,30 @@ export default function MusteriDetayPage() {
     setBilgiSaving(false)
     if (!res.ok) { setBilgiToast({ msg: data.error || 'Kaydedilemedi', ok: false }); return }
 
-    // Şablon eşleşmesi: ülke ve vize türü varsa ara
-    if (application?.id && companyId && country && visa_type) {
-      const nat = nationality || 'Türkiye Cumhuriyeti'
-      const { data: ownTpl } = await supabase
-        .from('visa_templates').select('docs')
-        .eq('company_id', companyId).eq('status', 'approved')
-        .ilike('country', country).ilike('visa_type', visa_type)
-        .ilike('occupation', occupation || '').ilike('nationality', nat)
-        .limit(1).maybeSingle()
+    // Seçili şablonu uygula
+    if (tplApply && application?.id) {
+      const selectedDocs = tplChoice === 'own'
+        ? (tplSearch.own?.docs ?? tplSearch.global?.docs)
+        : (tplSearch.global?.docs ?? tplSearch.own?.docs)
 
-      let matchedDocs: any[] | null = null
-      if (ownTpl?.docs && Array.isArray(ownTpl.docs) && ownTpl.docs.length > 0) {
-        matchedDocs = ownTpl.docs
-      } else {
-        const { data: globalTpl } = await supabase
-          .from('visa_templates').select('docs')
-          .eq('is_global', true).eq('status', 'approved')
-          .ilike('country', country).ilike('visa_type', visa_type)
-          .ilike('occupation', occupation || '').ilike('nationality', nat)
-          .limit(1).maybeSingle()
-        if (globalTpl?.docs && Array.isArray(globalTpl.docs) && globalTpl.docs.length > 0) {
-          matchedDocs = globalTpl.docs
-        }
+      if (selectedDocs?.length) {
+        await supabase.from('user_submitted_docs').delete().eq('application_id', application.id)
+        await supabase.from('user_submitted_docs').insert(
+          selectedDocs.map((d: any) => ({
+            application_id: application.id,
+            doc_name: d.doc_name, delivery_type: d.delivery_type,
+            description: d.description || '', status: 'pending',
+          }))
+        )
       }
-
-      if (matchedDocs) {
-        // Şablon bulundu — onay bekle, modalı açık tut
-        await fetchAll()
-        setPassportRevealed(false)
-        setPassportDecrypted(null)
-        setTemplateConfirm({ docs: matchedDocs })
-        return
-      } else {
-        // Şablon bulunamadı
-        setBilgiToast({ msg: '✓ Bilgiler güncellendi. Bu kombinasyon için şablon bulunamadı.', ok: true })
-      }
-    } else {
-      setBilgiToast({ msg: '✓ Bilgiler güncellendi', ok: true })
     }
 
     setShowBilgiEdit(false)
     await fetchAll()
     setPassportRevealed(false)
     setPassportDecrypted(null)
-    setTimeout(() => setBilgiToast(null), 3000)
-  }
-
-  async function applyTemplateFromConfirm() {
-    if (!templateConfirm || !application?.id) return
-    await supabase.from('user_submitted_docs').delete().eq('application_id', application.id)
-    await supabase.from('user_submitted_docs').insert(
-      templateConfirm.docs.map((d: any) => ({
-        application_id: application.id,
-        doc_name: d.doc_name, delivery_type: d.delivery_type,
-        description: d.description || '', status: 'pending',
-      }))
-    )
-    setTemplateConfirm(null)
-    setShowBilgiEdit(false)
-    await fetchAll()
-    setBilgiToast({ msg: '✓ Bilgiler ve evrak listesi güncellendi', ok: true })
-    setTimeout(() => setBilgiToast(null), 3000)
-  }
-
-  function dismissTemplateConfirm() {
-    setTemplateConfirm(null)
-    setShowBilgiEdit(false)
-    setBilgiToast({ msg: '✓ Bilgiler güncellendi, evraklar değiştirilmedi', ok: true })
+    const docsUpdated = tplApply && !!(tplSearch.own || tplSearch.global)
+    setBilgiToast({ msg: docsUpdated ? '✓ Bilgiler ve evrak listesi güncellendi' : '✓ Bilgiler güncellendi', ok: true })
     setTimeout(() => setBilgiToast(null), 3000)
   }
 
@@ -1112,7 +1105,7 @@ export default function MusteriDetayPage() {
           <div style={{ background: 'white', borderRadius: '16px', padding: '1.75rem', width: '460px', maxWidth: '100%', boxShadow: '0 12px 40px rgba(13,31,53,0.12)', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0d1f35', margin: 0 }}>✏️ Müşteri Bilgilerini Düzenle</h3>
-              <button onClick={() => { setShowBilgiEdit(false); setTemplateConfirm(null) }} style={{ background: 'none', border: 'none', fontSize: '18px', color: '#9aaabb', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <button onClick={() => setShowBilgiEdit(false)} style={{ background: 'none', border: 'none', fontSize: '18px', color: '#9aaabb', cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </div>
 
             {/* Kişisel bilgiler */}
@@ -1145,61 +1138,117 @@ export default function MusteriDetayPage() {
 
             {/* Başvuru bilgileri */}
             <div style={{ fontSize: '10px', fontWeight: '700', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px', paddingTop: '6px', borderTop: '1px solid #f0f0f4' }}>Başvuru Bilgileri</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={labelStyle}>Ülke</label>
-                  <input type="text" value={bilgiForm.country} onChange={e => setBilgiForm(p => ({ ...p, country: e.target.value }))} placeholder="Almanya" style={inputStyle} />
+                  <input type="text" value={bilgiForm.country} onChange={e => { setBilgiForm(p => ({ ...p, country: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Almanya" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Vize Türü</label>
-                  <input type="text" value={bilgiForm.visa_type} onChange={e => setBilgiForm(p => ({ ...p, visa_type: e.target.value }))} placeholder="Schengen" style={inputStyle} />
+                  <input type="text" value={bilgiForm.visa_type} onChange={e => { setBilgiForm(p => ({ ...p, visa_type: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Schengen" style={inputStyle} />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={labelStyle}>Meslek</label>
-                  <input type="text" value={bilgiForm.occupation} onChange={e => setBilgiForm(p => ({ ...p, occupation: e.target.value }))} placeholder="Çalışan" style={inputStyle} />
+                  <input type="text" value={bilgiForm.occupation} onChange={e => { setBilgiForm(p => ({ ...p, occupation: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Çalışan" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Uyruk</label>
-                  <input type="text" value={bilgiForm.nationality} onChange={e => setBilgiForm(p => ({ ...p, nationality: e.target.value }))} placeholder="Türkiye Cumhuriyeti" style={inputStyle} />
+                  <input type="text" value={bilgiForm.nationality} onChange={e => { setBilgiForm(p => ({ ...p, nationality: e.target.value })); setTplSearch(s => ({ ...s, searched: false })) }} placeholder="Türkiye Cumhuriyeti" style={inputStyle} />
                 </div>
               </div>
               <div>
                 <label style={labelStyle}>Konsolosluk</label>
                 <input type="text" value={bilgiForm.consulate} onChange={e => setBilgiForm(p => ({ ...p, consulate: e.target.value }))} placeholder="örn: Almanya Büyükelçiliği" style={inputStyle} />
               </div>
+
+              {/* Şablon Ara butonu */}
+              {(bilgiForm.country || bilgiForm.visa_type) && (
+                <button
+                  onClick={searchTemplatesForForm}
+                  disabled={tplSearch.loading}
+                  style={{ padding: '9px 14px', background: '#f0f7ff', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: tplSearch.loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: tplSearch.loading ? 0.7 : 1 }}
+                >
+                  {tplSearch.loading ? '🔍 Aranıyor...' : '🔍 Şablon Ara'}
+                </button>
+              )}
+
+              {/* Şablon sonucu */}
+              {tplSearch.searched && !tplSearch.loading && (
+                <div style={{ borderRadius: '10px', overflow: 'hidden', border: `1px solid ${(tplSearch.own || tplSearch.global) ? '#b8d4f0' : '#f5c2bb'}` }}>
+                  {(tplSearch.own || tplSearch.global) ? (
+                    <div style={{ background: '#eef4fb', padding: '12px 14px' }}>
+                      {/* Başlık + checkbox */}
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={tplApply}
+                          onChange={e => setTplApply(e.target.checked)}
+                          style={{ marginTop: '2px', accentColor: '#1a5fa5', flexShrink: 0 }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a5fa5' }}>
+                            ✅ Şablon bulundu — evrak listesini güncelle
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
+                            İşaretliyse kaydet butonuna basınca mevcut evrak listesi bu şablonla değiştirilecek.
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Radio: hem kendi hem global varsa seçim */}
+                      {tplSearch.own && tplSearch.global && tplApply && (
+                        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '22px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '600', color: '#9aaabb', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '2px' }}>Hangi şablonu kullan?</div>
+                          {[
+                            { val: 'own' as const,    icon: '🏢', text: `Kendi şablonumu kullan`, sub: tplSearch.own.label },
+                            { val: 'global' as const, icon: '🌐', text: `Global şablonu kullan`,  sub: tplSearch.global.label },
+                          ].map(opt => (
+                            <label key={opt.val} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', padding: '8px 10px', borderRadius: '8px', background: tplChoice === opt.val ? '#dbeafe' : 'transparent', border: `1px solid ${tplChoice === opt.val ? '#93c5fd' : 'transparent'}` }}>
+                              <input type="radio" name="tplChoice" value={opt.val} checked={tplChoice === opt.val} onChange={() => setTplChoice(opt.val)} style={{ marginTop: '2px', accentColor: '#1a5fa5' }} />
+                              <div>
+                                <div style={{ fontSize: '12px', fontWeight: '600', color: '#0d1f35' }}>{opt.icon} {opt.text}</div>
+                                <div style={{ fontSize: '11px', color: '#5a6a7a' }}>{opt.sub}</div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Tek şablon varsa sadece label göster */}
+                      {!(tplSearch.own && tplSearch.global) && (
+                        <div style={{ marginTop: '6px', paddingLeft: '22px', fontSize: '11px', color: '#5a6a7a' }}>
+                          {tplSearch.own ? `🏢 ${tplSearch.own.label}` : `🌐 ${tplSearch.global!.label}`}
+                          {' · '}{(tplSearch.own ?? tplSearch.global)!.docs.length} evrak
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ background: '#fff8ec', padding: '12px 14px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#92600a', marginBottom: '4px' }}>
+                        ⚠️ Bu kombinasyon için henüz şablon yok
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#7a5c00' }}>
+                        Şablon oluşturmak için{' '}
+                        <a href="/dashboard/sablonlar" target="_blank" style={{ color: '#1a5fa5', fontWeight: '600' }}>
+                          Şablonlar sayfasına git →
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Şablon eşleşme onayı */}
-            {templateConfirm && (
-              <div style={{ background: '#eef4fb', border: '1px solid #b8d4f0', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
-                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a5fa5', marginBottom: '8px' }}>
-                  ✅ Bu kombinasyon için şablon bulundu. Evrak listesi güncellensin mi?
-                </div>
-                <div style={{ fontSize: '11px', color: '#5a6a7a', marginBottom: '10px' }}>
-                  Mevcut evrak listesi silinip şablondaki {templateConfirm.docs.length} evrakla yenilenecek.
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={applyTemplateFromConfirm} style={{ flex: 1, padding: '8px', background: '#1a5fa5', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                    Evet, Güncelle
-                  </button>
-                  <button onClick={dismissTemplateConfirm} style={{ flex: 1, padding: '8px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>
-                    Hayır, Sadece Bilgileri Kaydet
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {!templateConfirm && (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => { setShowBilgiEdit(false); setTemplateConfirm(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
-                <button onClick={saveBilgi} disabled={bilgiSaving} style={{ flex: 2, padding: '10px', background: bilgiSaving ? '#9aaabb' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: bilgiSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                  {bilgiSaving ? 'Kaydediliyor...' : 'Kaydet'}
-                </button>
-              </div>
-            )}
+            {/* Alt butonlar */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setShowBilgiEdit(false)} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>İptal</button>
+              <button onClick={saveBilgi} disabled={bilgiSaving} style={{ flex: 2, padding: '10px', background: bilgiSaving ? '#9aaabb' : '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: bilgiSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+                {bilgiSaving ? 'Kaydediliyor...' : (tplApply && (tplSearch.own || tplSearch.global) ? 'Kaydet & Evrakları Güncelle' : 'Kaydet')}
+              </button>
+            </div>
           </div>
         </div>
       )}
