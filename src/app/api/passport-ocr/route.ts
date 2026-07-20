@@ -89,6 +89,10 @@ export async function POST(req: NextRequest) {
     if (extracted.first_name) fields.ad = String(extracted.first_name).trim()
     if (extracted.last_name) fields.soyad = String(extracted.last_name).trim()
     if (extracted.passport_no) fields.passport_no = String(extracted.passport_no).trim()
+    if (extracted.tc_kimlik_no) {
+      const tc = String(extracted.tc_kimlik_no).replace(/\s/g, '')
+      if (/^\d{11}$/.test(tc)) fields.tc_kimlik_no = tc
+    }
     const birthIso = toIsoDate(extracted.birth_date)
     if (birthIso) fields.birth_date = birthIso
     const issueIso = toIsoDate(extracted.issue_date)

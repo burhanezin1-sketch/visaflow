@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const { clientId, field } = await req.json()
   if (!clientId || !field) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
 
-  const ALLOWED_FIELDS = ['passport_no']
+  const ALLOWED_FIELDS = ['passport_no', 'tc_kimlik_no']
   if (!ALLOWED_FIELDS.includes(field)) {
     return NextResponse.json({ error: 'Field not allowed' }, { status: 400 })
   }

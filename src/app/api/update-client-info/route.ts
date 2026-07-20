@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const {
       clientId, applicationId,
       full_name, phone, email,
-      birth_date, passport_expiry, passport_issue_date, passport_no,
+      birth_date, passport_expiry, passport_issue_date, passport_no, tc_kimlik_no,
       consulate, country, visa_type, occupation, nationality,
     } = await req.json()
     if (!clientId) return NextResponse.json({ error: 'clientId gerekli' }, { status: 400 })
@@ -58,6 +58,11 @@ export async function POST(req: NextRequest) {
     if (passport_no !== undefined) {
       clientUpdate.passport_no = passport_no
         ? (() => { try { return encrypt(passport_no) } catch { return passport_no } })()
+        : null
+    }
+    if (tc_kimlik_no !== undefined) {
+      clientUpdate.tc_kimlik_no = tc_kimlik_no
+        ? (() => { try { return encrypt(tc_kimlik_no) } catch { return tc_kimlik_no } })()
         : null
     }
 

@@ -40,7 +40,7 @@ export default function MusterilerPage() {
   const [prices, setPrices] = useState<any[]>([])
   const [surcharges, setSurcharges] = useState<any[]>([])
   const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
-  const [passportForm, setPassportForm] = useState({ passport_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' })
+  const [passportForm, setPassportForm] = useState({ passport_no: '', tc_kimlik_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' })
   const [passportMode, setPassportMode] = useState<'choose' | 'active'>('choose')
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrError, setOcrError] = useState<string | null>(null)
@@ -173,6 +173,7 @@ export default function MusterilerPage() {
       }
       setPassportForm(p => ({
         passport_no:         f.passport_no || p.passport_no,
+        tc_kimlik_no:        f.tc_kimlik_no || p.tc_kimlik_no,
         passport_issue_date: f.passport_issue_date || p.passport_issue_date,
         passport_expiry:     f.passport_expiry || p.passport_expiry,
         birth_date:          f.birth_date || p.birth_date,
@@ -383,7 +384,7 @@ export default function MusterilerPage() {
       const { data: userData } = await supabase.from('users').select('full_name').eq('id', user?.id).single()
       logAction(companyId, user?.id, userData?.full_name || '', 'Yeni müşteri eklendi', 'client', newClient.id, newClient.full_name)
 
-      if (passportForm.passport_no || passportForm.passport_issue_date || passportForm.passport_expiry || passportForm.birth_date) {
+      if (passportForm.passport_no || passportForm.tc_kimlik_no || passportForm.passport_issue_date || passportForm.passport_expiry || passportForm.birth_date) {
         await fetch('/api/update-client-info', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -397,7 +398,7 @@ export default function MusterilerPage() {
       await fetchData()
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
-      setPassportForm({ passport_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' })
+      setPassportForm({ passport_no: '', tc_kimlik_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' })
       setPassportMode('choose'); setOcrError(null)
       setSelectedTpl(null); setTplSearch(''); setTplOpen(false)
 
@@ -638,6 +639,10 @@ export default function MusterilerPage() {
                       <input value={passportForm.passport_no} onChange={e => setPassportForm({...passportForm, passport_no: e.target.value.toUpperCase()})} placeholder="A12345678" style={{ ...inputStyle, fontSize: '14px', fontFamily: 'monospace', letterSpacing: '1px' }} />
                     </div>
                     <div>
+                      <label style={labelStyle}>TC Kimlik No</label>
+                      <input value={passportForm.tc_kimlik_no} onChange={e => setPassportForm({...passportForm, tc_kimlik_no: e.target.value.replace(/\D/g, '').slice(0, 11)})} placeholder="12345678901" inputMode="numeric" maxLength={11} style={{ ...inputStyle, fontSize: '14px', fontFamily: 'monospace', letterSpacing: '1px' }} />
+                    </div>
+                    <div>
                       <label style={labelStyle}>Doğum Tarihi</label>
                       <input type="date" value={passportForm.birth_date} onChange={e => setPassportForm({...passportForm, birth_date: e.target.value})} style={{ ...inputStyle, fontSize: '14px' }} />
                     </div>
@@ -796,7 +801,7 @@ export default function MusterilerPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => { setShowModal(false); setLimitError(null); setSelectedTpl(null); setTplSearch(''); setTplOpen(false); setPassportForm({ passport_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' }); setPassportMode('choose'); setOcrError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
+              <button onClick={() => { setShowModal(false); setLimitError(null); setSelectedTpl(null); setTplSearch(''); setTplOpen(false); setPassportForm({ passport_no: '', tc_kimlik_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' }); setPassportMode('choose'); setOcrError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
               <button onClick={saveClient} disabled={saving} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(29,78,216,0.25)', transition: 'opacity 0.2s' }}>
                 {saving ? tc('saving') : t('addModal.submitBtn')}
               </button>
