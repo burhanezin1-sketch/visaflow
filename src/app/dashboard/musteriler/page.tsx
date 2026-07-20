@@ -44,6 +44,7 @@ export default function MusterilerPage() {
   const [passportMode, setPassportMode] = useState<'choose' | 'active'>('choose')
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrError, setOcrError] = useState<string | null>(null)
+  const [ocrSucceeded, setOcrSucceeded] = useState(false)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
@@ -158,6 +159,7 @@ export default function MusterilerPage() {
   async function handlePassportFile(file: File | null) {
     if (!file) return
     setOcrError(null)
+    setOcrSucceeded(false)
     setOcrLoading(true)
     setPassportMode('active')
     try {
@@ -171,6 +173,7 @@ export default function MusterilerPage() {
         setOcrError('Pasaport okunamadı, lütfen manuel girin.')
         return
       }
+      setOcrSucceeded(true)
       setPassportForm(p => ({
         passport_no:         f.passport_no || p.passport_no,
         tc_kimlik_no:        f.tc_kimlik_no || p.tc_kimlik_no,
@@ -399,7 +402,7 @@ export default function MusterilerPage() {
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
       setPassportForm({ passport_no: '', tc_kimlik_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' })
-      setPassportMode('choose'); setOcrError(null)
+      setPassportMode('choose'); setOcrError(null); setOcrSucceeded(false)
       setSelectedTpl(null); setTplSearch(''); setTplOpen(false)
 
       if (!matchedDocs && resolvedApp && !!(form.country && form.visa_type)) {
@@ -612,7 +615,11 @@ export default function MusterilerPage() {
               />
 
               {passportMode === 'choose' ? (
-                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '10px' }}>
+                <>
+                  <div style={{ fontSize: '14px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '8px 10px', marginBottom: '10px', lineHeight: '1.5' }}>
+                    📸 İpucu: Pasaportu düz bir yüzeye koyun, yakından ve net çekin. Işık yeterli olsun, flaş kullanmayın. Tüm bilgiler ve MRZ satırları (alt kısımdaki &lt;&lt; işaretli satırlar) fotoğraf içinde tam görünsün.
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '10px' }}>
                   <button type="button" onClick={() => cameraInputRef.current?.click()} style={{ width: isMobile ? '100%' : undefined, flex: isMobile ? undefined : '1 1 auto', padding: '11px 10px', fontSize: '14px', fontWeight: '500', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }}>
                     📷 Kamerayla Çek
                   </button>
@@ -622,7 +629,8 @@ export default function MusterilerPage() {
                   <button type="button" onClick={() => setPassportMode('active')} style={{ width: isMobile ? '100%' : undefined, flex: isMobile ? undefined : '1 1 auto', padding: '11px 10px', fontSize: '14px', fontWeight: '500', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }}>
                     Manuel Gir
                   </button>
-                </div>
+                  </div>
+                </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {ocrLoading && (
@@ -631,6 +639,11 @@ export default function MusterilerPage() {
                   {ocrError && (
                     <div style={{ fontSize: '14px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '8px 10px', marginBottom: '4px' }}>
                       {ocrError}
+                    </div>
+                  )}
+                  {ocrSucceeded && (
+                    <div style={{ fontSize: '14px', color: '#c0392b', background: '#fef0ee', border: '1px solid #f5c2bb', borderRadius: '6px', padding: '8px 10px', marginBottom: '4px', lineHeight: '1.5' }}>
+                      ⚠️ Yapay zeka her zaman doğru okuyamayabilir. Lütfen aşağıdaki bilgileri pasaportunuzla karşılaştırarak kontrol edin ve hatalı alanları düzeltin.
                     </div>
                   )}
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '10px', marginBottom: '8px' }}>
@@ -655,7 +668,7 @@ export default function MusterilerPage() {
                       <input type="date" value={passportForm.passport_expiry} onChange={e => setPassportForm({...passportForm, passport_expiry: e.target.value})} style={{ ...inputStyle, fontSize: '14px' }} />
                     </div>
                   </div>
-                  <button type="button" onClick={() => { setPassportMode('choose'); setOcrError(null) }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#9aaabb', fontSize: '13px', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => { setPassportMode('choose'); setOcrError(null); setOcrSucceeded(false) }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#9aaabb', fontSize: '13px', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit' }}>
                     ← Görsel seçeneklerine dön
                   </button>
                 </div>
@@ -801,7 +814,7 @@ export default function MusterilerPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => { setShowModal(false); setLimitError(null); setSelectedTpl(null); setTplSearch(''); setTplOpen(false); setPassportForm({ passport_no: '', tc_kimlik_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' }); setPassportMode('choose'); setOcrError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
+              <button onClick={() => { setShowModal(false); setLimitError(null); setSelectedTpl(null); setTplSearch(''); setTplOpen(false); setPassportForm({ passport_no: '', tc_kimlik_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' }); setPassportMode('choose'); setOcrError(null); setOcrSucceeded(false) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
               <button onClick={saveClient} disabled={saving} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(29,78,216,0.25)', transition: 'opacity 0.2s' }}>
                 {saving ? tc('saving') : t('addModal.submitBtn')}
               </button>
