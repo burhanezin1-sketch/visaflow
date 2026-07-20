@@ -40,6 +40,12 @@ export default function MusterilerPage() {
   const [prices, setPrices] = useState<any[]>([])
   const [surcharges, setSurcharges] = useState<any[]>([])
   const [form, setForm] = useState({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
+  const [passportForm, setPassportForm] = useState({ passport_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' })
+  const [passportMode, setPassportMode] = useState<'choose' | 'active'>('choose')
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrError, setOcrError] = useState<string | null>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const [autoPrice, setAutoPrice] = useState<{ price: number; currency: string } | null>(null)
   const [autoSurcharge, setAutoSurcharge] = useState<{ surcharge_amount: number; currency: string; reason?: string } | null>(null)
   const [saving, setSaving] = useState(false)
@@ -148,6 +154,41 @@ export default function MusterilerPage() {
     })
     setAutoSurcharge(s ? { surcharge_amount: s.surcharge_amount, currency: s.currency || 'TRY', reason: s.reason } : null)
   }, [form.nationality, form.country, form.visa_type, surcharges])
+
+  async function handlePassportFile(file: File | null) {
+    if (!file) return
+    setOcrError(null)
+    setOcrLoading(true)
+    setPassportMode('active')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/passport-ocr', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        setOcrError(data.error || 'Pasaport okunamadı, bilgileri elle girebilirsiniz.')
+        return
+      }
+      const f = data.fields || {}
+      setPassportForm(p => ({
+        passport_no:         f.passport_no ?? p.passport_no,
+        passport_issue_date: f.passport_issue_date ?? p.passport_issue_date,
+        passport_expiry:     f.passport_expiry ?? p.passport_expiry,
+        birth_date:          f.birth_date ?? p.birth_date,
+      }))
+      if (f.ad || f.soyad) {
+        setForm(prev => ({
+          ...prev,
+          ad: f.ad ? toTitleCase(f.ad) : prev.ad,
+          soyad: f.soyad ? toTitleCase(f.soyad) : prev.soyad,
+        }))
+      }
+    } catch {
+      setOcrError('Bağlantı hatası, bilgileri elle girebilirsiniz.')
+    } finally {
+      setOcrLoading(false)
+    }
+  }
 
   async function saveClient() {
     if (isSavingRef.current || !form.ad || !form.soyad || !companyId) return
@@ -341,12 +382,22 @@ export default function MusterilerPage() {
       const { data: userData } = await supabase.from('users').select('full_name').eq('id', user?.id).single()
       logAction(companyId, user?.id, userData?.full_name || '', 'Yeni müşteri eklendi', 'client', newClient.id, newClient.full_name)
 
+      if (passportForm.passport_no || passportForm.passport_issue_date || passportForm.passport_expiry || passportForm.birth_date) {
+        await fetch('/api/update-client-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: newClient.id, ...passportForm }),
+        })
+      }
+
       const clientId = newClient.id
       const appId = resolvedApp?.id ?? null
 
       await fetchData()
       setShowModal(false)
       setForm({ ad: '', soyad: '', phone: '', email: '', country: '', visa_type: '', occupation: '', nationality: 'Türkiye Cumhuriyeti', notes: '' })
+      setPassportForm({ passport_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' })
+      setPassportMode('choose'); setOcrError(null)
       setSelectedTpl(null); setTplSearch(''); setTplOpen(false)
 
       if (!matchedDocs && resolvedApp && !!(form.country && form.visa_type)) {
@@ -538,6 +589,73 @@ export default function MusterilerPage() {
               <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder={tp('email')} style={inputStyle} />
             </div>
 
+            {/* Pasaport Bilgileri */}
+            <div style={{ marginBottom: '10px' }}>
+              <label style={labelStyle}>PASAPORT BİLGİLERİ <span style={{ fontWeight: 400, textTransform: 'none', color: '#9aaabb' }}>(opsiyonel)</span></label>
+
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={e => { const file = e.target.files?.[0] || null; e.target.value = ''; handlePassportFile(file) }}
+              />
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => { const file = e.target.files?.[0] || null; e.target.value = ''; handlePassportFile(file) }}
+              />
+
+              {passportMode === 'choose' ? (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => cameraInputRef.current?.click()} style={{ flex: '1 1 auto', padding: '9px 10px', fontSize: '12px', fontWeight: '500', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    📷 Kamerayla Çek
+                  </button>
+                  <button type="button" onClick={() => galleryInputRef.current?.click()} style={{ flex: '1 1 auto', padding: '9px 10px', fontSize: '12px', fontWeight: '500', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    🖼️ Galeriden Seç
+                  </button>
+                  <button type="button" onClick={() => setPassportMode('active')} style={{ flex: '1 1 auto', padding: '9px 10px', fontSize: '12px', fontWeight: '500', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Manuel Gir
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  {ocrLoading && (
+                    <div style={{ fontSize: '12px', color: '#1a5fa5', marginBottom: '8px' }}>Pasaport taranıyor...</div>
+                  )}
+                  {ocrError && (
+                    <div style={{ fontSize: '12px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '6px 10px', marginBottom: '8px' }}>
+                      {ocrError}
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                    <div>
+                      <label style={labelStyle}>Pasaport No</label>
+                      <input value={passportForm.passport_no} onChange={e => setPassportForm({...passportForm, passport_no: e.target.value.toUpperCase()})} placeholder="A12345678" style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '1px' }} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Doğum Tarihi</label>
+                      <input type="date" value={passportForm.birth_date} onChange={e => setPassportForm({...passportForm, birth_date: e.target.value})} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Pasaport Verilme Tarihi</label>
+                      <input type="date" value={passportForm.passport_issue_date} onChange={e => setPassportForm({...passportForm, passport_issue_date: e.target.value})} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Pasaport Son Geçerlilik Tarihi</label>
+                      <input type="date" value={passportForm.passport_expiry} onChange={e => setPassportForm({...passportForm, passport_expiry: e.target.value})} style={inputStyle} />
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => { setPassportMode('choose'); setOcrError(null) }} style={{ background: 'none', border: 'none', color: '#9aaabb', fontSize: '11px', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                    ← Görsel seçeneklerine dön
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Şablon Seçici */}
             <div style={{ marginBottom: '10px', position: 'relative' }}>
               <label style={labelStyle}>ŞABLONDAN SEÇ <span style={{ fontWeight: 400, textTransform: 'none', color: '#9aaabb' }}>(opsiyonel)</span></label>
@@ -677,7 +795,7 @@ export default function MusterilerPage() {
               </div>
             )}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => { setShowModal(false); setLimitError(null); setSelectedTpl(null); setTplSearch(''); setTplOpen(false) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
+              <button onClick={() => { setShowModal(false); setLimitError(null); setSelectedTpl(null); setTplSearch(''); setTplOpen(false); setPassportForm({ passport_no: '', passport_issue_date: '', passport_expiry: '', birth_date: '' }); setPassportMode('choose'); setOcrError(null) }} style={{ flex: 1, padding: '10px', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit' }}>{tc('cancel')}</button>
               <button onClick={saveClient} disabled={saving} style={{ flex: 2, padding: '10px', background: 'linear-gradient(135deg, #1d4ed8, #4338ca)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 8px rgba(29,78,216,0.25)', transition: 'opacity 0.2s' }}>
                 {saving ? tc('saving') : t('addModal.submitBtn')}
               </button>
