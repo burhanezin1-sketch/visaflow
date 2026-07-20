@@ -7,6 +7,32 @@ import { rateLimit } from '@/lib/rateLimit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+const SYSTEM_PROMPT = `Sen bir pasaport okuma uzmanısın. Verilen pasaport görselinden MRZ (Machine Readable Zone) ve görünür alanlardan şu bilgileri çıkar:
+- Pasaport numarası (sağ üst köşede, genellikle 1-2 harf + 6-7 rakam, örn: U12345678)
+- TC Kimlik Numarası (11 haneli sayı, varsa)
+- Ad (Given names)
+- Soyad (Surname/Family name)
+- Doğum tarihi (DD.MM.YYYY formatında)
+- Pasaport verilme tarihi (DD.MM.YYYY formatında)
+- Pasaport son geçerlilik tarihi (DD.MM.YYYY formatında)
+
+MRZ satırları genellikle pasaportun alt kısmında '<' karakterleriyle ayrılmış iki satır halinde bulunur. MRZ'den de bu bilgileri çıkarabilirsin.
+
+Görsel kalitesi düşükse veya bir alan okunamazsa o alanı boş string olarak döndür — asla tahmin etme veya uydurma.
+
+SADECE şu JSON formatında yanıt ver, başka hiçbir şey yazma:
+{"passport_no":"","tc_kimlik_no":"","first_name":"","last_name":"","birth_date":"GG.AA.YYYY","issue_date":"GG.AA.YYYY","expiry_date":"GG.AA.YYYY"}`
+
+// GG.AA.YYYY / GG-AA-YYYY / GG/AA/YYYY -> YYYY-MM-DD (input type="date" ISO formatı bekliyor)
+function toIsoDate(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined
+  const s = v.trim()
+  const dmy = s.match(/^(\d{2})[.\-/](\d{2})[.\-/](\d{4})$/)
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  return undefined
+}
+
 // Henüz kaydedilmemiş (yeni) bir müşteri için pasaport görselini OCR ile okur.
 // clients tablosuna yazmaz — sadece formu önceden doldurmak için ham alanları döner.
 export async function POST(req: NextRequest) {
@@ -43,17 +69,13 @@ export async function POST(req: NextRequest) {
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+      max_tokens: 400,
+      system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',
         content: [
           { type: 'image', source: { type: 'base64', media_type: file.type as any, data: base64 } },
-          {
-            type: 'text',
-            text: `Bu pasaport veya kimlik belgesini tara. Yalnızca şu JSON formatını döndür, başka hiçbir metin yazma:
-{"ad":"isim","soyad":"soyisim","passport_no":"belge numarası","birth_date":"YYYY-MM-DD","passport_issue_date":"YYYY-MM-DD","passport_expiry":"YYYY-MM-DD"}
-Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY-MM-DD formatında olsun.`,
-          }
+          { type: 'text', text: 'Bu pasaport görselini yukarıdaki talimatlara göre tara ve JSON döndür.' },
         ]
       }]
     })
@@ -64,18 +86,15 @@ Okuyamadığın veya göremediğin alanlar için null yaz. Tarihler mutlaka YYYY
 
     const extracted = JSON.parse(match[0])
     const fields: Record<string, string> = {}
-    if (extracted.ad) fields.ad = String(extracted.ad)
-    if (extracted.soyad) fields.soyad = String(extracted.soyad)
-    if (extracted.passport_no) fields.passport_no = String(extracted.passport_no)
-    if (extracted.birth_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.birth_date)) {
-      fields.birth_date = extracted.birth_date
-    }
-    if (extracted.passport_issue_date && /^\d{4}-\d{2}-\d{2}$/.test(extracted.passport_issue_date)) {
-      fields.passport_issue_date = extracted.passport_issue_date
-    }
-    if (extracted.passport_expiry && /^\d{4}-\d{2}-\d{2}$/.test(extracted.passport_expiry)) {
-      fields.passport_expiry = extracted.passport_expiry
-    }
+    if (extracted.first_name) fields.ad = String(extracted.first_name).trim()
+    if (extracted.last_name) fields.soyad = String(extracted.last_name).trim()
+    if (extracted.passport_no) fields.passport_no = String(extracted.passport_no).trim()
+    const birthIso = toIsoDate(extracted.birth_date)
+    if (birthIso) fields.birth_date = birthIso
+    const issueIso = toIsoDate(extracted.issue_date)
+    if (issueIso) fields.passport_issue_date = issueIso
+    const expiryIso = toIsoDate(extracted.expiry_date)
+    if (expiryIso) fields.passport_expiry = expiryIso
 
     return NextResponse.json({ success: true, fields })
   } catch (err: any) {

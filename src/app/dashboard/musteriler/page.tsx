@@ -165,16 +165,17 @@ export default function MusterilerPage() {
       fd.append('file', file)
       const res = await fetch('/api/passport-ocr', { method: 'POST', body: fd })
       const data = await res.json()
-      if (!res.ok) {
-        setOcrError(data.error || 'Pasaport okunamadı, bilgileri elle girebilirsiniz.')
+      const f = (res.ok && data.fields) || {}
+      const hasAnyField = Object.values(f).some(v => !!v)
+      if (!res.ok || !hasAnyField) {
+        setOcrError('Pasaport okunamadı, lütfen manuel girin.')
         return
       }
-      const f = data.fields || {}
       setPassportForm(p => ({
-        passport_no:         f.passport_no ?? p.passport_no,
-        passport_issue_date: f.passport_issue_date ?? p.passport_issue_date,
-        passport_expiry:     f.passport_expiry ?? p.passport_expiry,
-        birth_date:          f.birth_date ?? p.birth_date,
+        passport_no:         f.passport_no || p.passport_no,
+        passport_issue_date: f.passport_issue_date || p.passport_issue_date,
+        passport_expiry:     f.passport_expiry || p.passport_expiry,
+        birth_date:          f.birth_date || p.birth_date,
       }))
       if (f.ad || f.soyad) {
         setForm(prev => ({
@@ -184,7 +185,7 @@ export default function MusterilerPage() {
         }))
       }
     } catch {
-      setOcrError('Bağlantı hatası, bilgileri elle girebilirsiniz.')
+      setOcrError('Pasaport okunamadı, lütfen manuel girin.')
     } finally {
       setOcrLoading(false)
     }
@@ -568,7 +569,7 @@ export default function MusterilerPage() {
 
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(13,31,53,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#f7f9fd', borderRadius: '18px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 16px 48px rgba(15,23,42,0.15)' }}>
+          <div style={{ background: '#f7f9fd', borderRadius: '18px', padding: isMobile ? '1.25rem' : '2rem', width: '420px', maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(15,23,42,0.15)', boxSizing: 'border-box' }}>
             <h3 style={{ fontSize: '17px', fontWeight: '500', marginBottom: '1.5rem', color: '#1e293b' }}>{t('addModal.title')}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div>
@@ -590,7 +591,7 @@ export default function MusterilerPage() {
             </div>
 
             {/* Pasaport Bilgileri */}
-            <div style={{ marginBottom: '10px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={labelStyle}>PASAPORT BİLGİLERİ <span style={{ fontWeight: 400, textTransform: 'none', color: '#9aaabb' }}>(opsiyonel)</span></label>
 
               <input
@@ -610,46 +611,46 @@ export default function MusterilerPage() {
               />
 
               {passportMode === 'choose' ? (
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button type="button" onClick={() => cameraInputRef.current?.click()} style={{ flex: '1 1 auto', padding: '9px 10px', fontSize: '12px', fontWeight: '500', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '10px' }}>
+                  <button type="button" onClick={() => cameraInputRef.current?.click()} style={{ width: isMobile ? '100%' : undefined, flex: isMobile ? undefined : '1 1 auto', padding: '11px 10px', fontSize: '14px', fontWeight: '500', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }}>
                     📷 Kamerayla Çek
                   </button>
-                  <button type="button" onClick={() => galleryInputRef.current?.click()} style={{ flex: '1 1 auto', padding: '9px 10px', fontSize: '12px', fontWeight: '500', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => galleryInputRef.current?.click()} style={{ width: isMobile ? '100%' : undefined, flex: isMobile ? undefined : '1 1 auto', padding: '11px 10px', fontSize: '14px', fontWeight: '500', background: '#eef4fb', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }}>
                     🖼️ Galeriden Seç
                   </button>
-                  <button type="button" onClick={() => setPassportMode('active')} style={{ flex: '1 1 auto', padding: '9px 10px', fontSize: '12px', fontWeight: '500', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => setPassportMode('active')} style={{ width: isMobile ? '100%' : undefined, flex: isMobile ? undefined : '1 1 auto', padding: '11px 10px', fontSize: '14px', fontWeight: '500', background: '#f5f5f7', color: '#5a6a7a', border: '1px solid #e2e2e8', borderRadius: '8px', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }}>
                     Manuel Gir
                   </button>
                 </div>
               ) : (
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {ocrLoading && (
-                    <div style={{ fontSize: '12px', color: '#1a5fa5', marginBottom: '8px' }}>Pasaport taranıyor...</div>
+                    <div style={{ fontSize: '14px', color: '#1a5fa5', marginBottom: '4px' }}>Pasaport taranıyor...</div>
                   )}
                   {ocrError && (
-                    <div style={{ fontSize: '12px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '6px 10px', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '14px', color: '#92600a', background: '#fff8ec', border: '1px solid #f0d896', borderRadius: '6px', padding: '8px 10px', marginBottom: '4px' }}>
                       {ocrError}
                     </div>
                   )}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '16px' : '10px', marginBottom: '8px' }}>
                     <div>
                       <label style={labelStyle}>Pasaport No</label>
-                      <input value={passportForm.passport_no} onChange={e => setPassportForm({...passportForm, passport_no: e.target.value.toUpperCase()})} placeholder="A12345678" style={{ ...inputStyle, fontFamily: 'monospace', letterSpacing: '1px' }} />
+                      <input value={passportForm.passport_no} onChange={e => setPassportForm({...passportForm, passport_no: e.target.value.toUpperCase()})} placeholder="A12345678" style={{ ...inputStyle, fontSize: '14px', fontFamily: 'monospace', letterSpacing: '1px' }} />
                     </div>
                     <div>
                       <label style={labelStyle}>Doğum Tarihi</label>
-                      <input type="date" value={passportForm.birth_date} onChange={e => setPassportForm({...passportForm, birth_date: e.target.value})} style={inputStyle} />
+                      <input type="date" value={passportForm.birth_date} onChange={e => setPassportForm({...passportForm, birth_date: e.target.value})} style={{ ...inputStyle, fontSize: '14px' }} />
                     </div>
                     <div>
                       <label style={labelStyle}>Pasaport Verilme Tarihi</label>
-                      <input type="date" value={passportForm.passport_issue_date} onChange={e => setPassportForm({...passportForm, passport_issue_date: e.target.value})} style={inputStyle} />
+                      <input type="date" value={passportForm.passport_issue_date} onChange={e => setPassportForm({...passportForm, passport_issue_date: e.target.value})} style={{ ...inputStyle, fontSize: '14px' }} />
                     </div>
                     <div>
                       <label style={labelStyle}>Pasaport Son Geçerlilik Tarihi</label>
-                      <input type="date" value={passportForm.passport_expiry} onChange={e => setPassportForm({...passportForm, passport_expiry: e.target.value})} style={inputStyle} />
+                      <input type="date" value={passportForm.passport_expiry} onChange={e => setPassportForm({...passportForm, passport_expiry: e.target.value})} style={{ ...inputStyle, fontSize: '14px' }} />
                     </div>
                   </div>
-                  <button type="button" onClick={() => { setPassportMode('choose'); setOcrError(null) }} style={{ background: 'none', border: 'none', color: '#9aaabb', fontSize: '11px', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                  <button type="button" onClick={() => { setPassportMode('choose'); setOcrError(null) }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#9aaabb', fontSize: '13px', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit' }}>
                     ← Görsel seçeneklerine dön
                   </button>
                 </div>
