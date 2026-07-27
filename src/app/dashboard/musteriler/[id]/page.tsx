@@ -770,7 +770,7 @@ export default function MusteriDetayPage() {
             </div>
 
             {activeTab === 'evrak' && (
-              <div style={{ padding: '1.25rem' }}>
+              <div style={{ padding: isMobile ? '0.875rem' : '1.25rem', maxWidth: '100%', overflowX: 'hidden' }}>
                 {/* Gizli dosya input — danışman yükleme */}
                 <input
                   ref={fileInputRef}
@@ -828,8 +828,8 @@ export default function MusteriDetayPage() {
                       const showActions  = isStaff && !isFirma && (!isDone || isInEditMode)
 
                       return (
-                        <div key={evrak.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                        <div key={evrak.id} style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent: 'space-between', gap: isMobile ? '8px' : 0, padding: isMobile ? '10px 0' : '8px 0', borderBottom: '1px solid #f0f0f4', maxWidth: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: isMobile ? 'none' : 1, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
                             {isFirma ? (
                               <span style={{ fontSize: '14px', flexShrink: 0 }}>🏢</span>
                             ) : isApproved ? (
@@ -845,8 +845,8 @@ export default function MusteriDetayPage() {
                             ) : (
                               <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '1.5px solid #e2e2e8', flexShrink: 0 }} />
                             )}
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: '13px', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evrak.doc_name}</div>
+                            <div style={{ minWidth: 0, flex: isMobile ? 1 : 'none' }}>
+                              <div style={{ fontSize: '13px', color: '#0d1f35', overflow: isMobile ? 'visible' : 'hidden', textOverflow: isMobile ? 'clip' : 'ellipsis', whiteSpace: isMobile ? 'normal' : 'nowrap', wordBreak: isMobile ? 'break-word' : 'normal' }}>{evrak.doc_name}</div>
                               <div style={{ fontSize: '10px', color: '#9aaabb', marginTop: '1px' }}>
                                 {isFirma     ? t('docs.status.firma')
                                  : isApproved ? t('docs.status.approved')
@@ -858,7 +858,7 @@ export default function MusteriDetayPage() {
                               </div>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: isMobile ? 0 : '6px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
                             {isFirma    && <span style={{ fontSize: '10px', color: '#1a5fa5', fontWeight: '600', background: '#eef4fb', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.firma')}</span>}
                             {isApproved && !isInEditMode && <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>{t('docs.badge.approved')}</span>}
                             {isElden    && !isInEditMode && <span style={{ fontSize: '10px', color: '#1a7a45', fontWeight: '600', background: '#edfaf3', padding: '3px 8px', borderRadius: '20px' }}>✅ Elden Teslim Alındı</span>}
@@ -890,13 +890,13 @@ export default function MusteriDetayPage() {
                             {showActions && (
                               <>
                                 <button onClick={() => approveDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                  {saving ? '...' : t('docs.approveBtn')}
+                                  {saving ? '...' : isMobile ? '✓' : t('docs.approveBtn')}
                                 </button>
                                 <button onClick={() => eldenDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#edfaf3', color: '#1a7a45', border: '1px solid #a8e6c1', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                  🤝 Elden
+                                  {isMobile ? '🤝' : '🤝 Elden'}
                                 </button>
                                 <button onClick={() => rejectDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                  {t('docs.rejectBtn')}
+                                  {isMobile ? '✗' : t('docs.rejectBtn')}
                                 </button>
                               </>
                             )}
