@@ -350,7 +350,11 @@
         "uploadBtn": "📎 Upload Files",
         "addMoreBtn": "📎 Add More",
         "digitalUploadBtn": "📎 Digital Upload",
-        "multipleFilesHint": "You can select multiple files"
+        "multipleFilesHint": "You can select multiple files",
+        "editBtn": "✏️ Edit",
+        "submitBtn": "✅ Submit",
+        "changeBtn": "🔄 Change",
+        "fileSizeLabel": "Size"
       }
     },
     "myInfo": {

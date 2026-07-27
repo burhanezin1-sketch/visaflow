@@ -350,7 +350,11 @@
         "uploadBtn": "📎 Dosyaları Yükle",
         "addMoreBtn": "📎 Daha Fazla Ekle",
         "digitalUploadBtn": "📎 Dijital Yükle",
-        "multipleFilesHint": "Birden fazla dosya seçebilirsiniz"
+        "multipleFilesHint": "Birden fazla dosya seçebilirsiniz",
+        "editBtn": "✏️ Düzenle",
+        "submitBtn": "✅ Gönder",
+        "changeBtn": "🔄 Değiştir",
+        "fileSizeLabel": "Boyut"
       }
     },
     "myInfo": {

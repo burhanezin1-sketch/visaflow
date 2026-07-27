@@ -350,7 +350,11 @@
         "uploadBtn": "📎 Prześlij pliki",
         "addMoreBtn": "📎 Dodaj więcej",
         "digitalUploadBtn": "📎 Prześlij cyfrowo",
-        "multipleFilesHint": "Możesz wybrać wiele plików"
+        "multipleFilesHint": "Możesz wybrać wiele plików",
+        "editBtn": "✏️ Edytuj",
+        "submitBtn": "✅ Wyślij",
+        "changeBtn": "🔄 Zmień",
+        "fileSizeLabel": "Rozmiar"
       }
     },
     "myInfo": {

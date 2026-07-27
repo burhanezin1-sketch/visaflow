@@ -350,7 +350,11 @@
         "uploadBtn": "📎 Dateien hochladen",
         "addMoreBtn": "📎 Weitere hinzufügen",
         "digitalUploadBtn": "📎 Digital hochladen",
-        "multipleFilesHint": "Sie können mehrere Dateien auswählen"
+        "multipleFilesHint": "Sie können mehrere Dateien auswählen",
+        "editBtn": "✏️ Bearbeiten",
+        "submitBtn": "✅ Senden",
+        "changeBtn": "🔄 Ändern",
+        "fileSizeLabel": "Größe"
       }
     },
     "myInfo": {

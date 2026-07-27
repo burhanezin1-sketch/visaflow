@@ -350,7 +350,11 @@
         "uploadBtn": "📎 Загрузить файлы",
         "addMoreBtn": "📎 Добавить ещё",
         "digitalUploadBtn": "📎 Цифровая загрузка",
-        "multipleFilesHint": "Можно выбрать несколько файлов"
+        "multipleFilesHint": "Можно выбрать несколько файлов",
+        "editBtn": "✏️ Изменить",
+        "submitBtn": "✅ Отправить",
+        "changeBtn": "🔄 Заменить",
+        "fileSizeLabel": "Размер"
       }
     },
     "myInfo": {

@@ -47,7 +47,42 @@ export default function PortalPage() {
   const [uploading, setUploading] = useState<Record<string, boolean>>({})
   const [ocrStatus, setOcrStatus] = useState<Record<string, 'scanning' | 'done' | 'error'>>({})
   const [fileEntries, setFileEntries] = useState<Record<string, { name: string; status: 'uploading' | 'done' | 'error' }[]>>({})
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File[]>>({})
+  const [submitting, setSubmitting] = useState<Record<string, boolean>>({})
+  const [uploadedFileName, setUploadedFileName] = useState<Record<string, string>>({})
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  function formatFileSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  function fileIcon(name: string) {
+    const ext = name.split('.').pop()?.toLowerCase() || ''
+    if (ext === 'pdf') return '📄'
+    if (['jpg', 'jpeg', 'png', 'heic', 'webp'].includes(ext)) return '🖼️'
+    return '📎'
+  }
+
+  // Storage dosya adı "{docId}_{timestamp}_{index}_{safeFileName}" formatında —
+  // orijinal isim yalnızca sunucu tarafında sanitize edilmiş halde saklanıyor.
+  function extractFileNameFromUrl(url: string) {
+    try {
+      const clean = url.split('?')[0]
+      const last = decodeURIComponent(clean.split('/').pop() || '')
+      return last.replace(/^.*?_\d{10,}_\d+_/, '') || last
+    } catch {
+      return ''
+    }
+  }
+
+  function stageFiles(idx: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const fileList = e.target.files
+    if (!fileList || fileList.length === 0) return
+    setPendingFiles(prev => ({ ...prev, [idx]: Array.from(fileList) }))
+    e.target.value = ''
+  }
 
   useEffect(() => {
     async function fetchClient() {
@@ -121,82 +156,49 @@ export default function PortalPage() {
     setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).filter((_, j) => j !== i) }))
   }
 
+  // Çoklu dosya evrakları (Şirket evrakları, Diploma, İş deneyimi) için —
+  // bunlar seçilir seçilmez tek tek yüklenir; tekli evraklar submitPendingFiles kullanır.
   async function handleFileUpload(idx: string, docName: string, e: React.ChangeEvent<HTMLInputElement>) {
     const fileList = e.target.files
     if (!fileList || fileList.length === 0 || !client || !application) return
 
     const fileArr = Array.from(fileList)
-    const isMulti = isMultiUploadDoc(docName)
     const tokenStr = Array.isArray(token) ? token[0] : String(token)
-    const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
 
     setFileEntries(prev => ({ ...prev, [idx]: fileArr.map(f => ({ name: f.name, status: 'uploading' as const })) }))
     setUploading(prev => ({ ...prev, [idx]: true }))
-    if (isIdDoc && fileArr.some(f => f.type.startsWith('image/'))) {
-      setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
-    }
 
-    if (isMulti) {
-      const collectedUrls: string[] = []
-      for (let i = 0; i < fileArr.length; i++) {
-        const f = fileArr[i]
-        const fd = new FormData()
-        fd.append('file', f)
-        fd.append('token', tokenStr)
-        fd.append('clientId', client.id)
-        fd.append('applicationId', application.id)
-        fd.append('docName', docName)
-        fd.append('idx', idx)
-        fd.append('skipDocUpdate', 'true')
-        try {
-          const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
-          const data = await res.json()
-          if (!res.ok) {
-            setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'error' as const } : e) }))
-          } else {
-            const url = data.fileUrls?.[0]
-            if (url) collectedUrls.push(url)
-            setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'done' as const } : e) }))
-          }
-        } catch {
-          setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'error' as const } : e) }))
-        }
-      }
-      if (collectedUrls.length > 0) {
-        await fetch('/api/portal-update-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: tokenStr, clientId: client.id, applicationId: application.id, docName, fileUrls: collectedUrls }),
-        })
-      }
-    } else {
+    const collectedUrls: string[] = []
+    for (let i = 0; i < fileArr.length; i++) {
+      const f = fileArr[i]
       const fd = new FormData()
-      fd.append('file', fileArr[0])
+      fd.append('file', f)
       fd.append('token', tokenStr)
       fd.append('clientId', client.id)
       fd.append('applicationId', application.id)
       fd.append('docName', docName)
       fd.append('idx', idx)
+      fd.append('skipDocUpdate', 'true')
       try {
         const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
         const data = await res.json()
         if (!res.ok) {
-          console.error('[upload]', data.error)
-          setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'error' as const })) }))
-          setUploading(prev => ({ ...prev, [idx]: false }))
-          if (isIdDoc) setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
-          return
+          setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'error' as const } : e) }))
+        } else {
+          const url = data.fileUrls?.[0]
+          if (url) collectedUrls.push(url)
+          setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'done' as const } : e) }))
         }
-        setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'done' as const })) }))
-        if (isIdDoc && fileArr.some(f => f.type.startsWith('image/'))) {
-          setOcrStatus(prev => ({ ...prev, [idx]: data.ocrFields?.length > 0 ? 'done' : 'error' }))
-        }
-      } catch (err) {
-        console.error('[upload] fetch error', err)
-        setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map(e => ({ ...e, status: 'error' as const })) }))
-        setUploading(prev => ({ ...prev, [idx]: false }))
-        return
+      } catch {
+        setFileEntries(prev => ({ ...prev, [idx]: (prev[idx] || []).map((e, j) => j === i ? { ...e, status: 'error' as const } : e) }))
       }
+    }
+    if (collectedUrls.length > 0) {
+      await fetch('/api/portal-update-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenStr, clientId: client.id, applicationId: application.id, docName, fileUrls: collectedUrls }),
+      })
     }
 
     const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr)}`)
@@ -205,6 +207,92 @@ export default function PortalPage() {
       setUserSubmittedDocs(refreshData.userSubmittedDocs || [])
     }
     setUploading(prev => ({ ...prev, [idx]: false }))
+  }
+
+  // Tekli evraklar — dosya seçilince direkt yüklenmez, önce önizleme gösterilir;
+  // yükleme yalnızca kullanıcı "Gönder"e bastığında tetiklenir.
+  async function submitPendingFiles(idx: string, docName: string) {
+    const fileArr = pendingFiles[idx]
+    if (!fileArr || fileArr.length === 0 || !client || !application) return
+
+    const tokenStr = Array.isArray(token) ? token[0] : String(token)
+    const isIdDoc = ['pasaport', 'passport', 'kimlik', 'id card'].some(k => docName.toLowerCase().includes(k))
+
+    setSubmitting(prev => ({ ...prev, [idx]: true }))
+    if (isIdDoc && fileArr[0].type.startsWith('image/')) {
+      setOcrStatus(prev => ({ ...prev, [idx]: 'scanning' }))
+    }
+
+    const fd = new FormData()
+    fd.append('file', fileArr[0])
+    fd.append('token', tokenStr)
+    fd.append('clientId', client.id)
+    fd.append('applicationId', application.id)
+    fd.append('docName', docName)
+    fd.append('idx', idx)
+
+    try {
+      const res = await fetch('/api/portal-upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        console.error('[upload]', data.error)
+        setSubmitting(prev => ({ ...prev, [idx]: false }))
+        if (isIdDoc) setOcrStatus(prev => ({ ...prev, [idx]: 'error' }))
+        return
+      }
+      if (isIdDoc && fileArr[0].type.startsWith('image/')) {
+        setOcrStatus(prev => ({ ...prev, [idx]: data.ocrFields?.length > 0 ? 'done' : 'error' }))
+      }
+      setUploadedFileName(prev => ({ ...prev, [idx]: fileArr[0].name }))
+      setPendingFiles(prev => { const cp = { ...prev }; delete cp[idx]; return cp })
+    } catch (err) {
+      console.error('[upload] fetch error', err)
+      setSubmitting(prev => ({ ...prev, [idx]: false }))
+      return
+    }
+
+    const refreshRes = await fetch(`/api/portal-data?token=${encodeURIComponent(tokenStr)}`)
+    if (refreshRes.ok) {
+      const refreshData = await refreshRes.json()
+      setUserSubmittedDocs(refreshData.userSubmittedDocs || [])
+    }
+    setSubmitting(prev => ({ ...prev, [idx]: false }))
+  }
+
+  // Seçim önizlemesi — dosya adı + boyutu + Düzenle/Gönder butonları
+  function renderUploadPreview(idx: string, docName: string) {
+    const pending = pendingFiles[idx] || []
+    if (pending.length === 0) return null
+    const isSubmitting = !!submitting[idx]
+    return (
+      <div style={{ background: '#faf8f3', border: '1px solid #e8e4da', borderRadius: '8px', padding: '10px 12px' }}>
+        {pending.map((f, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: i < pending.length - 1 ? '6px' : 0 }}>
+            <span style={{ fontSize: '16px', flexShrink: 0 }}>{fileIcon(f.name)}</span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12px', color: '#0d1f35', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+              <div style={{ fontSize: '10px', color: '#9aaabb' }}>{formatFileSize(f.size)}</div>
+            </div>
+          </div>
+        ))}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+          <button
+            onClick={() => fileRefs.current[idx]?.click()}
+            disabled={isSubmitting}
+            style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: '500', background: 'white', color: '#5a6a7a', border: '1.5px solid #e8e4da', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.6 : 1 }}
+          >
+            {t('documents.docStatus.editBtn')}
+          </button>
+          <button
+            onClick={() => submitPendingFiles(idx, docName)}
+            disabled={isSubmitting}
+            style={{ flex: 1, padding: '10px', fontSize: '12px', fontWeight: '600', background: isSubmitting ? '#9aaabb' : '#1a7a45', color: 'white', border: 'none', borderRadius: '8px', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+          >
+            {isSubmitting ? tc('saving') : t('documents.docStatus.submitBtn')}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   const portalBg = sidebarBg
@@ -475,44 +563,80 @@ export default function PortalPage() {
                       </div>
                     )
 
-                    if (isRejected) return (
-                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
-                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{tDoc(doc.doc_name)}</span>
-                          <span style={{ fontSize: '11px', color: '#c0392b', fontWeight: '500' }}>{t('documents.docStatus.rejectedDesc')}</span>
-                        </div>
-                        <div>
-                          <input type="file" {...(isMultiUploadDoc(doc.doc_name) ? { multiple: true } : {})} accept="image/*,application/pdf" ref={el => { fileRefs.current[key] = el }} onChange={e => handleFileUpload(key, doc.doc_name, e)} style={{ display: 'none' }} />
-                          <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#c0392b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                            {t('documents.docStatus.uploadAgain')}
-                          </button>
-                          {(fileEntries[key] || []).map((entry, fi) => (
-                            <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
-                              <span>{entry.status === 'done' ? '✓' : entry.status === 'error' ? '✗' : '⏳'}</span>
-                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.name}</span>
-                              <button onClick={() => removeFileEntry(key, fi)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9aaabb', fontSize: '14px', lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-
                     const isMulti = isMultiUploadDoc(doc.doc_name)
 
-                    if (hasFile && !isMulti) return (
-                      <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>↑</div>
-                          <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1 }}>{tDoc(doc.doc_name)}</span>
-                          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                            <span style={{ fontSize: '11px', color: '#1a5fa5', fontWeight: '500' }}>{t('documents.docStatus.uploadedReview')}</span>
-                            {ocrStatus[key] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6' }}>{t('documents.docStatus.scanning')}</span>}
-                            {ocrStatus[key] === 'done'     && <span style={{ fontSize: '10px', color: '#1a7a45' }}>{t('documents.docStatus.dataRead')}</span>}
-                          </span>
+                    if (isRejected) {
+                      const pending = pendingFiles[key] || []
+                      return (
+                        <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                          <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fef0ee', border: '1.5px solid #c0392b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#c0392b', flexShrink: 0 }}>✗</div>
+                            <span style={{ fontSize: '13px', color: '#0d1f35', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tDoc(doc.doc_name)}</span>
+                            <span style={{ fontSize: '11px', color: '#c0392b', fontWeight: '500', flexShrink: 0 }}>{t('documents.docStatus.rejectedDesc')}</span>
+                          </div>
+                          <div>
+                            <input type="file" {...(isMulti ? { multiple: true } : {})} accept="image/*,application/pdf" ref={el => { fileRefs.current[key] = el }} onChange={e => isMulti ? handleFileUpload(key, doc.doc_name, e) : stageFiles(key, e)} style={{ display: 'none' }} />
+                            {!isMulti && pending.length > 0 ? renderUploadPreview(key, doc.doc_name) : (
+                              <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '10px', fontSize: '12px', fontWeight: '500', background: '#c0392b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                                {t('documents.docStatus.uploadAgain')}
+                              </button>
+                            )}
+                            {isMulti && (fileEntries[key] || []).map((entry, fi) => (
+                              <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '11px', color: entry.status === 'done' ? '#1a7a45' : entry.status === 'error' ? '#c0392b' : '#5a6a7a' }}>
+                                <span>{entry.status === 'done' ? '✓' : entry.status === 'error' ? '✗' : '⏳'}</span>
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.name}</span>
+                                <button onClick={() => removeFileEntry(key, fi)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9aaabb', fontSize: '14px', lineHeight: 1, padding: '0 2px', flexShrink: 0 }}>×</button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )
+                      )
+                    }
+
+                    if (!isMulti) {
+                      // Tekli evrak — seç → önizle → Düzenle/Gönder → ✓ Yüklendi → Değiştir
+                      const pending = pendingFiles[key] || []
+                      const displayName = uploadedFileName[key] || (doc.file_url ? extractFileNameFromUrl(doc.file_url) : '')
+                      return (
+                        <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
+                          <input type="file" accept="image/*,application/pdf" ref={el => { fileRefs.current[key] = el }} onChange={e => stageFiles(key, e)} style={{ display: 'none' }} />
+                          {pending.length > 0 ? (
+                            <>
+                              <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {tDoc(doc.doc_name)}
+                              </div>
+                              {renderUploadPreview(key, doc.doc_name)}
+                            </>
+                          ) : hasFile ? (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eef4fb', border: '1.5px solid #1a5fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#1a5fa5', flexShrink: 0 }}>✓</div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: '13px', color: '#0d1f35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tDoc(doc.doc_name)}</div>
+                                  <div style={{ fontSize: '10px', color: '#9aaabb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '1px' }}>
+                                    {t('documents.docStatus.uploadedReview')}{displayName ? ` · ${displayName}` : ''}
+                                  </div>
+                                </div>
+                                {ocrStatus[key] === 'scanning' && <span style={{ fontSize: '10px', color: '#5b21b6', flexShrink: 0 }}>{t('documents.docStatus.scanning')}</span>}
+                                {ocrStatus[key] === 'done'     && <span style={{ fontSize: '10px', color: '#1a7a45', flexShrink: 0 }}>{t('documents.docStatus.dataRead')}</span>}
+                              </div>
+                              <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '9px', fontSize: '12px', fontWeight: '500', background: 'white', color: '#1a5fa5', border: '1.5px solid #b8d4f0', borderRadius: '8px', cursor: 'pointer' }}>
+                                {t('documents.docStatus.changeBtn')}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {tDoc(doc.doc_name)}
+                              </div>
+                              <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '10px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                                {t('documents.docStatus.digitalUploadBtn')}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )
+                    }
 
                     if (uploading[key]) return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
@@ -525,18 +649,16 @@ export default function PortalPage() {
                     return (
                       <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f0ede6' }}>
                         <div style={{ fontSize: '13px', fontWeight: '500', color: '#0d1f35', marginBottom: '8px' }}>{tDoc(doc.doc_name)}</div>
-                        {hasFile && isMulti && (
+                        {hasFile && (
                           <div style={{ fontSize: '11px', color: '#1a5fa5', marginBottom: '6px' }}>
                             {t('documents.docStatus.uploadedMore')}
                           </div>
                         )}
-                        <input type="file" {...(isMulti ? { multiple: true } : {})} accept="image/*,application/pdf" ref={el => { fileRefs.current[key] = el }} onChange={e => handleFileUpload(key, doc.doc_name, e)} style={{ display: 'none' }} />
-                        <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '8px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                          {isMulti
-                            ? (hasFile ? t('documents.docStatus.addMoreBtn') : t('documents.docStatus.uploadBtn'))
-                            : t('documents.docStatus.digitalUploadBtn')}
+                        <input type="file" multiple accept="image/*,application/pdf" ref={el => { fileRefs.current[key] = el }} onChange={e => handleFileUpload(key, doc.doc_name, e)} style={{ display: 'none' }} />
+                        <button onClick={() => fileRefs.current[key]?.click()} style={{ width: '100%', padding: '10px', fontSize: '12px', fontWeight: '500', background: '#1a3a5c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                          {hasFile ? t('documents.docStatus.addMoreBtn') : t('documents.docStatus.uploadBtn')}
                         </button>
-                        {isMulti && !hasFile && (
+                        {!hasFile && (
                           <div style={{ fontSize: '11px', color: '#9aaabb', marginTop: '4px' }}>
                             {t('documents.docStatus.multipleFilesHint')}
                           </div>

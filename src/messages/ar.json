@@ -350,7 +350,11 @@
         "uploadBtn": "📎 رفع الملفات",
         "addMoreBtn": "📎 إضافة المزيد",
         "digitalUploadBtn": "📎 رفع رقمي",
-        "multipleFilesHint": "يمكنك اختيار ملفات متعددة"
+        "multipleFilesHint": "يمكنك اختيار ملفات متعددة",
+        "editBtn": "✏️ تعديل",
+        "submitBtn": "✅ إرسال",
+        "changeBtn": "🔄 تغيير",
+        "fileSizeLabel": "الحجم"
       }
     },
     "myInfo": {
