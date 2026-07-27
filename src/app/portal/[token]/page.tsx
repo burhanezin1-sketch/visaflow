@@ -80,7 +80,8 @@ export default function PortalPage() {
   function stageFiles(idx: string, e: React.ChangeEvent<HTMLInputElement>) {
     const fileList = e.target.files
     if (!fileList || fileList.length === 0) return
-    setPendingFiles(prev => ({ ...prev, [idx]: Array.from(fileList) }))
+    const filesArr = Array.from(fileList) // input.files canlıdır — value sıfırlanmadan önce anlık kopyasını al
+    setPendingFiles(prev => ({ ...prev, [idx]: filesArr }))
     e.target.value = ''
   }
 
