@@ -881,7 +881,7 @@ export default function MusteriDetayPage() {
                                   fileInputRef.current?.click()
                                 }}
                                 disabled={uploadingDocId === evrak.id}
-                                style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#f0f7ff', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '6px', cursor: uploadingDocId === evrak.id ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: uploadingDocId === evrak.id ? 0.6 : 1 }}
+                                style={{ padding: '3px 7px', fontSize: isMobile ? '10px' : '11px', fontWeight: '500', background: '#f0f7ff', color: '#1a5fa5', border: '1px solid #b8d4f0', borderRadius: '6px', cursor: uploadingDocId === evrak.id ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: uploadingDocId === evrak.id ? 0.6 : 1 }}
                               >
                                 {uploadingDocId === evrak.id ? '⏳' : '📎 Yükle'}
                               </button>
@@ -889,14 +889,14 @@ export default function MusteriDetayPage() {
                             {/* Durum aksiyon butonları */}
                             {showActions && (
                               <>
-                                <button onClick={() => approveDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                  {saving ? '...' : isMobile ? '✓' : t('docs.approveBtn')}
+                                <button onClick={() => approveDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: isMobile ? '10px' : '11px', fontWeight: '500', background: '#1a7a45', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
+                                  {saving ? '...' : t('docs.approveBtn')}
                                 </button>
-                                <button onClick={() => eldenDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#edfaf3', color: '#1a7a45', border: '1px solid #a8e6c1', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                  {isMobile ? '🤝' : '🤝 Elden'}
+                                <button onClick={() => eldenDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: isMobile ? '10px' : '11px', fontWeight: '500', background: '#edfaf3', color: '#1a7a45', border: '1px solid #a8e6c1', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
+                                  🤝 Elden
                                 </button>
-                                <button onClick={() => rejectDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
-                                  {isMobile ? '✗' : t('docs.rejectBtn')}
+                                <button onClick={() => rejectDoc(evrak.id, evrak.doc_name)} disabled={saving} style={{ padding: '3px 7px', fontSize: isMobile ? '10px' : '11px', fontWeight: '500', background: '#fef0ee', color: '#c0392b', border: '1px solid #f5c2bb', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: saving ? 0.6 : 1 }}>
+                                  {t('docs.rejectBtn')}
                                 </button>
                               </>
                             )}
