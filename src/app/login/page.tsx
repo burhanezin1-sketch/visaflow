@@ -84,7 +84,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: 'https://app.vectropus.com/reset-password',
     })
     setLoading(false)
     if (error) {
