@@ -83,19 +83,25 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: 'https://app.vectropus.com/reset-password',
-    })
-    setLoading(false)
-    if (error) {
-      const msg = error.message.toLowerCase()
-      if (msg.includes('rate limit') || msg.includes('too many')) {
-        setError('Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyin.')
-      } else if (msg.includes('invalid redirect')) {
-        setError('Yönlendirme adresi geçersiz. Lütfen destek ile iletişime geçin.')
-      } else {
-        setError('E-posta gönderilemedi: ' + error.message)
+    try {
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      })
+      setLoading(false)
+      if (!res.ok) {
+        if (res.status === 429) {
+          setError('Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyin.')
+        } else {
+          const data = await res.json().catch(() => ({}))
+          setError(data.error ? 'E-posta gönderilemedi: ' + data.error : 'E-posta gönderilemedi.')
+        }
+        return
       }
+    } catch {
+      setLoading(false)
+      setError('E-posta gönderilemedi. Bağlantınızı kontrol edin.')
       return
     }
     setStep('sent')

@@ -13,12 +13,20 @@ export default function ResetPasswordPage() {
   const [loading, setLoading]   = useState(false)
 
   useEffect(() => {
-    // PASSWORD_RECOVERY eventi Supabase'in URL'deki code'u otomatik işlemesiyle tetiklenir
+    // Kendi /api/forgot-password endpoint'imizin gönderdiği link — ?token=<hashed_token>
+    const token = new URLSearchParams(window.location.search).get('token')
+    if (token) {
+      supabase.auth.verifyOtp({ token_hash: token, type: 'recovery' }).then(({ error }) => {
+        setStep(error ? 'expired' : 'form')
+      })
+      return
+    }
+
+    // Geriye dönük uyumluluk — Supabase'in kendi ürettiği eski linkler (code/access_token)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setStep('form')
     })
 
-    // Zaten aktif recovery session varsa direkt forma geç
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setStep('form')
       else setTimeout(() => setStep(s => s === 'loading' ? 'expired' : s), 3000)
