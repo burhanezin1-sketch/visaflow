@@ -30,7 +30,7 @@ const schengen = [
   { ulke: '🇱🇻 Letonya',     kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/lva' },
   { ulke: '🇱🇹 Litvanya',    kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/ltu' },
   { ulke: '🇱🇺 Lüksemburg',  kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/lux' },
-  { ulke: '🇷🇴 Romanya',     kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/rou' },
+  { ulke: '🇷🇴 Romanya',     kurum: 'VFS Global',     url: 'https://eviza.mae.ro' },
   { ulke: '🇧🇬 Bulgaristan', kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/bgr' },
   { ulke: '🇮🇪 İrlanda',     kurum: 'VFS Global',     url: 'https://visa.vfsglobal.com/tur/tr/irl' },
 ]
