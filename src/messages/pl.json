@@ -224,7 +224,7 @@
       "passportRenewal": "Alert o odnowieniu paszportu",
       "missingDocsDesc": "Brakujące dokumenty dla wniosku {country} {visaType}",
       "appointmentDesc": "Oczekiwanie na wizytę konsularną dla {country} {visaType}",
-      "paymentDesc": "Pozostałe: {amount}₺",
+      "paymentDesc": "Pozostałe: {amount}",
       "passportDesc": "Paszport wygasa {date}"
     }
   },

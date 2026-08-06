@@ -224,7 +224,7 @@
       "passportRenewal": "Предупреждение о продлении паспорта",
       "missingDocsDesc": "Документы отсутствуют для заявки {country} {visaType}",
       "appointmentDesc": "Ожидание записи в консульство для {country} {visaType}",
-      "paymentDesc": "Осталось: {amount}₺",
+      "paymentDesc": "Осталось: {amount}",
       "passportDesc": "Паспорт истекает {date}"
     }
   },

@@ -224,7 +224,7 @@
       "passportRenewal": "Reisepass-Verlängerungswarnung",
       "missingDocsDesc": "Dokumente fehlen für {country} {visaType} Antrag",
       "appointmentDesc": "Konsulattermin ausstehend für {country} {visaType}",
-      "paymentDesc": "Verbleibend: {amount}₺",
+      "paymentDesc": "Verbleibend: {amount}",
       "passportDesc": "Reisepass läuft ab am {date}"
     }
   },

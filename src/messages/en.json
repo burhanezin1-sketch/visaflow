@@ -224,7 +224,7 @@
       "passportRenewal": "Passport renewal alert",
       "missingDocsDesc": "Documents missing for {country} {visaType} application",
       "appointmentDesc": "Consulate appointment awaited for {country} {visaType}",
-      "paymentDesc": "Remaining: {amount}₺",
+      "paymentDesc": "Remaining: {amount}",
       "passportDesc": "Passport expires on {date}"
     }
   },

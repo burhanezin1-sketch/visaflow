@@ -224,7 +224,7 @@
       "passportRenewal": "تحذير تجديد جواز السفر",
       "missingDocsDesc": "المستندات ناقصة لطلب {country} {visaType}",
       "appointmentDesc": "في انتظار موعد القنصلية لـ {country} {visaType}",
-      "paymentDesc": "المتبقي: {amount}₺",
+      "paymentDesc": "المتبقي: {amount}",
       "passportDesc": "جواز السفر ينتهي في {date}"
     }
   },

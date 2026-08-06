@@ -8,6 +8,7 @@ import { useCompany } from '@/lib/useCompany'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { useTranslations, useLocale } from 'next-intl'
 import { tField } from '@/lib/fieldMappings'
+import { formatCurrency } from '@/lib/formatCurrency'
 
 const typeIcon: Record<string, string> = {
   evrak: '📎', randevu: '📅', odeme: '💰', pasaport: '🛂', elden: '🤝',
@@ -135,7 +136,7 @@ export default function GorevlerPage() {
       const payment = payments?.find(p => p.applications?.client_id === c.id)
       if (app?.status === 'missing') liste.push({ id: `evrak-${c.id}`, client_id: c.id, client_name: c.full_name, title: t('tasks.sendDocReminder'), type: 'evrak', aciklama: t('tasks.missingDocsDesc', { country: tField(app.country, 'country', locale), visaType: tField(app.visa_type, 'visaType', locale) }) })
       if (app?.status === 'appointment_waiting') liste.push({ id: `randevu-${c.id}`, client_id: c.id, client_name: c.full_name, title: t('tasks.scheduleAppointment'), type: 'randevu', aciklama: t('tasks.appointmentDesc', { country: tField(app.country, 'country', locale), visaType: tField(app.visa_type, 'visaType', locale) }) })
-      if (payment && payment.total_amount - payment.paid_amount > 0) liste.push({ id: `odeme-${c.id}`, client_id: c.id, client_name: c.full_name, title: t('tasks.paymentFollowup'), type: 'odeme', aciklama: t('tasks.paymentDesc', { amount: (payment.total_amount - payment.paid_amount).toLocaleString('tr-TR') }) })
+      if (payment && payment.total_amount - payment.paid_amount > 0) liste.push({ id: `odeme-${c.id}`, client_id: c.id, client_name: c.full_name, title: t('tasks.paymentFollowup'), type: 'odeme', aciklama: t('tasks.paymentDesc', { amount: formatCurrency(payment.total_amount - payment.paid_amount, payment.currency) }) })
       if (c.passport_expiry) {
         const expiry = new Date(c.passport_expiry)
         const ucAySonra = new Date(); ucAySonra.setMonth(ucAySonra.getMonth() + 3)

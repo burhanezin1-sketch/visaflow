@@ -224,7 +224,7 @@
       "passportRenewal": "Aviso de renovación de pasaporte",
       "missingDocsDesc": "Faltan documentos para la solicitud de {country} {visaType}",
       "appointmentDesc": "Esperando cita consular para {country} {visaType}",
-      "paymentDesc": "Pendiente: {amount}₺",
+      "paymentDesc": "Pendiente: {amount}",
       "passportDesc": "El pasaporte vence el {date}"
     }
   },

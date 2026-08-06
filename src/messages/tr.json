@@ -224,7 +224,7 @@
       "passportRenewal": "Pasaport yenileme uyarısı",
       "missingDocsDesc": "{country} {visaType} başvurusu için evraklar eksik",
       "appointmentDesc": "{country} {visaType} için konsolosluk randevusu bekleniyor",
-      "paymentDesc": "Kalan: {amount}₺",
+      "paymentDesc": "Kalan: {amount}",
       "passportDesc": "Pasaport {date} tarihinde sona eriyor"
     }
   },

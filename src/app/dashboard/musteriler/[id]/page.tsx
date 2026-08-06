@@ -9,6 +9,7 @@ import { logAction } from '@/lib/activityLog'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { useTranslations, useLocale } from 'next-intl'
 import { tField } from '@/lib/fieldMappings'
+import { formatCurrency } from '@/lib/formatCurrency'
 
 export default function MusteriDetayPage() {
   const { id } = useParams()
@@ -939,9 +940,9 @@ export default function MusteriDetayPage() {
                 {payment ? (
                   <>
                     {[
-                      [t('payment.total'),     payment.total_amount.toLocaleString('tr-TR') + (payment.currency === 'EUR' ? '€' : payment.currency === 'USD' ? '$' : '₺'), '#0d1f35'],
-                      [t('payment.paid'),      payment.paid_amount.toLocaleString('tr-TR') + (payment.currency === 'EUR' ? '€' : payment.currency === 'USD' ? '$' : '₺'), '#1a7a45'],
-                      [t('payment.remaining'), kalan.toLocaleString('tr-TR') + (payment.currency === 'EUR' ? '€' : payment.currency === 'USD' ? '$' : '₺'), kalan > 0 ? '#c0392b' : '#1a7a45'],
+                      [t('payment.total'),     formatCurrency(payment.total_amount, payment.currency), '#0d1f35'],
+                      [t('payment.paid'),      formatCurrency(payment.paid_amount, payment.currency), '#1a7a45'],
+                      [t('payment.remaining'), formatCurrency(kalan, payment.currency), kalan > 0 ? '#c0392b' : '#1a7a45'],
                     ].map(([label, value, color]) => (
                       <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f4', fontSize: '13px' }}>
                         <span style={{ color: '#5a6a7a' }}>{label}</span>
