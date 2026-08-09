@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { getSessionUser } from '@/lib/serverAuth'
 import { rateLimit } from '@/lib/rateLimit'
+
+function getAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -18,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { to, message } = await req.json()
+    const { to, message, companyId } = await req.json()
 
     if (typeof to !== 'string' || !to.trim()) {
       return NextResponse.json({ error: 'Geçersiz telefon numarası.' }, { status: 400 })
@@ -26,13 +35,27 @@ export async function POST(req: NextRequest) {
     if (typeof message !== 'string' || !message.trim() || message.length > 1600) {
       return NextResponse.json({ error: 'Geçersiz mesaj (max 1600 karakter).' }, { status: 400 })
     }
+    if (typeof companyId !== 'string' || !companyId.trim()) {
+      return NextResponse.json({ error: 'companyId eksik.' }, { status: 400 })
+    }
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID
     const authToken = process.env.TWILIO_AUTH_TOKEN
-    const rawFrom = process.env.TWILIO_WHATSAPP_FROM
 
-    if (!accountSid || !authToken || !rawFrom) {
+    if (!accountSid || !authToken) {
       return NextResponse.json({ error: 'Twilio credentials eksik.' }, { status: 500 })
+    }
+
+    const admin = getAdmin()
+    const { data: company } = await admin
+      .from('companies')
+      .select('whatsapp_number')
+      .eq('id', companyId)
+      .single()
+
+    const rawFrom = company?.whatsapp_number
+    if (!rawFrom) {
+      return NextResponse.json({ error: 'Bu firma için WhatsApp numarası tanımlanmamış. Süperadmin panelinden ekleyin.' }, { status: 400 })
     }
 
     const toFormatted = 'whatsapp:' + normalizePhone(to)
