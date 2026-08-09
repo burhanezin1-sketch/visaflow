@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
 
     const rawFrom = company?.whatsapp_number
     if (!rawFrom) {
-      return NextResponse.json({ error: 'Bu firma için WhatsApp numarası tanımlanmamış. Süperadmin panelinden ekleyin.' }, { status: 400 })
+      // Bu firma için Twilio kurulmamış — istemci tarafı wa.me linkine düşer.
+      return NextResponse.json({ code: 'no_number' })
     }
 
     const toFormatted = 'whatsapp:' + normalizePhone(to)

@@ -188,6 +188,16 @@ export default function MusteriDetayPage() {
         body: JSON.stringify({ to: client.phone, message: newMessage, companyId: client.company_id }),
       })
       const result = await res.json()
+
+      if (result.code === 'no_number') {
+        const digits = client.phone.replace(/\D/g, '')
+        const waPhone = digits.startsWith('90') ? digits : digits.startsWith('0') ? '90' + digits.slice(1) : '90' + digits
+        window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(newMessage)}`, '_blank')
+        setWaStatus('idle')
+        setNewMessage('')
+        return
+      }
+
       if (!res.ok || result.error) throw new Error(result.error || 'Gönderim başarısız.')
       setWaStatus('success')
       setTimeout(() => setWaStatus('idle'), 3000)
