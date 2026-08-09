@@ -62,6 +62,10 @@ export default function FirmaListPage() {
   const [editNoteText, setEditNoteText] = useState('')
   const [savingNote, setSavingNote] = useState(false)
 
+  const [editWaId, setEditWaId] = useState<string | null>(null)
+  const [editWaNumber, setEditWaNumber] = useState('')
+  const [savingWa, setSavingWa] = useState(false)
+
   const [editTrialId, setEditTrialId] = useState<string | null>(null)
   const [editTrialDate, setEditTrialDate] = useState('')
 
@@ -146,6 +150,16 @@ export default function FirmaListPage() {
     setCompanies(prev => prev.map(c => c.id === editNoteId ? { ...c, notes: editNoteText || null } : c))
     setSavingNote(false)
     setEditNoteId(null)
+  }
+
+  async function saveWaNumber() {
+    if (!editWaId) return
+    setSavingWa(true)
+    const trimmed = editWaNumber.trim()
+    await supabase.from('companies').update({ whatsapp_number: trimmed || null }).eq('id', editWaId)
+    setCompanies(prev => prev.map(c => c.id === editWaId ? { ...c, whatsapp_number: trimmed || null } : c))
+    setSavingWa(false)
+    setEditWaId(null)
   }
 
   async function saveTrial() {
@@ -361,6 +375,9 @@ export default function FirmaListPage() {
                             <button onClick={() => openColorModal(c)} className="fp-btn-ghost" style={{ color: '#c4b5fd' }}>🎨 Renk</button>
                           )}
                           <button onClick={() => { setEditNoteId(c.id); setEditNoteText(c.notes || '') }} className="fp-btn-ghost" style={{ color: c.notes ? '#a5b4fc' : S.muted }}>Not</button>
+                          <button onClick={() => { setEditWaId(c.id); setEditWaNumber(c.whatsapp_number || '') }} className="fp-btn-ghost" style={{ color: c.whatsapp_number ? '#34d399' : S.muted }}>
+                            {c.whatsapp_number ? 'WhatsApp' : 'WhatsApp ekle'}
+                          </button>
                           <button onClick={() => { setEditTrialId(c.id); setEditTrialDate(c.trial_ends_at ? c.trial_ends_at.split('T')[0] : '') }} className="fp-btn-ghost" style={{ color: trialActive ? '#fbbf24' : S.muted }}>Deneme</button>
                           <button onClick={() => { setAnnModal({ id: c.id, name: c.name }); setAnnForm({ title: '', body: '', imageUrl: '' }); setAnnSuccess(false) }} className="fp-btn-ghost" style={{ color: '#34d399' }}>📢 Duyuru</button>
                           <button onClick={() => deleteFirma(c.id, c.name)} disabled={deleting === c.id} className="fp-btn-danger" style={{ opacity: deleting === c.id ? 0.5 : 1 }}>
@@ -445,6 +462,34 @@ export default function FirmaListPage() {
                 <button onClick={() => setEditNoteId(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
                 <button onClick={saveNote} disabled={savingNote} className="fp-btn-primary" style={{ flex: 2 }}>
                   {savingNote ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* WhatsApp Modal */}
+        {editWaId !== null && (
+          <div style={modalOverlay}>
+            <div style={{ ...modalBox, width: '380px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'white', margin: '0 0 1rem' }}>
+                WhatsApp Numarası — {companies.find(c => c.id === editWaId)?.name}
+              </h3>
+              <input
+                type="text"
+                value={editWaNumber}
+                onChange={e => setEditWaNumber(e.target.value)}
+                placeholder="+905551234567"
+                className="fp-inp"
+                style={inpS}
+              />
+              <div style={{ fontSize: '11px', color: S.faint, marginTop: '4px' }}>
+                Uluslararası formatta girin (örn. +905551234567). Boş bırakırsanız bu firma için manuel WhatsApp gönderimi devre dışı kalır.
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button onClick={() => setEditWaId(null)} className="fp-btn-ghost" style={{ flex: 1, padding: '9px' }}>İptal</button>
+                <button onClick={saveWaNumber} disabled={savingWa} className="fp-btn-primary" style={{ flex: 2 }}>
+                  {savingWa ? 'Kaydediliyor...' : 'Kaydet'}
                 </button>
               </div>
             </div>
