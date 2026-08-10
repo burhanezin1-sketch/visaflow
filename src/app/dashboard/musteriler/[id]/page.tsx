@@ -173,6 +173,11 @@ export default function MusteriDetayPage() {
     setWaStatus('sending')
     setWaError(null)
 
+    // Tıklamanın hemen ardından, senkron olarak açılmalı — aksi halde mobil
+    // tarayıcılar (özellikle iOS Safari), aradaki await'lerden sonra gelen
+    // window.open() çağrısını kullanıcı eylemi saymayıp engelliyor.
+    const waWindow = window.open('', '_blank')
+
     const { data: { user } } = await supabase.auth.getUser()
     const { data } = await supabase
       .from('wa_messages')
@@ -192,16 +197,20 @@ export default function MusteriDetayPage() {
       if (result.code === 'no_number') {
         const digits = client.phone.replace(/\D/g, '')
         const waPhone = digits.startsWith('90') ? digits : digits.startsWith('0') ? '90' + digits.slice(1) : '90' + digits
-        window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(newMessage)}`, '_blank')
+        const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(newMessage)}`
+        if (waWindow) waWindow.location.href = waUrl
+        else window.open(waUrl, '_blank')
         setWaStatus('idle')
         setNewMessage('')
         return
       }
 
+      if (waWindow) waWindow.close()
       if (!res.ok || result.error) throw new Error(result.error || 'Gönderim başarısız.')
       setWaStatus('success')
       setTimeout(() => setWaStatus('idle'), 3000)
     } catch (err: any) {
+      if (waWindow) waWindow.close()
       setWaStatus('error')
       setWaError(err.message)
     }
